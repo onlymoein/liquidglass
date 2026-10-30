@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode } from "react";
 
-import { Button } from "./button";
+import { Button, type ButtonProps } from "./button";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { createSpring, type Spring } from "./internal/spring";
@@ -29,6 +29,8 @@ export interface MenuProps {
   icon?: ReactNode;
   /** Turns the trigger into a pill with this label and a chevron, like an iOS pull-down button. */
   label?: ReactNode;
+  /** Anything else for the trigger button, such as its `variant` or `className`. */
+  trigger?: Omit<ButtonProps, "icon" | "children" | "onClick">;
   /** The trigger edge the menu lines up with as it opens across it. */
   align?: "start" | "end";
   /** Whether the menu is open. Pass it with `onOpenChange` to open and close the menu yourself. */
@@ -65,6 +67,7 @@ export function Menu({
   "aria-label": name,
   icon: iconProp,
   label,
+  trigger,
   align = "end",
   open: openProp,
   defaultOpen = false,
@@ -138,6 +141,8 @@ export function Menu({
     content.style.transformOrigin = `${origin.x}px ${origin.y}px`;
     glyph.style.width = `${from.width}px`;
     glyph.style.height = `${from.height}px`;
+    // The face keeps the trigger's ink, such as white on a filled one, as it goes.
+    glyph.style.color = getComputedStyle(trigger).color;
     let leaving = false;
     const shape = createSpring(0, 600, 46, (value) => {
       const t = clamp(value);
@@ -355,6 +360,7 @@ export function Menu({
   return (
     <div className={cx("lg-menu", className)} style={style}>
       <Button
+        {...trigger}
         ref={triggerRef}
         icon={icon}
         aria-label={label == null ? name : undefined}

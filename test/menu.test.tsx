@@ -109,3 +109,10 @@ test("follows a link item through onSelect, or in a new tab with a modifier", ()
   expect(navigate).toHaveBeenCalledOnce();
   open.mockRestore();
 });
+
+test("hands the trigger its own props", () => {
+  render(<Menu aria-label="Options" label="Create" trigger={{ variant: "filled", className: "primary" }} items={[{ label: "Pin" }]} />);
+  const trigger = screen.getByRole("button", { name: "Create" });
+  expect(trigger.dataset.variant).toBe("filled");
+  expect(trigger.className).toBe("lg-glass lg-button primary");
+});

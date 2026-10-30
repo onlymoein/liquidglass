@@ -78,7 +78,7 @@ import { Menu } from "@onlymoein/liquidglass";
 
 With a `label`, the trigger is a pill with a chevron, like an iOS pull-down button, and the pill itself stretches into the menu. Without one, it's a round button with an ellipsis or your `icon`.
 
-The menu is as wide as its longest row, and every row is one line.
+The menu is as wide as its longest row, and every row is one line. `trigger` passes anything else to the trigger button, such as `{ variant: "filled" }` or your own `className`.
 
 Give an item an `href` to make it a link. Choosing it calls `onSelect` if there is one, such as your router's navigate, and follows the link if not. ⌘, Ctrl, Shift or the middle button opens it in a new tab.
 
