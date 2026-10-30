@@ -20,12 +20,12 @@
   "contributors": [
     "Kelvin Zhang <me@kelvinzhang.ca> (https://github.com/0kzh)"
   ],
-  "homepage": "https://github.com/onlymoein/glisse#readme",
+  "homepage": "https://github.com/onlymoein/liquidglass#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/onlymoein/glisse.git"
+    "url": "git+https://github.com/onlymoein/liquidglass.git"
   },
-  "bugs": "https://github.com/onlymoein/glisse/issues",
+  "bugs": "https://github.com/onlymoein/liquidglass/issues",
   "type": "module",
   "sideEffects": [
     "*.css",
