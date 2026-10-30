@@ -669,7 +669,8 @@
   right: 0;
   z-index: 10;
   box-sizing: border-box;
-  width: 200px;
+  /* Never narrower than a labelled trigger, so its pill only ever grows. */
+  width: max(200px, 100%);
   border-radius: 20px;
   color: var(--lg-foreground);
   font-size: 14px;
@@ -729,6 +730,26 @@
 .lg-menu-glyph > svg {
   width: 20px;
   height: 20px;
+}
+
+/* A labelled trigger's face, laid out as the button lays it out. */
+.lg-menu > .lg-button,
+.lg-menu-card[data-label] .lg-menu-glyph {
+  white-space: nowrap;
+}
+
+.lg-menu-card[data-label] .lg-menu-glyph {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lg-button > .lg-menu-chevron,
+.lg-menu-glyph > .lg-menu-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: -2px;
+  opacity: 0.6;
 }
 
 .lg-menu-content {

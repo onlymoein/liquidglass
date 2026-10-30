@@ -17,10 +17,12 @@ export type MenuEntry = MenuItem | "separator";
 
 export interface MenuProps {
   items: MenuEntry[];
-  /** Names the trigger and the menu for assistive technology. */
+  /** Names the menu for assistive technology, and the trigger too when it has no `label`. */
   "aria-label": string;
-  /** The trigger's icon. Defaults to an ellipsis. */
+  /** The trigger's icon. Defaults to an ellipsis when there's no `label`. */
   icon?: ReactNode;
+  /** Turns the trigger into a pill with this label and a chevron, like an iOS pull-down button. */
+  label?: ReactNode;
   /** The trigger edge the menu lines up with as it opens across it. */
   align?: "start" | "end";
   /** Whether the menu is open. Pass it with `onOpenChange` to open and close the menu yourself. */
@@ -37,6 +39,12 @@ type Phase = "closed" | "open" | "leaving";
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const resistance = (value: number) => Math.sign(value) * 7 * (1 - Math.exp((-Math.abs(value) * 0.12) / 7));
 
+const chevron = (
+  <svg className="lg-menu-chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden>
+    <path d="M2.5 4.5 6 8l3.5-3.5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const ellipsis = (
   <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden>
     <circle cx="3" cy="8" r="1.4" />
@@ -47,8 +55,9 @@ const ellipsis = (
 
 export function Menu({
   items,
-  "aria-label": label,
-  icon = ellipsis,
+  "aria-label": name,
+  icon: iconProp,
+  label,
   align = "end",
   open: openProp,
   defaultOpen = false,
@@ -57,6 +66,17 @@ export function Menu({
   style,
 }: MenuProps): JSX.Element {
   const [open, setOpen] = useControllable(openProp, defaultOpen, onOpenChange);
+  const icon = iconProp ?? (label == null ? ellipsis : undefined);
+  const face =
+    label == null ? (
+      icon
+    ) : (
+      <>
+        {icon}
+        {label}
+        {chevron}
+      </>
+    );
   // `open` is whether the menu should be open; the phase follows it, and keeps
   // the menu mounted while its glass runs back into the trigger.
   const [phase, setPhase] = useState<Phase>(open ? "open" : "closed");
@@ -105,6 +125,8 @@ export function Menu({
     const to = { width: card.offsetWidth, height: card.offsetHeight };
     const radius = parseFloat(getComputedStyle(surface).borderTopLeftRadius);
     const trailing = card.dataset.align !== "start";
+    // A lone icon swells as it goes; a label grows less, so it doesn't sprawl.
+    const swell = card.hasAttribute("data-label") ? 0.15 : 0.6;
     const origin = { x: trailing ? to.width - from.width / 2 : from.width / 2, y: from.height / 2 };
     content.style.transformOrigin = `${origin.x}px ${origin.y}px`;
     glyph.style.width = `${from.width}px`;
@@ -133,7 +155,7 @@ export function Menu({
       const dx = ((trailing ? to.width - width / 2 : width / 2) - origin.x) * drift;
       const dy = (height / 2 - origin.y) * drift;
       glyph.style.opacity = String(1 - clamp(t / 0.45));
-      glyph.style.transform = `translate(${dx}px, ${dy}px) scale(${1 + 0.6 * t})`;
+      glyph.style.transform = `translate(${dx}px, ${dy}px) scale(${1 + swell * t})`;
       glyph.style.filter = `blur(${8 * t}px)`;
       content.style.opacity = String(leaving ? clamp((t - 0.55) / 0.45) : clamp((t - 0.15) / 0.6));
       content.style.transform = settled ? "" : `scale(${scale})`;
@@ -321,16 +343,31 @@ export function Menu({
       <Button
         ref={triggerRef}
         icon={icon}
-        aria-label={label}
+        aria-label={label == null ? name : undefined}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-      />
+      >
+        {label == null ? null : (
+          <>
+            {label}
+            {chevron}
+          </>
+        )}
+      </Button>
       {mounted ? (
-        <div ref={cardRef} role="menu" aria-label={label} className="lg-menu-card" data-phase={phase} data-align={align}>
+        <div
+          ref={cardRef}
+          role="menu"
+          aria-label={name}
+          className="lg-menu-card"
+          data-phase={phase}
+          data-align={align}
+          data-label={label == null ? undefined : ""}
+        >
           <span ref={surfaceRef} className="lg-menu-surface" aria-hidden />
           <span ref={glyphRef} className="lg-menu-glyph" aria-hidden>
-            {icon}
+            {face}
           </span>
           <div ref={contentRef} role="none" className="lg-menu-content">
             <span ref={plateRef} className="lg-menu-plate" aria-hidden />

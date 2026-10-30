@@ -62,6 +62,22 @@ import { Button, Toolbar, ToolbarGroup } from "@onlymoein/liquidglass";
 
 The toolbar sticks to the top of whatever scrolls around it. Buttons in a group share one piece of glass. Once content scrolls under the bar, a frosted band fades in behind it, as on iOS 27. Pass `edge="soft"` for the lighter iOS 26 blur, or `edge="none"` for neither. The arrow keys, Home and End move between its actions.
 
+### Menu
+
+```tsx
+import { Menu } from "@onlymoein/liquidglass";
+
+<Menu
+  aria-label="Shipment options"
+  label="Create shipment"
+  icon={<PlusIcon />}
+  align="start"
+  items={[{ label: "Parcel", onSelect: newParcel }, { label: "Freight", onSelect: newFreight }]}
+/>
+```
+
+With a `label`, the trigger is a pill with a chevron, like an iOS pull-down button, and the pill itself stretches into the menu. Without one, it's a round button with an ellipsis or your `icon`.
+
 ## Transparency
 
 Like the iOS 27 setting, `--lg-transparency` runs from `0`, fully tinted, to `1`, fully clear. The default is `0.5`. Set it anywhere, and the glass inside follows:

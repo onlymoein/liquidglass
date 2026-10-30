@@ -79,3 +79,15 @@ test("reports each change once", () => {
   fireEvent.pointerDown(document.body);
   expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 });
+
+test("gives a labelled trigger its label as its name, and a chevron", () => {
+  render(<Menu aria-label="Shipment options" label="Create shipment" items={[{ label: "Parcel" }, { label: "Freight" }]} />);
+  const trigger = screen.getByRole("button", { name: "Create shipment" });
+  expect(trigger.hasAttribute("data-icon")).toBe(false);
+  expect(trigger.querySelector(".lg-menu-chevron")).toBeTruthy();
+
+  fireEvent.click(trigger);
+  const menu = screen.getByRole("menu", { name: "Shipment options" });
+  expect(menu.hasAttribute("data-label")).toBe(true);
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Parcel" }));
+});
