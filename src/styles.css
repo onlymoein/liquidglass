@@ -669,8 +669,11 @@
   right: 0;
   z-index: 10;
   box-sizing: border-box;
-  /* Never narrower than a labelled trigger, so its pill only ever grows. */
-  width: max(200px, 100%);
+  /* As wide as its longest row, and never narrower than a labelled
+     trigger, so its pill only ever grows. */
+  width: max-content;
+  min-width: max(200px, 100%);
+  max-width: calc(100vw - 32px);
   border-radius: 20px;
   color: var(--lg-foreground);
   font-size: 14px;
@@ -790,6 +793,7 @@
 .lg-menu-item {
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -801,6 +805,9 @@
   background: transparent;
   font: inherit;
   text-align: left;
+  text-decoration: none;
+  /* One line a row; the menu widens to fit. */
+  white-space: nowrap;
   cursor: pointer;
 }
 

@@ -8,6 +8,12 @@ import { createSpring, type Spring } from "./internal/spring";
 export interface MenuItem {
   label: ReactNode;
   icon?: ReactNode;
+  /**
+   * Makes the item a link. Choosing it calls `onSelect` if there is one, such as a router's
+   * navigate, and follows the link if not; with ⌘, Ctrl, Shift or the middle button it opens
+   * a new tab.
+   */
+  href?: string;
   onSelect?: () => void;
   destructive?: boolean;
   disabled?: boolean;
@@ -36,6 +42,7 @@ export interface MenuProps {
 
 type Phase = "closed" | "open" | "leaving";
 
+const modifiers = ({ metaKey, ctrlKey, shiftKey }: MouseEvent | PointerEvent) => ({ metaKey, ctrlKey, shiftKey });
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const resistance = (value: number) => Math.sign(value) * 7 * (1 - Math.exp((-Math.abs(value) * 0.12) / 7));
 
@@ -177,7 +184,7 @@ export function Menu({
     morphRef.current = morph;
     shape.paint();
     morph.set(1);
-    const rows = () => [...card.querySelectorAll<HTMLButtonElement>(".lg-menu-item:not(:disabled)")];
+    const rows = () => [...card.querySelectorAll<HTMLElement>(".lg-menu-item:not(:disabled)")];
     rows()[0]?.focus({ preventScroll: true });
 
     const offset = { scale: 1, x: 0, y: 0 };
@@ -199,7 +206,7 @@ export function Menu({
     });
 
     let gesture: { id: number; x: number; y: number } | null = null;
-    let current: HTMLButtonElement | null = null;
+    let current: HTMLElement | null = null;
     let suppressClickUntil = 0;
 
     // Asks to close. A controlled menu stays open until its owner agrees.
@@ -210,7 +217,7 @@ export function Menu({
     };
 
     // The plate slides between rows for a drag and for a hovering mouse alike.
-    const highlight = (row: HTMLButtonElement | null) => {
+    const highlight = (row: HTMLElement | null) => {
       if (current === row) return;
       const first = !current;
       current = row;
@@ -234,8 +241,8 @@ export function Menu({
     };
 
     const rowAt = (clientX: number, clientY: number) => {
-      const row = document.elementFromPoint(clientX, clientY)?.closest<HTMLButtonElement>(".lg-menu-item");
-      return row && !row.disabled && card.contains(row) ? row : null;
+      const row = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>(".lg-menu-item");
+      return row && !row.matches(":disabled") && card.contains(row) ? row : null;
     };
 
     const down = (event: PointerEvent) => {
@@ -271,7 +278,8 @@ export function Menu({
       x.set(0);
       y.set(0);
       suppressClickUntil = performance.now() + 500;
-      chosen?.click();
+      // Carries the modifiers, so ⌘ on a link still means a new tab.
+      chosen?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ...modifiers(event) }));
     };
 
     const leave = (event: PointerEvent) => {
@@ -279,12 +287,18 @@ export function Menu({
     };
 
     const click = (event: MouseEvent) => {
-      const row = (event.target as Element).closest<HTMLButtonElement>(".lg-menu-item");
-      if (!row || (event.detail !== 0 && performance.now() < suppressClickUntil)) return;
+      const row = (event.target as Element).closest<HTMLElement>(".lg-menu-item");
+      if (!row) return;
+      // A link is followed here, once, rather than by the browser as well.
+      if (row instanceof HTMLAnchorElement) event.preventDefault();
+      if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
       const item = latest.current.items[Number(row.dataset.index)];
       if (!item || item === "separator") return;
       close();
-      item.onSelect?.();
+      const elsewhere = Object.values(modifiers(event)).some(Boolean);
+      if (item.href && elsewhere) window.open(item.href, "_blank", "noopener");
+      else if (item.onSelect) item.onSelect();
+      else if (item.href) window.location.assign(item.href);
     };
 
     const key = (event: KeyboardEvent) => {
@@ -374,6 +388,18 @@ export function Menu({
             {items.map((item, index) =>
               item === "separator" ? (
                 <div key={index} role="separator" className="lg-menu-separator" />
+              ) : item.href && !item.disabled ? (
+                <a
+                  key={index}
+                  href={item.href}
+                  role="menuitem"
+                  className="lg-menu-item"
+                  data-index={index}
+                  data-destructive={item.destructive ? "" : undefined}
+                >
+                  {item.icon}
+                  {item.label}
+                </a>
               ) : (
                 <button
                   key={index}

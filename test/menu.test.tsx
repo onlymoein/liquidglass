@@ -91,3 +91,21 @@ test("gives a labelled trigger its label as its name, and a chevron", () => {
   expect(menu.hasAttribute("data-label")).toBe(true);
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Parcel" }));
 });
+
+test("follows a link item through onSelect, or in a new tab with a modifier", () => {
+  const navigate = vi.fn();
+  const open = vi.spyOn(window, "open").mockReturnValue(null);
+  render(<Menu aria-label="Options" items={[{ label: "Freight", href: "/ship?mode=pallets", onSelect: navigate }]} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  const link = screen.getByRole("menuitem", { name: "Freight" });
+  expect(link.getAttribute("href")).toBe("/ship?mode=pallets");
+  expect(fireEvent.click(link)).toBe(false);
+  expect(navigate).toHaveBeenCalledOnce();
+
+  fireEvent.click(screen.getByRole("button", { name: "Options" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Freight" }), { metaKey: true });
+  expect(open).toHaveBeenCalledWith("/ship?mode=pallets", "_blank", "noopener");
+  expect(navigate).toHaveBeenCalledOnce();
+  open.mockRestore();
+});

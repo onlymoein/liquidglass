@@ -78,6 +78,10 @@ import { Menu } from "@onlymoein/liquidglass";
 
 With a `label`, the trigger is a pill with a chevron, like an iOS pull-down button, and the pill itself stretches into the menu. Without one, it's a round button with an ellipsis or your `icon`.
 
+The menu is as wide as its longest row, and every row is one line.
+
+Give an item an `href` to make it a link. Choosing it calls `onSelect` if there is one, such as your router's navigate, and follows the link if not. ⌘, Ctrl, Shift or the middle button opens it in a new tab.
+
 ## Transparency
 
 Like the iOS 27 setting, `--lg-transparency` runs from `0`, fully tinted, to `1`, fully clear. The default is `0.5`. Set it anywhere, and the glass inside follows:
