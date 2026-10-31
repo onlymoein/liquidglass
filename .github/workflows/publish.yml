@@ -1,0 +1,25 @@
+name: Publish
+
+# Pushing a version tag publishes that version to npm. npm trusts this
+# workflow directly, so no token or one-time password is needed.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      # prepublishOnly typechecks, tests and builds first.
+      - run: npm publish
