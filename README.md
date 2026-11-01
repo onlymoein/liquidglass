@@ -82,6 +82,25 @@ The menu is as wide as its longest row, and every row is one line. `trigger` pas
 
 Give an item an `href` to make it a link. Choosing it calls `onSelect` if there is one, such as your router's navigate, and follows the link if not. ⌘, Ctrl, Shift or the middle button opens it in a new tab.
 
+Items can also be a set of choices, with a checkmark on the chosen one, under a small heading:
+
+```tsx
+<Menu
+  aria-label="Account"
+  items={[
+    { heading: "Appearance" },
+    { label: "Light", checked: theme === "light", keepOpen: true, onSelect: () => setTheme("light") },
+    { label: "Dark", checked: theme === "dark", keepOpen: true, onSelect: () => setTheme("dark") },
+    "separator",
+    { label: "Sign out", destructive: true, onSelect: signOut },
+  ]}
+/>
+```
+
+`keepOpen` leaves the menu open after the item is chosen, so what it changed can be seen. `className` on an item is passed to its row. `chevron={false}` leaves the chevron off a labelled trigger.
+
+The menu opens in the top layer, so nothing that scrolls or clips around the trigger can cut it off, and nothing on the page can sit above it. It covers its trigger and grows down from it, or up when there isn't room below, and stays inside the window. A menu taller than the room there is scrolls. While it's open, it takes Escape, so a dialog it opened over stays open.
+
 ## Transparency
 
 Like the iOS 27 setting, `--lg-transparency` runs from `0`, fully tinted, to `1`, fully clear. The default is `0.5`. Set it anywhere, and the glass inside follows:

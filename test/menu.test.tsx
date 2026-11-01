@@ -116,3 +116,97 @@ test("hands the trigger its own props", () => {
   expect(trigger.dataset.variant).toBe("filled");
   expect(trigger.className).toBe("lg-glass lg-button primary");
 });
+
+test("titles a section with a heading, and checks the chosen one of a set", () => {
+  const onDark = vi.fn();
+  render(
+    <Menu
+      aria-label="Appearance"
+      items={[
+        { heading: "Appearance" },
+        { label: "Light", checked: false },
+        { label: "Dark", checked: true, onSelect: onDark, keepOpen: true },
+      ]}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
+
+  expect(screen.getByText("Appearance", { selector: ".lg-menu-heading" }).getAttribute("role")).toBe("presentation");
+  const dark = screen.getByRole("menuitemradio", { name: "Dark" });
+  expect(dark.getAttribute("aria-checked")).toBe("true");
+  expect(dark.querySelector(".lg-menu-check svg")).toBeTruthy();
+  expect(screen.getByRole("menuitemradio", { name: "Light" }).getAttribute("aria-checked")).toBe("false");
+  expect(screen.getByRole("menuitemradio", { name: "Light" }).querySelector(".lg-menu-check svg")).toBeNull();
+
+  // A setting stays open, so the change can be seen.
+  fireEvent.click(dark);
+  expect(onDark).toHaveBeenCalledOnce();
+  expect(screen.getByRole("menu").dataset.phase).toBe("open");
+});
+
+test("leaves the heading out when arrows move between items", () => {
+  render(<Menu aria-label="Options" items={[{ heading: "Sort" }, { label: "Newest" }, { label: "Oldest" }]} />);
+  open();
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Newest" }));
+  fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Oldest" }));
+});
+
+test("keeps Escape from closing whatever it opened over", () => {
+  const behind = vi.fn();
+  document.addEventListener("keydown", behind);
+  render(<Menu aria-label="Options" items={[{ label: "Pin" }]} />);
+  open();
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "Pin" }), { key: "Escape" });
+  expect(behind).not.toHaveBeenCalled();
+  document.removeEventListener("keydown", behind);
+});
+
+test("goes in the top layer where there is one, and gives each item its own class", () => {
+  const showPopover = vi.fn();
+  const hidePopover = vi.fn();
+  Object.assign(HTMLElement.prototype, { showPopover, hidePopover });
+  try {
+    render(<Menu aria-label="Options" items={[{ label: "Reply", className: "touch-only" }]} />);
+    open();
+    // jsdom hides a popover the stand-in never really showed, so look past that.
+    expect(screen.getByRole("menu", { hidden: true }).getAttribute("popover")).toBe("manual");
+    expect(showPopover).toHaveBeenCalledOnce();
+    expect(screen.getByRole("menuitem", { name: "Reply", hidden: true }).className).toBe("lg-menu-item touch-only");
+  } finally {
+    delete (HTMLElement.prototype as Partial<HTMLElement>).showPopover;
+    delete (HTMLElement.prototype as Partial<HTMLElement>).hidePopover;
+  }
+});
+
+test("leaves the popover attribute off where there are no popovers, so nothing hides it", () => {
+  render(<Menu aria-label="Options" items={[{ label: "Pin" }]} />);
+  open();
+  expect(screen.getByRole("menu").hasAttribute("popover")).toBe(false);
+});
+
+test("leaves the chevron off a labelled trigger when asked", () => {
+  render(<Menu aria-label="Account" label="Dana" chevron={false} items={[{ label: "Settings" }]} />);
+  const trigger = screen.getByRole("button", { name: "Dana" });
+  expect(trigger.querySelector(".lg-menu-chevron")).toBeNull();
+  fireEvent.click(trigger);
+  expect(screen.getByRole("menu").querySelector(".lg-menu-chevron")).toBeNull();
+});
+
+test("lets a labelled trigger be named for what it opens", () => {
+  render(<Menu aria-label="Account" label="Dana" trigger={{ "aria-label": "Account menu" }} items={[{ label: "Settings" }]} />);
+  expect(screen.getByRole("button", { name: "Account menu" })).toBeTruthy();
+});
+
+test("passes over a row its own class hides", () => {
+  render(<Menu aria-label="Options" items={[{ label: "React", className: "gone" }, { label: "Copy" }, { label: "Pin" }]} />);
+  const style = document.createElement("style");
+  style.textContent = ".gone { display: none; }";
+  document.head.append(style);
+  open();
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Copy" }));
+  fireEvent.keyDown(document.activeElement!, { key: "End" });
+  fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Copy" }));
+  style.remove();
+});

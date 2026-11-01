@@ -663,30 +663,35 @@
   display: inline-flex;
 }
 
+/* In the top layer, set over its trigger by the menu itself. Its own resets
+   come first, because a popover has the browser's frame and inset. */
 .lg-menu-card {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
   box-sizing: border-box;
   /* As wide as its longest row, and never narrower than a labelled
      trigger, so its pill only ever grows. */
   width: max-content;
-  min-width: max(200px, 100%);
-  max-width: calc(100vw - 32px);
+  height: auto;
+  min-width: max(200px, var(--lg-menu-min-width, 0px));
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
   border-radius: 20px;
   color: var(--lg-foreground);
+  background: none;
   font-size: 14px;
-  transform-origin: calc(100% - 20px) 20px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.lg-menu-card[data-align="start"] {
-  right: auto;
-  left: 0;
-  transform-origin: 20px 20px;
+/* A menu taller than the room there is scrolls, and a finger can scroll it. */
+.lg-menu-card[data-scrolls] {
+  touch-action: pan-y;
 }
 
 .lg-menu-card[data-phase="leaving"] {
@@ -696,7 +701,7 @@
 .lg-menu-surface {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border-radius: inherit;
@@ -709,25 +714,16 @@
   pointer-events: none;
 }
 
-.lg-menu-card[data-align="start"] .lg-menu-surface {
-  right: auto;
-  left: 0;
-}
-
+/* Laid over the trigger by the menu, which knows where that is. */
 .lg-menu-glyph {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
   pointer-events: none;
-}
-
-.lg-menu-card[data-align="start"] .lg-menu-glyph {
-  right: auto;
-  left: 0;
 }
 
 .lg-menu-glyph > svg {
@@ -757,9 +753,16 @@
 
 .lg-menu-content {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   padding: 6px;
+}
+
+.lg-menu-card[data-scrolls] .lg-menu-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .lg-menu-card::after {
@@ -846,6 +849,34 @@
   flex: none;
   margin: 7px 11px;
   border-top: 0.5px solid var(--lg-separator);
+}
+
+/* A section's title, in small grey type above its items. */
+.lg-menu-heading {
+  flex: none;
+  padding: 8px 12px 3px;
+  color: var(--lg-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lg-menu-plate + .lg-menu-heading {
+  padding-top: 4px;
+}
+
+/* A choice keeps the room for its checkmark, chosen or not, so the labels line up. */
+.lg-menu-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: -2px;
+}
+
+.lg-menu-check > svg {
+  width: 14px;
+  height: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {
