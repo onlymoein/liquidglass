@@ -11,6 +11,7 @@ import {
 
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { useRefraction } from "./internal/refraction";
 import { createSpring } from "./internal/spring";
 
 export interface SliderProps
@@ -39,14 +40,15 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
   const [value, setValue] = useControllable(valueProp, defaultValue ?? min, onValueChange);
   const progress = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
   useImperativeHandle(forwardedRef, () => inputRef.current!);
+  useRefraction(thumbRef);
 
   useEffect(() => {
     const input = inputRef.current!;
     const thumb = thumbRef.current!;
     const face = faceRef.current!;
     const lift = createSpring(0, 2000, 80, (amount) => {
-      thumb.style.scale = String(0.6 + 0.4 * amount);
-      face.style.opacity = String(1 - 0.85 * Math.min(1, Math.max(0, amount)));
+      thumb.style.scale = String(0.62 + 0.38 * amount);
+      face.style.opacity = String(1 - Math.min(1, Math.max(0, amount)));
     });
 
     const hold = () => {
@@ -71,7 +73,7 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
       <span className="lg-slider-track" aria-hidden>
         <span className="lg-slider-fill" />
       </span>
-      <span ref={thumbRef} className="lg-slider-thumb" aria-hidden>
+      <span ref={thumbRef} className="lg-glass lg-slider-thumb" aria-hidden>
         <span ref={faceRef} className="lg-thumb-face" />
       </span>
       <input

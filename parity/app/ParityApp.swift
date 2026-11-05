@@ -31,7 +31,7 @@ struct Web: UIViewRepresentable {
     view.scrollView.contentInsetAdjustmentBehavior = .never
     view.scrollView.topEdgeEffect.isHidden = true
     view.scrollView.bottomEdgeEffect.isHidden = true
-    let query = ["scene", "bg", "kind", "w", "h", "r", "x", "y", "edge", "mark"].map { "\($0)=\(argument($0, ""))" }.joined(separator: "&")
+    let query = ["scene", "bg", "kind", "w", "h", "r", "x", "y", "edge", "mark", "gap"].map { "\($0)=\(argument($0, ""))" }.joined(separator: "&")
     let page = Bundle.main.url(forResource: "index", withExtension: "html")!
     view.loadFileURL(URL(string: "\(page.absoluteString)?\(query)")!, allowingReadAccessTo: Bundle.main.bundleURL)
     return view
@@ -108,6 +108,32 @@ struct Gallery: View {
   }
 }
 
+struct Merge: View {
+  var body: some View {
+    let gap = number("gap", 30)
+    ZStack(alignment: .top) {
+      Backdrop().ignoresSafeArea()
+      GlassEffectContainer(spacing: 20) {
+        HStack(spacing: gap) {
+          Image(systemName: "plus").frame(width: 60, height: 60).glassEffect(.regular, in: .circle)
+          Image(systemName: "pencil").frame(width: 60, height: 60).glassEffect(.regular, in: .circle)
+        }
+      }.padding(.top, 270)
+    }.frame(width: 402, height: 874).ignoresSafeArea()
+  }
+}
+
+struct Scrolling: View {
+  @State var tab = 0
+  var body: some View {
+    TabView(selection: $tab) {
+      Tab("Home", systemImage: "house.fill", value: 0) { ScrollView { Backdrop(); Backdrop() }.ignoresSafeArea() }
+      Tab("Search", systemImage: "magnifyingglass", value: 1) { Backdrop() }
+      Tab("Settings", systemImage: "gearshape.fill", value: 2) { Backdrop() }
+    }.tabBarMinimizeBehavior(.onScrollDown)
+  }
+}
+
 struct Navigation: View {
   @State var text = ""
   var body: some View {
@@ -131,6 +157,10 @@ struct Native: View {
   var body: some View {
     if ["controls", "menu", "context", "sheet", "alert", "dialog", "show-sheet", "show-alert"].contains(argument("scene", "panel")) {
       Gallery()
+    } else if argument("scene", "panel") == "merge" {
+      Merge()
+    } else if argument("scene", "panel") == "minimize" {
+      Scrolling()
     } else if argument("scene", "panel") == "navigation" {
       Navigation()
     } else if argument("scene", "panel") == "all" {

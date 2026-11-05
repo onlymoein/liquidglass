@@ -4,13 +4,19 @@
   --lg-transparency: 0.5;
   /* How strong the rim's lines are. */
   --lg-shine: 1;
-  /* What regular glass does to its backdrop, fitted to iOS 27 (see parity/). */
+  /* What regular glass does to its backdrop, fitted to iOS 27 (see parity/):
+     glass 120 points tall or more, and glass 60 or less. */
   --lg-contrast: 0.307;
   --lg-brightness: 1.554;
   --lg-saturate: 2.081;
-  --lg-curve: initial;
+  --lg-contrast-small: 0.314;
+  --lg-brightness-small: 1.511;
+  --lg-saturate-small: 2;
+  --lg-dark: initial;
+  --lg-drop-strength: 1;
   --lg-tab-accent: #0070e0;
   --lg-fill-subtle: rgb(118 118 128 / 0.12);
+  --lg-stepper: rgb(0 0 0 / 0.05);
   --lg-thumb: #fff;
   --lg-scrim: rgb(0 0 0 / 0.2);
   --lg-action: rgb(0 0 0 / 0.15);
@@ -20,9 +26,9 @@
   --lg-glass-tinted: rgb(247 247 249 / 0.96);
   --lg-glass-active: rgb(255 255 255 / 0.14);
   --lg-edge: transparent;
-  --lg-drop: rgb(0 0 0 / 0.07);
+  --lg-drop: rgb(0 0 0 / 0.03);
   --lg-selection: rgb(0 0 0 / 0.123);
-  --lg-lens: rgb(255 255 255 / 0.3);
+  --lg-lens: rgb(255 255 255 / 0.08);
   --lg-surface: rgb(250 250 252 / 0.86);
   --lg-surface-edge: rgb(0 0 0 / 0.08);
   --lg-shadow: rgb(25 25 35 / 0.12);
@@ -43,14 +49,19 @@
   --lg-glass-tinted: rgb(30 30 32 / 0.95);
   --lg-glass-active: rgb(255 255 255 / 0.1);
   --lg-edge: transparent;
-  --lg-drop: rgb(0 0 0 / 0.11);
+  --lg-drop: rgb(0 0 0 / 0.05);
   --lg-contrast: 0.6;
   --lg-brightness: 0.9;
   --lg-saturate: 2.4;
+  --lg-contrast-small: 0.588;
+  --lg-brightness-small: 0.952;
+  --lg-saturate-small: 2.4;
   /* Chromium can run the real curve; everywhere else falls back to the tone. */
-  --lg-curve: var(--lg-svg-dark);
+  --lg-dark: opacity(1);
+  --lg-drop-strength: 1.6;
   --lg-tab-accent: #3bccff;
   --lg-fill-subtle: rgb(118 118 128 / 0.24);
+  --lg-stepper: rgb(255 255 255 / 0.1);
   --lg-thumb: rgb(255 255 255 / 0.25);
   --lg-scrim: rgb(0 0 0 / 0.48);
   --lg-action: rgb(255 255 255 / 0.1);
@@ -79,21 +90,28 @@
       --lg-glass-tinted: rgb(30 30 32 / 0.95);
     --lg-glass-active: rgb(255 255 255 / 0.1);
     --lg-edge: transparent;
-    --lg-drop: rgb(0 0 0 / 0.11);
+    --lg-drop: rgb(0 0 0 / 0.05);
     --lg-contrast: 0.6;
     --lg-brightness: 0.9;
     --lg-saturate: 2.4;
+    --lg-contrast-small: 0.588;
+    --lg-brightness-small: 0.952;
+    --lg-saturate-small: 2.4;
     /* Chromium can run the real curve; everywhere else falls back to the tone. */
-    --lg-curve: var(--lg-svg-dark);
+    --lg-dark: opacity(1);
+    --lg-drop-strength: 1.6;
   /* Chromium can run the real curve; everywhere else falls back to the tone. */
   --lg-curve: var(--lg-svg-dark);
     --lg-tab-accent: #3bccff;
     --lg-fill-subtle: rgb(118 118 128 / 0.24);
+    --lg-stepper: rgb(255 255 255 / 0.1);
+  --lg-stepper: rgb(255 255 255 / 0.1);
     --lg-thumb: rgb(255 255 255 / 0.25);
     --lg-scrim: rgb(0 0 0 / 0.48);
     --lg-action: rgb(255 255 255 / 0.1);
     --lg-sheet-opaque: #1c1c1e;
   --lg-fill-subtle: rgb(118 118 128 / 0.24);
+  --lg-stepper: rgb(255 255 255 / 0.1);
   --lg-thumb: rgb(255 255 255 / 0.25);
   --lg-scrim: rgb(0 0 0 / 0.48);
   --lg-action: rgb(255 255 255 / 0.1);
@@ -127,16 +145,23 @@
    more opaque than regular. */
 .lg-glass {
   --lg-clearness: clamp(0, (var(--lg-transparency) - 0.5) * 2, 1);
+  /* From 0 for glass 60 points tall or less to 1 for 120 or more. Set by the glass when it's measured. */
+  --lg-size: 1;
   --lg-glass: color-mix(
     in srgb,
     var(--lg-glass-tinted) calc(clamp(0, (0.5 - var(--lg-transparency)) * 2, 1) * 100%),
     transparent
   );
   --lg-blur: calc(15.3px - 14px * var(--lg-clearness));
+  --lg-regular-contrast: calc(var(--lg-contrast-small) + (var(--lg-contrast) - var(--lg-contrast-small)) * var(--lg-size));
+  --lg-regular-brightness: calc(var(--lg-brightness-small) + (var(--lg-brightness) - var(--lg-brightness-small)) * var(--lg-size));
+  --lg-regular-saturate: calc(var(--lg-saturate-small) + (var(--lg-saturate) - var(--lg-saturate-small)) * var(--lg-size));
   --lg-tone:
-    contrast(calc(var(--lg-contrast) + (0.793 - var(--lg-contrast)) * var(--lg-clearness)))
-    brightness(calc(var(--lg-brightness) + (1.205 - var(--lg-brightness)) * var(--lg-clearness)))
-    saturate(calc(var(--lg-saturate) + (1.117 - var(--lg-saturate)) * var(--lg-clearness)));
+    contrast(calc(var(--lg-regular-contrast) + (0.793 - var(--lg-regular-contrast)) * var(--lg-clearness)))
+    brightness(calc(var(--lg-regular-brightness) + (1.205 - var(--lg-regular-brightness)) * var(--lg-clearness)))
+    saturate(calc(var(--lg-regular-saturate) + (1.117 - var(--lg-regular-saturate)) * var(--lg-clearness)));
+  /* The exact curve, in dark mode where the browser can run it. */
+  --lg-curve: var(--lg-dark) var(--lg-size-curve);
   position: relative;
   background-color: var(--lg-glass);
   /* Where the lens runs, it does the blur too, so the two line up. */
@@ -144,7 +169,8 @@
   backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-curve, var(--lg-tone));
   box-shadow:
     inset 0 0 0 0.5px var(--lg-edge),
-    0 8px 21px var(--lg-drop);
+    0 calc(4px + 4px * var(--lg-size)) calc(8px + 13px * var(--lg-size))
+      rgb(0 0 0 / calc((0.016 + 0.054 * var(--lg-size)) * var(--lg-drop-strength)));
 }
 
 /* The rim reaches just past the shape, for the hairline iOS draws outside it. */
@@ -355,6 +381,7 @@
 .lg-tab-bar[data-icons] {
   --lg-tab-width: 86px;
   --lg-tab-height: 54px;
+  --lg-lens-grow-x: 21px;
   padding: 4px 8.5px;
 }
 
@@ -402,6 +429,59 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
+  transition:
+    width 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+    height 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+    top 420ms cubic-bezier(0.3, 1.25, 0.4, 1);
+}
+
+/* Minimised, as when a page scrolls down: only the current tab's icon stays. */
+.lg-tab-bar[data-minimized] .lg-tab-bar-glass {
+  top: calc(100% - 39px);
+  right: auto;
+  bottom: auto;
+  width: 49px;
+  height: 39px;
+  border-radius: 20px;
+}
+
+.lg-tab-bar :is(.lg-tab, .lg-tab-tint, .lg-tab-lens) {
+  transition-property: opacity, color;
+  transition-duration: 200ms;
+}
+
+.lg-tab-bar[data-minimized] :is(.lg-tab, .lg-tab-tint, .lg-tab-lens) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lg-tab-mini {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 49px;
+  height: 39px;
+  padding: 0;
+  border: 0;
+  color: var(--lg-tab-accent);
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.lg-tab-mini > .lg-tab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.lg-tab-bar[data-minimized] .lg-tab-mini {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .lg-tab-bar-glass::after {
@@ -498,6 +578,8 @@
 
 .lg-tab-bar[data-lifted] .lg-tab-lens.lg-glass {
   background-color: var(--lg-lens);
+  background-image: var(--lg-rim, none);
+  background-size: 100% 100%;
   transition-duration: 100ms;
 }
 
@@ -521,6 +603,7 @@
 
 .lg-tab-bar[data-refracting] .lg-tab-lens.lg-glass {
   background-image: var(--lg-rim, none);
+  background-size: 100% 100%;
   -webkit-backdrop-filter: var(--lg-filter, none);
   backdrop-filter: var(--lg-filter, none);
 }
@@ -549,6 +632,18 @@
 
 .lg-input:focus-within {
   background-color: var(--lg-glass-active);
+}
+
+/* A plain fill, as iOS gives a search field under a large title. */
+.lg-input[data-variant="fill"] {
+  background: var(--lg-fill-subtle);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.lg-input[data-variant="fill"]::before {
+  display: none;
 }
 
 .lg-input input {
@@ -615,19 +710,14 @@
 
 /* Switch and slider thumbs */
 
+/* Under a finger a thumb is clear glass; at rest its white face covers that. */
 .lg-switch-thumb,
 .lg-slider-thumb {
+  --lg-transparency: 1;
   position: absolute;
   border-radius: 999px;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(2px) brightness(1.15) saturate(1.5);
-  backdrop-filter: blur(2px) brightness(1.15) saturate(1.5);
-  box-shadow:
-    0 6px 24px rgb(0 0 0 / 0.2),
-    inset 0 0 0 1.5px rgb(255 255 255 / 0.5),
-    inset 0 2px 1px rgb(255 255 255 / 0.45),
-    inset 2px 7px 24px rgb(0 0 0 / 0.09),
-    inset -2px -7px 24px rgb(255 255 255 / 0.16);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
 }
 
 .lg-thumb-face {
@@ -652,6 +742,10 @@
   cursor: pointer;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
+  /* A held control shouldn't bring up iOS's text magnifier or callout. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 
@@ -671,10 +765,10 @@
 
 .lg-switch-thumb {
   top: 50%;
-  left: calc(-20.2px * var(--lg-scale));
-  width: calc(146px * var(--lg-scale));
-  height: calc(98.5px * var(--lg-scale));
-  transform: translate(0, -50%) scale(0.65);
+  left: calc(-24.8px * var(--lg-scale));
+  width: calc(154.7px * var(--lg-scale));
+  height: calc(101.3px * var(--lg-scale));
+  transform: translate(0, -50%) scale(0.61);
 }
 
 .lg-switch[aria-checked="true"] .lg-switch-fill {
@@ -682,7 +776,7 @@
 }
 
 .lg-switch[aria-checked="true"] .lg-switch-thumb {
-  transform: translate(calc(63.2px * var(--lg-scale)), -50%) scale(0.65);
+  transform: translate(calc(63.2px * var(--lg-scale)), -50%) scale(0.61);
 }
 
 .lg-switch:disabled {
@@ -696,6 +790,9 @@
   position: relative;
   width: 100%;
   height: 40px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .lg-slider-track {
@@ -717,11 +814,11 @@
 }
 
 .lg-slider-thumb {
-  top: 0;
-  left: calc((100% - 36px) * var(--lg-progress) - 12px);
-  width: 60px;
-  height: 40px;
-  scale: 0.6;
+  top: 1px;
+  left: calc((100% - 36px) * var(--lg-progress) - 11px);
+  width: 58px;
+  height: 38px;
+  scale: 0.62;
 }
 
 .lg-slider input {
@@ -833,6 +930,7 @@
 }
 
 .lg-menu-surface {
+  --lg-size: 1;
   position: absolute;
   top: 0;
   left: 0;
@@ -1099,8 +1197,8 @@
 }
 
 .lg-toolbar-group > .lg-button > svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 
 /* Buttons in a group share its glass instead of each having their own. */
@@ -1128,7 +1226,6 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  isolation: isolate;
 }
 
 .lg-glass-group-shape,
@@ -1142,23 +1239,23 @@
 }
 
 .lg-glass-group-shape {
-  z-index: -1;
   box-shadow: none;
 }
 
 .lg-glass-group-layer {
-  z-index: -1;
   overflow: visible;
 }
 
-.lg-glass-group-shadow {
-  z-index: -2;
+/* No stacking tricks here: anything that isolates the group would cut its glass
+   off from the page. The layers come first, so the pieces paint over them. */
+.lg-glass-group > :not(.lg-glass-group-shape, .lg-glass-group-layer) {
+  position: relative;
 }
 
 .lg-glass-group-shadow path {
   fill: var(--lg-drop);
-  transform: translateY(8px);
-  filter: blur(10.5px);
+  transform: translateY(4px);
+  filter: blur(4px);
 }
 
 .lg-glass-group-hairline,
@@ -1252,15 +1349,17 @@
 
 .lg-stepper {
   display: inline-flex;
+  flex: none;
   align-items: center;
   height: 32px;
   border-radius: 16px;
-  background: var(--lg-fill-subtle);
+  background: var(--lg-stepper);
   color: var(--lg-foreground);
 }
 
 .lg-stepper-button {
   display: grid;
+  flex: none;
   place-items: center;
   width: 46px;
   height: 100%;
@@ -1275,7 +1374,7 @@
 }
 
 .lg-stepper-button:active:not(:disabled) {
-  background: var(--lg-fill-subtle);
+  background: var(--lg-stepper);
   transition-duration: 0s;
 }
 
@@ -1552,6 +1651,42 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+}
+
+/* Growing out of a trigger, for popups an app positions itself. It follows the
+   menu's measured spring; set `transform-origin` to where the trigger is. Add it
+   with `data-open` and `data-closed`, as Base UI and Radix set them. */
+.lg-grow[data-open] {
+  animation: lg-grow 650ms ease-out;
+  animation-timing-function: linear(0, 0.191 4.2%, 0.559 8.3%, 0.873 12.5%, 1.048 16.7%, 1.113 20.8%, 1.101 25%, 1.063 29.2%, 1.023 33.3%, 0.998 37.5%, 0.988 41.7%, 0.987 45.8%, 0.992 50%, 1);
+}
+
+.lg-grow[data-closed] {
+  animation: lg-shrink 180ms ease-in forwards;
+}
+
+@keyframes lg-grow {
+  from {
+    opacity: 0.4;
+    scale: 0.4;
+  }
+}
+
+@keyframes lg-shrink {
+  to {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-grow[data-open] {
+    animation: lg-fade-in 100ms ease-out;
+  }
+
+  .lg-grow[data-closed] {
+    animation: none;
+  }
 }
 
 /* Reduce Transparency and Increase Contrast win over any transparency the app

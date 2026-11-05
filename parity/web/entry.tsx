@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
-import { Alert, Button, Glass, Menu, Progress, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup } from "../../dist/index.js";
+import { Alert, Button, Glass, GlassGroup, Menu, SearchField, Progress, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup } from "../../dist/index.js";
 
 const q = new URLSearchParams(location.search);
 const get = (name: string, fallback: string) => q.get(name) || fallback;
@@ -15,7 +15,9 @@ function Element() {
   switch (get("kind", "regular")) {
     case "regular": return <Glass style={{ width: w, height: h, borderRadius: r }} />;
     case "button": return <Button>Continue</Button>;
+    case "button-large": return <Button size="large">Continue</Button>;
     case "filled": return <Button variant="filled">Continue</Button>;
+    case "filled-large": return <Button variant="filled" size="large">Continue</Button>;
     case "switch": return <Switch aria-label="On" checked={on} onCheckedChange={setOn} />;
     case "slider": return <div style={{ width: w }}><Slider aria-label="Value" defaultValue={50} min={0} max={100} /></div>;
     default: return null;
@@ -97,12 +99,40 @@ const menu = (
   </div>
 );
 
+function NavigationScene() {
+  const icon2 = (d: string) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
+  return (
+    <div style={{ position: "absolute", inset: 0 }}>
+      <Toolbar aria-label="Nav" style={{ position: "absolute", left: 0, right: 0, top: 54 }}>
+        <ToolbarGroup aria-label="Back"><Button aria-label="Back" icon={icon2("M15 5l-7 7 7 7")} /></ToolbarGroup>
+        <ToolbarGroup aria-label="Actions"><Button aria-label="Share" icon={icon2("M12 15V4M8 8l4-4 4 4M6 12v8h12v-8")} /><Button aria-label="Edit" icon={icon2("M4 20l1-4L16 5l3 3L8 19z")} /></ToolbarGroup>
+      </Toolbar>
+      <div style={{ position: "absolute", left: 16, top: 112, fontSize: 34, fontWeight: 700, color: "var(--lg-foreground)" }}>Shipments</div>
+      <div style={{ position: "absolute", left: 16, right: 16, top: 170 }}><SearchField /></div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 797, display: "flex", justifyContent: "center" }}><Button size="large" aria-label="Add" icon={icon2("M12 5v14M5 12h14")} /></div>
+    </div>
+  );
+}
+
+function Merged() {
+  const gap = Number(get("gap", "30"));
+  const circle = { width: 60, height: 60, borderRadius: 30, display: "grid", placeItems: "center", color: "var(--lg-foreground)", fontSize: 22 };
+  return (
+    <div style={{ position: "absolute", left: 0, right: 0, top: 270, display: "flex", justifyContent: "center" }}>
+      <GlassGroup style={{ gap }}>
+        <Glass style={circle}>+</Glass>
+        <Glass style={circle}>✎</Glass>
+      </GlassGroup>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: hex ? `#${bg}` : "#000" }}>
       {edge > 0 && <div data-liquidglass-backdrop={q.get("mark") ? "" : undefined} style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, #000 ${edge}px, #fff ${edge}px)` }} />}
       {!hex && <img data-liquidglass-backdrop={q.get("mark") ? "" : undefined} src={`${bg}.png`} alt="" style={{ position: "absolute", left: 0, top: 0, width: 402, height: 874, imageRendering: "pixelated" }} />}
-      {get("scene", "panel").endsWith("sheet") ? <Shown kind="sheet" /> : get("scene", "panel").endsWith("alert") ? <Shown kind="alert" /> : get("scene", "panel") === "controls" ? <Controls /> : get("scene", "panel") === "menu" ? menu : get("scene", "panel") === "tabs" ? <div style={{ position: "absolute", left: 63.5, top: 790 }}><TabBar aria-label="Tabs" defaultValue="home" items={tabs} /></div> : get("scene", "panel") === "all" ? <All /> : <div style={{ position: "absolute", left: num("x", 201), top: num("y", 300), transform: "translate(-50%, -50%)" }}><Element /></div>}
+      {get("scene", "panel") === "navigation" ? <NavigationScene /> : get("scene", "panel") === "merge" ? <Merged /> : get("scene", "panel").endsWith("sheet") ? <Shown kind="sheet" /> : get("scene", "panel").endsWith("alert") ? <Shown kind="alert" /> : get("scene", "panel") === "controls" ? <Controls /> : get("scene", "panel") === "menu" ? menu : get("scene", "panel") === "tabs" ? <div style={{ position: "absolute", left: 63.5, top: 790 }}><TabBar aria-label="Tabs" defaultValue="home" items={tabs} /></div> : get("scene", "panel") === "all" ? <All /> : <div style={{ position: "absolute", left: num("x", 201), top: num("y", 300), transform: "translate(-50%, -50%)" }}><Element /></div>}
     </div>
   );
 }

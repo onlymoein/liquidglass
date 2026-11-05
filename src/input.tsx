@@ -18,12 +18,14 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   onValueChange?: (value: string) => void;
   /** Shown before the text, such as a person or envelope glyph. */
   icon?: ReactNode;
+  /** `glass` floats over content; `fill` is the plain field iOS puts under a large title. */
+  variant?: "glass" | "fill";
 }
 
 export const Input: ForwardRefExoticComponent<InputProps & RefAttributes<HTMLInputElement>> = /* @__PURE__ */ forwardRef<
   HTMLInputElement,
   InputProps
->(function Input({ value: valueProp, defaultValue = "", onValueChange, icon, className, style, ...props }, forwardedRef) {
+>(function Input({ value: valueProp, defaultValue = "", onValueChange, icon, variant = "glass", className, style, ...props }, forwardedRef) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useControllable(valueProp, defaultValue, onValueChange);
@@ -34,6 +36,7 @@ export const Input: ForwardRefExoticComponent<InputProps & RefAttributes<HTMLInp
     <div
       ref={rootRef}
       className={cx("lg-glass lg-input", className)}
+      data-variant={variant === "glass" ? undefined : variant}
       style={style}
       onPointerDown={(event) => {
         if (event.target !== inputRef.current) inputRef.current?.focus();

@@ -19,7 +19,7 @@ export interface StepperProps extends Omit<HTMLAttributes<HTMLDivElement>, "defa
 }
 
 const glyph = (path: string) => (
-  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" aria-hidden>
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
     <path d={path} />
   </svg>
 );
@@ -37,11 +37,11 @@ export const Stepper: ForwardRefExoticComponent<StepperProps & RefAttributes<HTM
   return (
     <div ref={ref} role="group" className={cx("lg-stepper", className)} {...props}>
       <button type="button" className="lg-stepper-button" aria-label="Decrease" disabled={disabled || value <= min} onClick={() => change(-1)}>
-        {glyph("M3 8h10")}
+        {glyph("M1.5 8h13")}
       </button>
       <span className="lg-stepper-divider" aria-hidden />
       <button type="button" className="lg-stepper-button" aria-label="Increase" disabled={disabled || value >= max} onClick={() => change(1)}>
-        {glyph("M3 8h10M8 3v10")}
+        {glyph("M1.5 8h13M8 1.5v13")}
       </button>
     </div>
   );

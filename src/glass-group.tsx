@@ -11,6 +11,7 @@ import {
 
 import { outline, type RoundedRect } from "./internal/contour";
 import { cx } from "./internal/cx";
+import { refractsBackdrop } from "./internal/refraction";
 
 export interface GlassGroupProps extends HTMLAttributes<HTMLDivElement> {
   /** Glass closer together than this flows into one shape, in points. */
@@ -63,7 +64,14 @@ export const GlassGroup: ForwardRefExoticComponent<GlassGroupProps & RefAttribut
       if (key === last) return;
       last = key;
       const d = outline(rects, spacing, box.width + MARGIN * 2, box.height + MARGIN * 2);
-      glass.style.clipPath = d ? `path("${d}")` : "";
+      // WebKit loses the backdrop behind a clip-path, but keeps it behind a mask.
+      if (refractsBackdrop()) glass.style.clipPath = d ? `path("${d}")` : "";
+      else {
+        const size = `${box.width + MARGIN * 2} ${box.height + MARGIN * 2}`;
+        const mask = d ? `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size}'><path d='${d}'/></svg>`)}")` : "";
+        glass.style.setProperty("-webkit-mask-image", mask);
+        glass.style.setProperty("mask-image", mask);
+      }
       for (const path of paths) path.setAttribute("d", d);
     };
     const schedule = () => {

@@ -11,6 +11,7 @@ import {
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
+import { useRefraction } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
 
 export interface SwitchProps
@@ -35,6 +36,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
   const fillRef = useRef<HTMLSpanElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
   const faceRef = useRef<HTMLSpanElement>(null);
+  useRefraction(thumbRef);
   const [checked, setChecked] = useControllable(checkedProp, defaultChecked, onCheckedChange);
   const latest = useRef({ checked, setChecked });
   const springs = useRef<{ position: Spring; color: Spring } | null>(null);
@@ -52,7 +54,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
     const thumb = thumbRef.current!;
     const face = faceRef.current!;
     let x = 0;
-    let scale = 0.65;
+    let scale = 0.61;
     const paint = () => {
       thumb.style.transform = `translate(${x}px, -50%) scale(${scale})`;
     };
@@ -66,8 +68,8 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
       fill.style.opacity = String(unit(value));
     });
     const lift = createSpring(0, 2000, 80, (value) => {
-      scale = 0.65 + 0.25 * value;
-      face.style.opacity = String(1 - 0.85 * unit(value));
+      scale = 0.61 + 0.39 * value;
+      face.style.opacity = String(1 - unit(value));
       paint();
     });
     springs.current = { position, color };
@@ -183,7 +185,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
       {...props}
     >
       <span ref={fillRef} className="lg-switch-fill" aria-hidden />
-      <span ref={thumbRef} className="lg-switch-thumb" aria-hidden>
+      <span ref={thumbRef} className="lg-glass lg-switch-thumb" aria-hidden>
         <span ref={faceRef} className="lg-thumb-face" />
       </span>
     </button>

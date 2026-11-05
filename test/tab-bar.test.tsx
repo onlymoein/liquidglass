@@ -231,3 +231,13 @@ test("shows icons above the labels, as an iOS tab bar does", () => {
   expect(container.querySelector(".lg-tab .lg-tab-icon svg")).not.toBeNull();
   expect(container.querySelector(".lg-tab-copy .lg-tab-icon svg")).not.toBeNull();
 });
+
+test("minimised, it keeps the current tab's icon and asks to come back when tapped", () => {
+  const onExpand = vi.fn();
+  const { container } = render(
+    <TabBar aria-label="Tabs" value="home" minimized onExpand={onExpand} items={[{ value: "home", label: "Home", icon: <svg aria-hidden /> }]} />,
+  );
+  expect(container.querySelector<HTMLElement>(".lg-tab-bar")?.hasAttribute("data-minimized")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Show tabs" }));
+  expect(onExpand).toHaveBeenCalledOnce();
+});

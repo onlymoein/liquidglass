@@ -30,6 +30,10 @@ export interface TabBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "defau
   value?: string | null;
   defaultValue?: string | null;
   onValueChange?: (value: string) => void;
+  /** Shrinks the bar to the current tab's icon, as iOS does when a page scrolls down. */
+  minimized?: boolean;
+  /** Called when the minimised bar is tapped, to ask for it back. */
+  onExpand?: () => void;
   /** The component used for tabs with an `href`, such as Next.js's `Link`. */
   link?: ElementType;
 }
@@ -77,7 +81,15 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const sx = 1 + (growX / slot) * lift;
     const sy = 1 + (growY / height) * lift;
     lens.style.transform = tint.style.transform = `translateX(${x}px) scale(${sx}, ${sy})`;
-    row.style.transform = `scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
+    // What's in the lens is enlarged a little as it lifts, about the lens's centre.
+    const zoom = 1 + 0.19 * lift;
+    const centre = `${slot / 2}px, ${height / 2}px`;
+    row.style.transform = `translate(${centre}) scale(${zoom}) translate(-${slot / 2}px, -${height / 2}px) scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
+    // The lens shows its own enlarged copy of the tabs, so the ones under it make way.
+    tabs.forEach((tab, index) => {
+      const near = Math.max(0, 1 - Math.abs(x - index * slot) / (slot * 0.75));
+      tab.style.opacity = lift > 0.01 ? String(1 - Math.min(1, lift * 2) * near) : "";
+    });
     if (!gesture && lift < 0.01) delete bar.dataset.refracting;
   };
 
@@ -287,6 +299,8 @@ export function TabBar({
   value: valueProp,
   defaultValue = null,
   onValueChange,
+  minimized = false,
+  onExpand,
   link: Link = "a",
   className,
   style,
@@ -346,6 +360,7 @@ export function TabBar({
       role={navigation ? "navigation" : "tablist"}
       className={cx("lg-tab-bar", className)}
       data-icons={items.some((item) => item.icon != null) ? "" : undefined}
+      data-minimized={minimized ? "" : undefined}
       style={{ ...style, "--lg-index": Math.max(selected, 0), "--lg-tabs": items.length } as CSSProperties}
       {...props}
     >
@@ -386,6 +401,11 @@ export function TabBar({
         </span>
       </span>
       <span ref={lensRef} className="lg-glass lg-tab-lens" aria-hidden />
+      {items[selected]?.icon == null ? null : (
+        <button type="button" className="lg-tab-mini" aria-label="Show tabs" tabIndex={minimized ? 0 : -1} aria-hidden={!minimized} onClick={onExpand}>
+          <span className="lg-tab-icon">{items[selected]!.icon}</span>
+        </button>
+      )}
     </div>
   );
 }

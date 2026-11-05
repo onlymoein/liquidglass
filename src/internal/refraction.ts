@@ -3,10 +3,6 @@ import { useEffect, type RefObject } from "react";
 // Refraction model: https://kube.io/blog/liquid-glass-css-svg/
 
 const SVG = "http://www.w3.org/2000/svg";
-interface Lens {
-  filter: string;
-  rim: string;
-}
 
 interface Shape {
   bezel: number | undefined;
@@ -17,7 +13,7 @@ interface Shape {
   shine: number;
 }
 
-const lenses = new Map<string, Lens>();
+const lenses = new Map<string, string>();
 let defs: SVGDefsElement | undefined;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -68,7 +64,8 @@ const RIM_OUTSET = 1;
 // and bottom, a dark hairline just outside the sides and more faintly round the
 // rest, and a faint shade inside everywhere but the bottom. Measured in parity/.
 function rimImage(width: number, height: number, radius: number, shine: number): string {
-  const density = Math.min(devicePixelRatio || 1, 3);
+  // A big panel doesn't need the extra pixels, and they'd cost it an open's worth of time.
+  const density = Math.min(devicePixelRatio || 1, Math.max(width, height) > 500 ? 2 : 3);
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil((width + RIM_OUTSET * 2) * density);
   canvas.height = Math.ceil((height + RIM_OUTSET * 2) * density);
@@ -120,7 +117,7 @@ function rimImage(width: number, height: number, radius: number, shine: number):
 }
 
 function maps(width: number, height: number, radius: number, selection: boolean, shape: Shape) {
-  const density = Math.min(devicePixelRatio || 1, 3);
+  const density = Math.min(devicePixelRatio || 1, selection ? 3 : 2);
   const short = Math.min(width, height);
   const bezel = shape.bezel ?? (selection ? clamp(short * 0.12, 4, 10) : clamp(2.4 + short * 0.059, 3, 12));
   const { samples, maximum } = selection
@@ -132,7 +129,6 @@ function maps(width: number, height: number, radius: number, selection: boolean,
   canvas.height = Math.ceil(height * density);
   const context = canvas.getContext("2d")!;
   const field = context.createImageData(canvas.width, canvas.height);
-  const shine = context.createImageData(canvas.width, canvas.height);
   const magnify = shape.zoom > 1 ? context.createImageData(canvas.width, canvas.height) : undefined;
   const reach = Math.max(width, height) / 2;
   const direction = selection ? 1 : -1;
@@ -173,45 +169,27 @@ function maps(width: number, height: number, radius: number, selection: boolean,
         magnify.data[i + 2] = 128;
         magnify.data[i + 3] = 255;
       }
-
-      const facing = -(nx + ny) * Math.SQRT1_2;
-      const glint = Math.max(facing, 0) ** 3;
-      const reflected = Math.max(-facing, 0) ** 3;
-      shine.data[i] = shine.data[i + 1] = shine.data[i + 2] = 255;
-
-      let alpha = 0;
-      if (distance >= 0 && selection) {
-        const bands = [0.18, 0.42, 0.66].map((centre) => Math.exp(-(((distance - centre) / 0.22) ** 2)));
-        const peak = Math.max(...bands);
-        alpha = peak * (0.06 + 0.8 * glint + 0.35 * reflected) * 0.85;
-        for (let channel = 0; channel < 3; channel++) {
-          shine.data[i + channel] = Math.round(255 * (0.65 + 0.35 * (peak ? bands[channel]! / peak : 0)));
-        }
-      }
-      shine.data[i + 3] = Math.round(clamp(alpha * shape.shine, 0, 1) * 255);
     }
   }
 
   context.putImageData(field, 0, 0);
   const displacement = canvas.toDataURL();
-  context.putImageData(shine, 0, 0);
-  const highlight = selection ? canvas.toDataURL() : rimImage(width, height, radius, shape.shine);
   let zoom: { map: string; scale: number } | undefined;
   if (magnify) {
     context.putImageData(magnify, 0, 0);
     zoom = { map: canvas.toDataURL(), scale: 2 * reach * (1 - 1 / shape.zoom) };
   }
-  return { displacement, highlight, zoom, scale: maximum * 2 * shape.level };
+  return { displacement, zoom, scale: maximum * 2 * shape.level };
 }
 
 // The filter only bends the rim. Blur and the rim highlight are applied in CSS,
 // which Chromium positions correctly when it repaints part of the glass.
-function lens(width: number, height: number, radius: number, selection: boolean, shape: Shape): Lens {
+function lens(width: number, height: number, radius: number, selection: boolean, shape: Shape): string {
   const key = Object.values({ width, height, radius, selection, ...shape }).join("-");
   const cached = lenses.get(key);
   if (cached) return cached;
 
-  const { displacement, highlight, zoom, scale } = maps(width, height, radius, selection, shape);
+  const { displacement, zoom, scale } = maps(width, height, radius, selection, shape);
   const id = `liquidglass-${lenses.size}`;
   const box = { x: 0, y: 0, width, height };
   const filter = svg("filter", {
@@ -285,7 +263,7 @@ function lens(width: number, height: number, radius: number, selection: boolean,
   }
   container().append(filter);
 
-  const result = { filter: `url("#${id}")`, rim: `url("${highlight}")` };
+  const result = `url("#${id}")`;
   lenses.set(key, result);
   return result;
 }
@@ -296,18 +274,32 @@ function merged(top: string): SVGElement {
   return merge;
 }
 
-// In dark mode iOS glass isn't linear: brightness peaks over light greys and
-// falls again over white, and colour fades as the backdrop gets brighter. CSS
-// filters can't follow that, but an SVG filter can, where it's allowed on the
+// In dark mode iOS glass isn't linear: brightness peaks over light greys and falls
+// again over white, and colour fades as the backdrop gets brighter. Glass 60 points
+// tall or less keeps more of it than glass 120 or more, and sizes between go between.
+// CSS filters can't follow that, but an SVG filter can, where it's allowed on the
 // backdrop. Measured values, by the backdrop's luminance from black to white.
-const DARK_BRIGHTNESS = [32, 59, 83, 102, 117, 126, 129, 128, 121].map((level) => level / 255);
-const DARK_COLOUR = [1.27, 1.19, 1.11, 1.03, 0.95, 0.87, 0.79, 0.71, 0.63];
+const DARK = {
+  small: {
+    brightness: [32, 62, 89, 113, 134, 151, 166, 177, 185],
+    colour: [1.27, 1.22, 1.18, 1.13, 1.08, 1.03, 0.98, 0.94, 0.89],
+  },
+  large: {
+    brightness: [32, 59, 83, 102, 117, 126, 129, 128, 121],
+    colour: [1.27, 1.19, 1.11, 1.03, 0.95, 0.87, 0.79, 0.71, 0.63],
+  },
+};
 const COLOUR_RANGE = 1.3;
-let darkReady = false;
+const darkCurves = new Set<number>();
 
-function installDarkCurve(): void {
-  if (darkReady) return;
-  darkReady = true;
+function darkCurve(size: number): string {
+  const step = Math.round(size * 4);
+  const id = `liquidglass-dark-${step}`;
+  if (darkCurves.has(step)) return `url("#${id}")`;
+  darkCurves.add(step);
+  const mix = (from: number[], to: number[]) => from.map((value, i) => value + (to[i]! - value) * (step / 4));
+  const brightness = mix(DARK.small.brightness, DARK.large.brightness).map((level) => level / 255);
+  const gain = mix(DARK.small.colour, DARK.large.colour).map((value) => value / COLOUR_RANGE);
   const table = (values: number[], result: string) => {
     const transfer = svg("feComponentTransfer", { in: "luminance", result });
     for (const channel of ["feFuncR", "feFuncG", "feFuncB"]) {
@@ -318,11 +310,10 @@ function installDarkCurve(): void {
   const [r, g, b] = [0.2126, 0.7152, 0.0722];
   const k = COLOUR_RANGE / 2;
   const row = (own: number) => [r, g, b].map((weight, i) => k * ((i === own ? 1 : 0) - weight)).join(" ");
-  const gain = DARK_COLOUR.map((value) => value / COLOUR_RANGE);
-  const filter = svg("filter", { id: "liquidglass-dark", "color-interpolation-filters": "sRGB" });
+  const filter = svg("filter", { id, "color-interpolation-filters": "sRGB" });
   filter.append(
     svg("feColorMatrix", { in: "SourceGraphic", values: `${r} ${g} ${b} 0 0 ${r} ${g} ${b} 0 0 ${r} ${g} ${b} 0 0 0 0 0 1 0`, result: "luminance" }),
-    table(DARK_BRIGHTNESS, "brightness"),
+    table(brightness, "brightness"),
     table(gain, "gain"),
     table(gain.map((value) => 0.5 * (1 - value)), "offset"),
     // Colour as a difference from grey, held around 0.5 because filters can't go below zero.
@@ -332,7 +323,19 @@ function installDarkCurve(): void {
     svg("feComposite", { in: "centred", in2: "brightness", operator: "arithmetic", k2: 2, k3: 1, k4: -1 }),
   );
   container().append(filter);
-  document.documentElement.style.setProperty("--lg-svg-dark", 'url("#liquidglass-dark")');
+  return `url("#${id}")`;
+}
+
+const rims = new Map<string, string>();
+
+function rimFor(width: number, height: number, radius: number, shine: number): string {
+  const key = `${width}-${height}-${radius}-${shine}-${devicePixelRatio}`;
+  let rim = rims.get(key);
+  if (!rim) {
+    rim = `url("${rimImage(width, height, radius, shine)}")`;
+    rims.set(key, rim);
+  }
+  return rim;
 }
 
 function fit(element: HTMLElement, selection: boolean, filtered: boolean): void {
@@ -358,14 +361,19 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
     zoom: Math.max(1, length("--lg-zoom") ?? 1),
     shine: Math.max(0, length("--lg-shine") ?? 1),
   };
-  const { filter, rim } = lens(width, height, radius, selection, shape);
+  // The rim is all that's needed unless the lens can run, and costs far less to work out.
+  const filter = filtered ? lens(width, height, radius, selection, shape) : "";
+  const rim = rimFor(width, height, radius, shape.shine);
+  // Small glass is brighter and throws less shadow than large glass.
+  const size = clamp((Math.min(width, height) - 60) / 60, 0, 1);
+  if (!selection && !element.hasAttribute("data-size-fixed")) element.style.setProperty("--lg-size", String(size));
   if (filtered) {
     element.style.setProperty("--lg-filter", filter);
     if (!selection) element.style.setProperty("--lg-lens-blur", "0px");
-    if (refractsBackdrop()) installDarkCurve();
     // The curve is regular glass's. Clearer glass stays on the tone.
-    if ((length("--lg-transparency") ?? 0.5) > 0.5) element.style.setProperty("--lg-curve", "initial");
-    else element.style.removeProperty("--lg-curve");
+    if (!selection && refractsBackdrop() && (length("--lg-transparency") ?? 0.5) <= 0.5) {
+      element.style.setProperty("--lg-size-curve", darkCurve(size));
+    } else element.style.removeProperty("--lg-size-curve");
   }
   element.style.setProperty("--lg-rim", rim);
 }
@@ -400,13 +408,22 @@ function refract(element: HTMLElement, selection: boolean, filtered: boolean): (
     observer.disconnect();
     element.style.removeProperty("--lg-filter");
     element.style.removeProperty("--lg-lens-blur");
-    element.style.removeProperty("--lg-curve");
+    element.style.removeProperty("--lg-size-curve");
+    element.style.removeProperty("--lg-size");
     element.style.removeProperty("--lg-rim");
   };
 }
 
 /** The rim alone, kept fitted as the element changes size. */
 export const fitRim = (element: HTMLElement): (() => void) => refract(element, false, false);
+
+/** The rim for a size the element is about to reach, so it needn't be worked out on the way there. */
+export function rimAt(element: HTMLElement, width: number, height: number, radius: number): () => void {
+  if (!width || !height) return () => {};
+  const shine = parseFloat(getComputedStyle(element).getPropertyValue("--lg-shine")) || 1;
+  element.style.setProperty("--lg-rim", rimFor(width, height, radius, shine));
+  return () => element.style.removeProperty("--lg-rim");
+}
 
 /** The lens for an element at its final size, where the browser can run it. Stop it before the size changes. */
 export function fitLens(element: HTMLElement): () => void {
@@ -415,7 +432,7 @@ export function fitLens(element: HTMLElement): () => void {
   return () => {
     element.style.removeProperty("--lg-filter");
     element.style.removeProperty("--lg-lens-blur");
-    element.style.removeProperty("--lg-curve");
+    element.style.removeProperty("--lg-size-curve");
   };
 }
 

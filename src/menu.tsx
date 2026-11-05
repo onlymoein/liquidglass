@@ -4,7 +4,7 @@ import { Button, type ButtonProps } from "./button";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { placeMenu, type Placement } from "./internal/placement";
-import { fitLens, fitRim } from "./internal/refraction";
+import { fitLens, rimAt } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
 
 export interface MenuItem {
@@ -236,8 +236,9 @@ export function Menu({
     glyph.style.color = getComputedStyle(trigger).color;
     let leaving = false;
     let stopLens: (() => void) | undefined;
-    const stopRim = fitRim(surface);
-    const shape = createSpring(0, 443, 24.8, (value) => {
+    // Worked out once, for where it's going: it stretches on the way there.
+    const stopRim = rimAt(surface, to.width, to.height, Math.min(parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0, to.width / 2, to.height / 2));
+    const shape = createSpring(0, 529, 25.8, (value) => {
       const t = clamp(value);
       const settled = value === 1;
       if (settled && !leaving) stopLens ??= fitLens(surface);
@@ -288,7 +289,7 @@ export function Menu({
           stopLens?.();
           stopLens = undefined;
           shape.tune(276, 23);
-        } else shape.tune(443, 24.8);
+        } else shape.tune(529, 25.8);
         shape.set(target, instant);
       },
     };
@@ -519,7 +520,7 @@ export function Menu({
           data-align={align}
           data-label={label == null ? undefined : ""}
         >
-          <span ref={surfaceRef} className="lg-glass lg-menu-surface" aria-hidden />
+          <span ref={surfaceRef} className="lg-glass lg-menu-surface" data-size-fixed aria-hidden />
           <span ref={glyphRef} className="lg-menu-glyph" aria-hidden>
             {face}
           </span>
