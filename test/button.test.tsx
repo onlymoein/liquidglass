@@ -45,3 +45,10 @@ test("takes a custom tint", () => {
   expect(button.hasAttribute("data-tint")).toBe(true);
   expect(button.style.getPropertyValue("--lg-tint")).toBe("#ff8d28");
 });
+
+test("takes the iOS control sizes, regular by default", () => {
+  render(<Button>Regular</Button>);
+  render(<Button size="large">Large</Button>);
+  expect(screen.getByRole("button", { name: "Regular" }).hasAttribute("data-size")).toBe(false);
+  expect(screen.getByRole("button", { name: "Large" }).dataset.size).toBe("large");
+});

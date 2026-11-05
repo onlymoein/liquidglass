@@ -2,15 +2,20 @@
   --lg-foreground: rgb(0 0 0 / 0.88);
   --lg-muted: rgb(60 60 67 / 0.6);
   --lg-transparency: 0.5;
-  /* How bright the rim highlight is. iOS 27 brightened it; 1 is the iOS 26 rim. */
-  --lg-shine: 1.4;
-  --lg-glass-clear: rgb(255 255 255 / 0.2);
+  /* How strong the rim's lines are. */
+  --lg-shine: 1;
+  /* What regular glass does to its backdrop, fitted to iOS 27 (see parity/). */
+  --lg-contrast: 0.307;
+  --lg-brightness: 1.554;
+  --lg-saturate: 2.081;
+  --lg-tab-accent: #0070e0;
+  --lg-fill-shade: 11%;
+  --lg-fill-alpha: 87%;
   --lg-glass-tinted: rgb(247 247 249 / 0.96);
-  --lg-glass-active: rgb(236 236 240 / 0.85);
-  --lg-edge: rgb(0 0 0 / 0.08);
-  --lg-shade: rgb(0 0 0 / 0.1);
-  --lg-drop: rgb(0 0 0 / 0.06);
-  --lg-selection: rgb(0 0 0 / 0.1);
+  --lg-glass-active: rgb(255 255 255 / 0.14);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.05);
+  --lg-selection: rgb(0 0 0 / 0.123);
   --lg-lens: rgb(255 255 255 / 0.3);
   --lg-surface: rgb(250 250 252 / 0.86);
   --lg-surface-edge: rgb(0 0 0 / 0.08);
@@ -29,13 +34,17 @@
 :where([data-theme="dark"]) {
   --lg-foreground: rgb(255 255 255);
   --lg-muted: rgb(235 235 245 / 0.6);
-  --lg-glass-clear: rgb(40 40 40 / 0.26);
   --lg-glass-tinted: rgb(30 30 32 / 0.95);
-  --lg-glass-active: rgb(70 70 70 / 0.62);
-  --lg-edge: rgb(255 255 255 / 0.08);
-  --lg-shade: rgb(0 0 0 / 0.45);
-  --lg-drop: transparent;
-  --lg-selection: rgb(255 255 255 / 0.145);
+  --lg-glass-active: rgb(255 255 255 / 0.1);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.09);
+  --lg-contrast: 0.6;
+  --lg-brightness: 0.9;
+  --lg-saturate: 2.4;
+  --lg-tab-accent: #3bccff;
+  --lg-fill-shade: 0%;
+  --lg-fill-alpha: 95%;
+  --lg-selection: rgb(0 0 0 / 0.18);
   --lg-lens: rgb(255 255 255 / 0.055);
   --lg-surface: rgb(28 28 31 / 0.86);
   --lg-surface-edge: rgb(255 255 255 / 0.13);
@@ -54,13 +63,17 @@
   :where(:root:not([data-theme="light"])) {
     --lg-foreground: rgb(255 255 255);
     --lg-muted: rgb(235 235 245 / 0.6);
-    --lg-glass-clear: rgb(40 40 40 / 0.26);
-    --lg-glass-tinted: rgb(30 30 32 / 0.95);
-    --lg-glass-active: rgb(70 70 70 / 0.62);
-    --lg-edge: rgb(255 255 255 / 0.08);
-    --lg-shade: rgb(0 0 0 / 0.45);
-    --lg-drop: transparent;
-    --lg-selection: rgb(255 255 255 / 0.145);
+      --lg-glass-tinted: rgb(30 30 32 / 0.95);
+    --lg-glass-active: rgb(255 255 255 / 0.1);
+    --lg-edge: transparent;
+    --lg-drop: rgb(0 0 0 / 0.09);
+    --lg-contrast: 0.6;
+    --lg-brightness: 0.9;
+    --lg-saturate: 2.4;
+    --lg-tab-accent: #3bccff;
+    --lg-fill-shade: 0%;
+    --lg-fill-alpha: 95%;
+    --lg-selection: rgb(0 0 0 / 0.18);
     --lg-lens: rgb(255 255 255 / 0.055);
     --lg-surface: rgb(28 28 31 / 0.86);
     --lg-surface-edge: rgb(255 255 255 / 0.13);
@@ -78,27 +91,35 @@
 
 /* Glass */
 
-/* `--lg-transparency` runs from 0, fully tinted, to 1, fully clear, like the
-   iOS 27 setting. It's worked out on each glass so it can be set anywhere above. */
+/* `--lg-transparency` runs from 0, fully tinted, through 0.5, regular glass, to
+   1, clear glass, like the iOS 27 setting. It's worked out on each glass so it
+   can be set anywhere above.
+
+   iOS lifts the backdrop and then saturates it, so colours stay vivid. A tint
+   painted on top couldn't do that, so glass has no tint until it's asked to be
+   more opaque than regular. */
 .lg-glass {
+  --lg-clearness: clamp(0, (var(--lg-transparency) - 0.5) * 2, 1);
   --lg-glass: color-mix(
     in srgb,
-    var(--lg-glass-clear) calc(var(--lg-transparency) * 100%),
-    var(--lg-glass-tinted)
+    var(--lg-glass-tinted) calc(clamp(0, (0.5 - var(--lg-transparency)) * 2, 1) * 100%),
+    transparent
   );
-  --lg-blur: calc(2px + (1 - var(--lg-transparency)) * 12px);
+  --lg-blur: calc(15.3px - 14px * var(--lg-clearness));
+  --lg-tone:
+    contrast(calc(var(--lg-contrast) + (0.793 - var(--lg-contrast)) * var(--lg-clearness)))
+    brightness(calc(var(--lg-brightness) + (1.205 - var(--lg-brightness)) * var(--lg-clearness)))
+    saturate(calc(var(--lg-saturate) + (1.117 - var(--lg-saturate)) * var(--lg-clearness)));
   position: relative;
   background-color: var(--lg-glass);
   background-image: var(--lg-rim, none);
   background-size: 100% 100%;
-  -webkit-backdrop-filter: blur(var(--lg-blur)) var(--lg-filter, saturate(1.5));
-  backdrop-filter: blur(var(--lg-blur)) var(--lg-filter, saturate(1.5));
-  /* The darker edge sets the glass apart from what's behind it. */
+  /* Where the lens runs, it does the blur too, so the two line up. */
+  -webkit-backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-tone);
+  backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-tone);
   box-shadow:
     inset 0 0 0 0.5px var(--lg-edge),
-    0 0 0 0.5px var(--lg-shade),
-    inset 0 0 2px var(--lg-shade),
-    0 1px 3px var(--lg-drop);
+    0 2px 12px var(--lg-drop);
 }
 
 .lg-glass::after {
@@ -153,13 +174,13 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 13px;
   border: 0;
-  border-radius: 20px;
+  border-radius: 18px;
   color: var(--lg-foreground);
   font: inherit;
-  font-size: 14px;
+  font-size: 17px;
   cursor: pointer;
   /* A long press keeps pressing, as on iOS, rather than selecting the label. */
   touch-action: manipulation;
@@ -170,13 +191,34 @@
   transition: background-color 200ms ease;
 }
 
+.lg-button[data-size="small"] {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  font-size: 15px;
+}
+
+.lg-button[data-size="large"] {
+  height: 52px;
+  padding: 0 21px;
+  border-radius: 26px;
+}
+
 .lg-button[data-icon] {
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .lg-button[data-icon="only"] {
-  width: 40px;
+  width: 36px;
   padding: 0;
+}
+
+.lg-button[data-icon="only"][data-size="small"] {
+  width: 28px;
+}
+
+.lg-button[data-icon="only"][data-size="large"] {
+  width: 52px;
 }
 
 .lg-button > svg {
@@ -211,14 +253,20 @@
   color: var(--lg-tint);
 }
 
+/* A nearly opaque fill: on iOS a little of what's behind still shows through. */
 .lg-button[data-variant="filled"] {
   --lg-button-fill: var(--lg-tint, var(--lg-fill));
+  --lg-tone: none;
   color: #fff;
 }
 
 .lg-button[data-variant="filled"],
 .lg-button[data-variant="filled"]:disabled {
-  background-color: var(--lg-button-fill);
+  background-color: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--lg-button-fill) calc(100% - var(--lg-fill-shade)), #000) var(--lg-fill-alpha),
+    transparent
+  );
 }
 
 .lg-button[data-variant="filled"]:is(:active, [data-pressed]) {
@@ -258,6 +306,53 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* With icons it's the iOS tab bar: 62 points tall, and the selection is a little
+   wider than its tab, so it runs close to the bar's ends. */
+.lg-tab-bar[data-icons] {
+  --lg-tab-width: 86px;
+  --lg-tab-height: 54px;
+  padding: 4px 8.5px;
+}
+
+.lg-tab-bar[data-icons] :is(.lg-tab, .lg-tab-copy) {
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.lg-tab-bar[data-icons] .lg-tab {
+  color: var(--lg-foreground);
+}
+
+.lg-tab-bar[data-icons] .lg-tab-tint {
+  left: 8.5px;
+  color: var(--lg-tab-accent);
+}
+
+/* At rest the selection sits under the icon, so it doesn't dim the tint. */
+.lg-tab-bar[data-icons]:not([data-lifted]) .lg-tab-tint {
+  z-index: 3;
+}
+
+.lg-tab-bar[data-icons] .lg-tab-lens {
+  left: 4.5px;
+  width: calc(var(--lg-tab-width) + 8px);
+}
+
+.lg-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.lg-tab-icon > svg {
+  width: 100%;
+  height: 100%;
 }
 
 .lg-tab-bar-glass {
@@ -941,7 +1036,7 @@
 .lg-toolbar-group {
   display: flex;
   align-items: center;
-  border-radius: 22px;
+  border-radius: 20px;
   padding: 2px;
 }
 

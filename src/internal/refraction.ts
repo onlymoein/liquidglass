@@ -11,6 +11,7 @@ interface Lens {
 interface Shape {
   bezel: number | undefined;
   thickness: number | undefined;
+  blur: number;
   level: number;
   zoom: number;
   saturation: number;
@@ -52,11 +53,22 @@ function profile(bezel: number, thickness: number): { samples: Float32Array; max
   return { samples, maximum };
 }
 
+// How far iOS 27 glass moves its backdrop inward: a third of its height at the
+// very edge, falling in a straight line to nothing across the bezel. Measured
+// on panels and pills in parity/.
+function rimProfile(reach: number): { samples: Float32Array; maximum: number } {
+  const samples = new Float32Array(128);
+  for (let i = 0; i < samples.length; i++) samples[i] = reach * (1 - i / (samples.length - 1));
+  return { samples, maximum: reach };
+}
+
 function maps(width: number, height: number, radius: number, selection: boolean, shape: Shape) {
-  const density = Math.min(devicePixelRatio || 1, 2);
-  const bezel = shape.bezel ?? clamp(Math.min(width, height) * 0.12, 4, 10);
-  const thickness = shape.thickness ?? clamp(Math.min(width, height) * 0.2, 8, 24);
-  const { samples, maximum } = profile(bezel, thickness);
+  const density = Math.min(devicePixelRatio || 1, 3);
+  const short = Math.min(width, height);
+  const bezel = shape.bezel ?? (selection ? clamp(short * 0.12, 4, 10) : clamp(2.4 + short * 0.059, 3, 12));
+  const { samples, maximum } = selection
+    ? profile(bezel, shape.thickness ?? clamp(short * 0.2, 8, 24))
+    : rimProfile(shape.thickness ?? Math.min(short * 0.33, 48));
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil(width * density);
@@ -105,9 +117,9 @@ function maps(width: number, height: number, radius: number, selection: boolean,
         magnify.data[i + 3] = 255;
       }
 
-      const light = -(nx + ny) * Math.SQRT1_2;
-      const glint = Math.max(light, 0) ** 3;
-      const reflected = Math.max(-light, 0) ** 3;
+      const facing = -(nx + ny) * Math.SQRT1_2;
+      const glint = Math.max(facing, 0) ** 3;
+      const reflected = Math.max(-facing, 0) ** 3;
       shine.data[i] = shine.data[i + 1] = shine.data[i + 2] = 255;
 
       let alpha = 0;
@@ -119,9 +131,19 @@ function maps(width: number, height: number, radius: number, selection: boolean,
           shine.data[i + channel] = Math.round(255 * (0.65 + 0.35 * (peak ? bands[channel]! / peak : 0)));
         }
       } else if (distance >= 0) {
-        const rim = Math.exp(-(((distance - 0.4) / 0.38) ** 2));
-        const bloom = Math.exp(-((distance / (bezel * 0.22)) ** 2));
-        alpha = rim * (0.045 + 0.52 * glint + 0.2 * reflected) + bloom * 0.02 * glint;
+        // iOS 27 lights glass from straight above and below: a bright line along
+        // the top and bottom, a dark hairline down the sides, and a faint shade
+        // inside everywhere but the bottom.
+        const hairline = clamp(1 - distance * density, 0, 1);
+        const above = ny < 0 ? ny * ny : 0;
+        const below = ny > 0 ? ny * ny : 0;
+        const light =
+          above * (0.16 * hairline + 0.05 * Math.exp(-distance / 2.2)) +
+          below * (0.27 * hairline + 0.035 * Math.exp(-distance / 1.5));
+        const shade = nx * nx * 0.33 * hairline + (1 - below) * 0.02 * Math.max(0, 1 - distance / 13);
+        alpha = light + shade - light * shade;
+        const white = alpha > 0 ? Math.round((255 * light) / (light + shade)) : 255;
+        shine.data[i] = shine.data[i + 1] = shine.data[i + 2] = white;
       }
       shine.data[i + 3] = Math.round(clamp(alpha * shape.shine, 0, 1) * 255);
     }
@@ -183,11 +205,19 @@ function lens(width: number, height: number, radius: number, selection: boolean,
       svg("feComposite", { in: "rg", in2: "b", operator: "arithmetic", k2: 1, k3: 1 }),
     );
   } else {
+    // Blurring here rather than in CSS keeps the lens lined up: Chromium offsets
+    // a filter that follows a CSS blur by the blur's padding. The blur fades out
+    // at the box's edge, so the plain backdrop sits under it, and the rim shows
+    // a little of the sharp image, as it does on iOS.
+    filter.append(
+      svg("feGaussianBlur", { in: "SourceGraphic", stdDeviation: shape.blur, result: "wide" }),
+      merged("wide"),
+    );
     if (zoom) {
       filter.append(
         svg("feImage", { href: zoom.map, ...box, preserveAspectRatio: "none", result: "zoom" }),
         svg("feDisplacementMap", {
-          in: "SourceGraphic",
+          in: "base",
           in2: "zoom",
           scale: zoom.scale,
           xChannelSelector: "R",
@@ -198,7 +228,7 @@ function lens(width: number, height: number, radius: number, selection: boolean,
     }
     filter.append(
       svg("feDisplacementMap", {
-        in: zoom ? "magnified" : "SourceGraphic",
+        in: zoom ? "magnified" : "base",
         in2: "field",
         scale,
         xChannelSelector: "R",
@@ -207,8 +237,7 @@ function lens(width: number, height: number, radius: number, selection: boolean,
       }),
       // The displacement samples the nearest pixel, which leaves stair-steps
       // where the rim bends hardest; a sub-pixel blur smooths them.
-      svg("feGaussianBlur", { in: "bent", stdDeviation: 0.4, result: "displaced" }),
-      svg("feColorMatrix", { in: "displaced", type: "saturate", values: 1.5, result: "face" }),
+      svg("feGaussianBlur", { in: "bent", stdDeviation: 0.4, result: "face" }),
     );
     // Along the rim highlight, show the bent backdrop far more saturated, so
     // strong edges break into colour where they cross it.
@@ -216,7 +245,7 @@ function lens(width: number, height: number, radius: number, selection: boolean,
       const mask = svg("feComponentTransfer", { in: "shine", result: "mask" });
       mask.append(svg("feFuncA", { type: "linear", slope: 1.8 }));
       filter.append(
-        svg("feColorMatrix", { in: "displaced", type: "saturate", values: shape.saturation, result: "vivid" }),
+        svg("feColorMatrix", { in: "face", type: "saturate", values: shape.saturation, result: "vivid" }),
         svg("feImage", { href: highlight, ...box, preserveAspectRatio: "none", result: "shine" }),
         mask,
         svg("feComposite", { in: "vivid", in2: "mask", operator: "in", result: "edge" }),
@@ -229,6 +258,12 @@ function lens(width: number, height: number, radius: number, selection: boolean,
   const result = { filter: `url("#${id}")`, rim: `url("${highlight}")` };
   lenses.set(key, result);
   return result;
+}
+
+function merged(top: string): SVGElement {
+  const merge = svg("feMerge", { result: "base" });
+  merge.append(svg("feMergeNode", { in: "SourceGraphic" }), svg("feMergeNode", { in: top }));
+  return merge;
 }
 
 function fit(element: HTMLElement, selection: boolean, filtered: boolean): void {
@@ -249,13 +284,17 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
   const shape = {
     bezel: length("--lg-bezel"),
     thickness: length("--lg-thickness"),
+    blur: 15.3 - 14 * clamp(((length("--lg-transparency") ?? 0.5) - 0.5) * 2, 0, 1),
     level: length("--lg-refraction") ?? 1,
     zoom: Math.max(1, length("--lg-zoom") ?? 1),
     saturation: Math.max(1, length("--lg-rim-saturation") ?? 1),
     shine: Math.max(0, length("--lg-shine") ?? 1),
   };
   const { filter, rim } = lens(width, height, radius, selection, shape);
-  if (filtered) element.style.setProperty("--lg-filter", filter);
+  if (filtered) {
+    element.style.setProperty("--lg-filter", filter);
+    if (!selection) element.style.setProperty("--lg-lens-blur", "0px");
+  }
   element.style.setProperty("--lg-rim", rim);
 }
 
@@ -271,6 +310,9 @@ function whenIdle(callback: () => void): () => void {
 /** Only Chromium applies SVG filters to the live backdrop. */
 export const refractsBackdrop = (): boolean => /Chrom(?:e|ium)\//.test(navigator.userAgent);
 
+/** WebKit draws nothing for an SVG filter with an image in it, so its copy gets CSS filters alone. */
+const filtersCopy = (): boolean => !/AppleWebKit\//.test(navigator.userAgent);
+
 // Refits the lens whenever the element changes size. Unfiltered, it sets only
 // the rim highlight: the nearest Safari and Firefox come to refraction over
 // content they have no copy of.
@@ -285,6 +327,7 @@ function refract(element: HTMLElement, selection: boolean, filtered: boolean): (
     cancel?.();
     observer.disconnect();
     element.style.removeProperty("--lg-filter");
+    element.style.removeProperty("--lg-lens-blur");
     element.style.removeProperty("--lg-rim");
   };
 }
@@ -431,9 +474,8 @@ function copyBackdrop(element: HTMLElement, source: HTMLElement): () => void {
   const style = getComputedStyle(element);
   let styled = "";
   const restyle = () => {
-    const blur = style.getPropertyValue("--lg-blur").trim() || "3px";
-    const filter = style.getPropertyValue("--lg-filter").trim() || "saturate(1.5)";
-    const next = [`blur(${blur}) ${filter}`, style.borderRadius, style.opacity, style.visibility];
+    const read = (name: string) => style.getPropertyValue(name).trim();
+    const next = [`blur(${read("--lg-lens-blur") || read("--lg-blur") || "15.3px"}) ${read("--lg-filter")} ${read("--lg-tone")}`, style.borderRadius, style.opacity, style.visibility];
     if (next.join("|") === styled) return;
     styled = next.join("|");
     layer.style.filter = next[0]!;
@@ -607,7 +649,7 @@ export function useRefraction(ref: RefObject<HTMLElement | null>, selection = fa
     const source = selection ? null : findBackdrop(element);
     if (!source) return refract(element, selection, false);
     const stop = copyBackdrop(element, source);
-    const unfit = refract(element, selection, true);
+    const unfit = refract(element, selection, filtersCopy());
     return () => {
       unfit();
       stop();

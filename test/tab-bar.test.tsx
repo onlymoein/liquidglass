@@ -222,3 +222,12 @@ test("renders links through a custom component", () => {
   expect(current.getAttribute("aria-current")).toBe("page");
   expect(current.hasAttribute("data-custom")).toBe(true);
 });
+
+test("shows icons above the labels, as an iOS tab bar does", () => {
+  const { container } = render(
+    <TabBar aria-label="Tabs" defaultValue="home" items={[{ value: "home", label: "Home", icon: <svg aria-hidden /> }]} />,
+  );
+  expect(container.querySelector<HTMLElement>(".lg-tab-bar")?.dataset.icons).toBe("");
+  expect(container.querySelector(".lg-tab .lg-tab-icon svg")).not.toBeNull();
+  expect(container.querySelector(".lg-tab-copy .lg-tab-icon svg")).not.toBeNull();
+});

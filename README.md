@@ -34,9 +34,9 @@ React 18 or later.
 | Component | |
 | --- | --- |
 | `Glass` | A plain piece of glass to put anything on. |
-| `Button` | A glass or filled button, with an optional icon, tint or destructive style. |
+| `Button` | A glass or filled button in the iOS sizes (`small`, `regular`, `large`), with an optional icon, tint or destructive style. |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it. |
-| `TabBar` | Tabs with a lens that follows your finger between them. |
+| `TabBar` | Tabs with a lens that follows your finger between them. Give items an `icon` for the iOS tab bar. |
 | `Switch` | An on/off switch with a glass thumb. |
 | `Slider` | A slider with a glass thumb. |
 | `Input`, `SearchField` | Text fields set in glass. |
@@ -103,7 +103,7 @@ The menu opens in the top layer, so nothing that scrolls or clips around the tri
 
 ## Transparency
 
-Like the iOS 27 setting, `--lg-transparency` runs from `0`, fully tinted, to `1`, fully clear. The default is `0.5`. Set it anywhere, and the glass inside follows:
+Like the iOS 27 setting, `--lg-transparency` runs from `0`, fully tinted, through `0.5`, regular glass, to `1`, clear glass. The default is `0.5`. Set it anywhere, and the glass inside follows:
 
 ```css
 :root {
@@ -121,24 +121,29 @@ Colours are CSS variables, so you can change them in your own CSS. The ones you'
 
 | Variable | |
 | --- | --- |
-| `--lg-glass-clear`, `--lg-glass-tinted` | The glass at each end of the transparency range. |
+| `--lg-glass-tinted` | The tint when `--lg-transparency` is below `0.5`. |
+| `--lg-contrast`, `--lg-brightness`, `--lg-saturate` | What regular glass does to what's behind it. |
 | `--lg-fill` | The accent colour of filled buttons and sliders. |
 | `--lg-on` | A switch that's on. |
-| `--lg-shine` | How bright the rim highlight is. `1` is the iOS 26 rim; the default is `1.4`. |
+| `--lg-shine` | How strong the rim's lines are. `1`, the default, matches iOS 27. |
 
 ## Refraction in Safari and Firefox
 
-Chromium bends the live backdrop. Safari and Firefox can't filter it, so the glass bends a copy of content you mark instead. Put `data-liquidglass-backdrop` on what sits behind your glass, such as a wallpaper or a hero image:
+Chromium bends the live backdrop, as iOS does. No other browser lets a page bend what's behind an element, so there the glass has the same colour, blur and rim but its edge doesn't bend.
+
+In Firefox, you can put `data-liquidglass-backdrop` on what sits behind your glass, such as a wallpaper or a hero image, and the glass bends a copy of it. In Safari that attribute currently only gives you the blur and colour, because Safari can't draw the filter that does the bending.
 
 ```tsx
 <img data-liquidglass-backdrop src="/wallpaper.jpg" alt="" />
 ```
 
-Without it, those browsers keep the blur and the rim highlight but don't bend.
+## How close it is to iOS 27
+
+`parity/` runs real iOS glass and this library on the same simulator, over the same backgrounds, and measures the difference. `parity/PLAN.md` has the current numbers, what still differs and what a web page can't do.
 
 ## Coming from glisse
 
-The components and their props are the same. Install `@onlymoein/liquidglass` and change your imports, and rename `data-glisse-backdrop` to `data-liquidglass-backdrop`. If you restyled the glass by setting `--lg-glass`, set `--lg-glass-clear` and `--lg-glass-tinted` instead.
+The components and their props are the same. Install `@onlymoein/liquidglass` and change your imports, and rename `data-glisse-backdrop` to `data-liquidglass-backdrop`. If you restyled the glass by setting `--lg-glass`, set `--lg-glass-tinted` and `--lg-transparency` instead.
 
 ## License
 

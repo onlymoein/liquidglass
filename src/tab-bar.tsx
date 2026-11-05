@@ -18,6 +18,8 @@ import { createSpring } from "./internal/spring";
 export interface TabBarItem {
   value: string;
   label: ReactNode;
+  /** Shown above the label, as in an iOS tab bar. */
+  icon?: ReactNode;
   /** Renders the tab as a link. Clicking it navigates; the bar still tracks selection. */
   href?: string;
 }
@@ -301,6 +303,15 @@ export function TabBar({
   const latest = useRef({ items, selected, setValue });
   const signature = items.map((item) => item.value).join("\n");
   const navigation = items.every((item) => item.href !== undefined);
+  const face = (item: TabBarItem) =>
+    item.icon == null ? (
+      item.label
+    ) : (
+      <>
+        <span className="lg-tab-icon">{item.icon}</span>
+        {item.label}
+      </>
+    );
 
   useRefraction(glassRef);
   useRefraction(lensRef, true);
@@ -334,6 +345,7 @@ export function TabBar({
       ref={barRef}
       role={navigation ? "navigation" : "tablist"}
       className={cx("lg-tab-bar", className)}
+      data-icons={items.some((item) => item.icon != null) ? "" : undefined}
       style={{ ...style, "--lg-index": Math.max(selected, 0), "--lg-tabs": items.length } as CSSProperties}
       {...props}
     >
@@ -348,7 +360,7 @@ export function TabBar({
             aria-current={index === selected ? "page" : undefined}
             draggable={false}
           >
-            {item.label}
+            {face(item)}
           </Link>
         ) : (
           <button
@@ -360,7 +372,7 @@ export function TabBar({
             aria-selected={index === selected}
             tabIndex={index === selected || (selected < 0 && index === 0) ? 0 : -1}
           >
-            {item.label}
+            {face(item)}
           </button>
         ),
       )}
@@ -368,7 +380,7 @@ export function TabBar({
         <span ref={rowRef} className="lg-tab-row">
           {items.map((item) => (
             <span key={item.value} className="lg-tab-copy">
-              {item.label}
+              {face(item)}
             </span>
           ))}
         </span>
