@@ -21,7 +21,7 @@ export interface SwitchProps
 }
 
 // How far the thumb travels across the 60px track.
-const TRAVEL = 57.9 * 0.375;
+const TRAVEL = 63.2 * 0.375;
 const unit = (value: number) => Math.min(1, Math.max(0, value));
 
 export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLButtonElement>> = /* @__PURE__ */ forwardRef<

@@ -14,7 +14,6 @@ interface Shape {
   blur: number;
   level: number;
   zoom: number;
-  saturation: number;
   shine: number;
 }
 
@@ -60,6 +59,64 @@ function rimProfile(reach: number): { samples: Float32Array; maximum: number } {
   const samples = new Float32Array(128);
   for (let i = 0; i < samples.length; i++) samples[i] = reach * (1 - i / (samples.length - 1));
   return { samples, maximum: reach };
+}
+
+// How far past the shape the rim's image reaches, for the hairline iOS draws just outside it.
+const RIM_OUTSET = 1;
+
+// iOS 27 lights glass from straight above and below: a bright line along the top
+// and bottom, a dark hairline just outside the sides and more faintly round the
+// rest, and a faint shade inside everywhere but the bottom. Measured in parity/.
+function rimImage(width: number, height: number, radius: number, shine: number): string {
+  const density = Math.min(devicePixelRatio || 1, 3);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil((width + RIM_OUTSET * 2) * density);
+  canvas.height = Math.ceil((height + RIM_OUTSET * 2) * density);
+  const context = canvas.getContext("2d")!;
+  const image = context.createImageData(canvas.width, canvas.height);
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const px = (x + 0.5) / density - RIM_OUTSET - width / 2;
+      const py = (y + 0.5) / density - RIM_OUTSET - height / 2;
+      const qx = Math.abs(px) - (width / 2 - radius);
+      const qy = Math.abs(py) - (height / 2 - radius);
+      const ox = Math.max(qx, 0);
+      const oy = Math.max(qy, 0);
+      const length = Math.hypot(ox, oy);
+      const distance = radius - (length + Math.min(Math.max(qx, qy), 0));
+      if (distance > 15) continue;
+      const nx = length > 0 ? (ox / length) * Math.sign(px) : qx > qy ? Math.sign(px) : 0;
+      const ny = length > 0 ? (oy / length) * Math.sign(py) : qx > qy ? 0 : Math.sign(py);
+      const side = nx * nx;
+      const end = ny * ny;
+
+      let light = 0;
+      let shade = 0;
+      if (distance >= 0) {
+        const line = Math.max(0, 0.39 - 0.29 * distance);
+        if (ny < 0) {
+          light = end * (line + (distance > 1 ? 0.05 * Math.max(0, 1 - (distance - 1) / 2.5) : 0));
+          shade = end * 0.02 * Math.max(0, 1 - Math.abs(distance - 9) / 5);
+        } else if (ny > 0) {
+          light = end * line;
+        }
+        shade += side * 0.02 * clamp((15 - distance) / 5, 0, 1);
+      } else {
+        const outside = clamp(1 + distance / 0.75, 0, 1);
+        shade = (side * 0.75 + end * 0.2) * outside;
+      }
+      light = clamp(light * shine, 0, 1);
+      shade = clamp(shade * shine, 0, 1);
+      const alpha = light + shade - light * shade;
+      if (alpha <= 0) continue;
+      const i = (y * canvas.width + x) * 4;
+      const white = Math.round((255 * light) / (light + shade));
+      image.data[i] = image.data[i + 1] = image.data[i + 2] = white;
+      image.data[i + 3] = Math.round(alpha * 255);
+    }
+  }
+  context.putImageData(image, 0, 0);
+  return canvas.toDataURL();
 }
 
 function maps(width: number, height: number, radius: number, selection: boolean, shape: Shape) {
@@ -130,20 +187,6 @@ function maps(width: number, height: number, radius: number, selection: boolean,
         for (let channel = 0; channel < 3; channel++) {
           shine.data[i + channel] = Math.round(255 * (0.65 + 0.35 * (peak ? bands[channel]! / peak : 0)));
         }
-      } else if (distance >= 0) {
-        // iOS 27 lights glass from straight above and below: a bright line along
-        // the top and bottom, a dark hairline down the sides, and a faint shade
-        // inside everywhere but the bottom.
-        const hairline = clamp(1 - distance * density, 0, 1);
-        const above = ny < 0 ? ny * ny : 0;
-        const below = ny > 0 ? ny * ny : 0;
-        const light =
-          above * (0.16 * hairline + 0.05 * Math.exp(-distance / 2.2)) +
-          below * (0.27 * hairline + 0.035 * Math.exp(-distance / 1.5));
-        const shade = nx * nx * 0.33 * hairline + (1 - below) * 0.02 * Math.max(0, 1 - distance / 13);
-        alpha = light + shade - light * shade;
-        const white = alpha > 0 ? Math.round((255 * light) / (light + shade)) : 255;
-        shine.data[i] = shine.data[i + 1] = shine.data[i + 2] = white;
       }
       shine.data[i + 3] = Math.round(clamp(alpha * shape.shine, 0, 1) * 255);
     }
@@ -152,7 +195,7 @@ function maps(width: number, height: number, radius: number, selection: boolean,
   context.putImageData(field, 0, 0);
   const displacement = canvas.toDataURL();
   context.putImageData(shine, 0, 0);
-  const highlight = canvas.toDataURL();
+  const highlight = selection ? canvas.toDataURL() : rimImage(width, height, radius, shape.shine);
   let zoom: { map: string; scale: number } | undefined;
   if (magnify) {
     context.putImageData(magnify, 0, 0);
@@ -239,19 +282,6 @@ function lens(width: number, height: number, radius: number, selection: boolean,
       // where the rim bends hardest; a sub-pixel blur smooths them.
       svg("feGaussianBlur", { in: "bent", stdDeviation: 0.4, result: "face" }),
     );
-    // Along the rim highlight, show the bent backdrop far more saturated, so
-    // strong edges break into colour where they cross it.
-    if (shape.saturation > 1) {
-      const mask = svg("feComponentTransfer", { in: "shine", result: "mask" });
-      mask.append(svg("feFuncA", { type: "linear", slope: 1.8 }));
-      filter.append(
-        svg("feColorMatrix", { in: "face", type: "saturate", values: shape.saturation, result: "vivid" }),
-        svg("feImage", { href: highlight, ...box, preserveAspectRatio: "none", result: "shine" }),
-        mask,
-        svg("feComposite", { in: "vivid", in2: "mask", operator: "in", result: "edge" }),
-        svg("feBlend", { in: "edge", in2: "face", mode: "normal" }),
-      );
-    }
   }
   container().append(filter);
 
@@ -264,6 +294,45 @@ function merged(top: string): SVGElement {
   const merge = svg("feMerge", { result: "base" });
   merge.append(svg("feMergeNode", { in: "SourceGraphic" }), svg("feMergeNode", { in: top }));
   return merge;
+}
+
+// In dark mode iOS glass isn't linear: brightness peaks over light greys and
+// falls again over white, and colour fades as the backdrop gets brighter. CSS
+// filters can't follow that, but an SVG filter can, where it's allowed on the
+// backdrop. Measured values, by the backdrop's luminance from black to white.
+const DARK_BRIGHTNESS = [32, 59, 83, 102, 117, 126, 129, 128, 121].map((level) => level / 255);
+const DARK_COLOUR = [1.27, 1.19, 1.11, 1.03, 0.95, 0.87, 0.79, 0.71, 0.63];
+const COLOUR_RANGE = 1.3;
+let darkReady = false;
+
+function installDarkCurve(): void {
+  if (darkReady) return;
+  darkReady = true;
+  const table = (values: number[], result: string) => {
+    const transfer = svg("feComponentTransfer", { in: "luminance", result });
+    for (const channel of ["feFuncR", "feFuncG", "feFuncB"]) {
+      transfer.append(svg(channel, { type: "table", tableValues: values.join(" ") }));
+    }
+    return transfer;
+  };
+  const [r, g, b] = [0.2126, 0.7152, 0.0722];
+  const k = COLOUR_RANGE / 2;
+  const row = (own: number) => [r, g, b].map((weight, i) => k * ((i === own ? 1 : 0) - weight)).join(" ");
+  const gain = DARK_COLOUR.map((value) => value / COLOUR_RANGE);
+  const filter = svg("filter", { id: "liquidglass-dark", "color-interpolation-filters": "sRGB" });
+  filter.append(
+    svg("feColorMatrix", { in: "SourceGraphic", values: `${r} ${g} ${b} 0 0 ${r} ${g} ${b} 0 0 ${r} ${g} ${b} 0 0 0 0 0 1 0`, result: "luminance" }),
+    table(DARK_BRIGHTNESS, "brightness"),
+    table(gain, "gain"),
+    table(gain.map((value) => 0.5 * (1 - value)), "offset"),
+    // Colour as a difference from grey, held around 0.5 because filters can't go below zero.
+    svg("feColorMatrix", { in: "SourceGraphic", values: `${row(0)} 0 0.5 ${row(1)} 0 0.5 ${row(2)} 0 0.5 0 0 0 1 0`, result: "colour" }),
+    svg("feComposite", { in: "colour", in2: "gain", operator: "arithmetic", k1: 1, result: "scaled" }),
+    svg("feComposite", { in: "scaled", in2: "offset", operator: "arithmetic", k2: 1, k3: 1, result: "centred" }),
+    svg("feComposite", { in: "centred", in2: "brightness", operator: "arithmetic", k2: 2, k3: 1, k4: -1 }),
+  );
+  container().append(filter);
+  document.documentElement.style.setProperty("--lg-svg-dark", 'url("#liquidglass-dark")');
 }
 
 function fit(element: HTMLElement, selection: boolean, filtered: boolean): void {
@@ -287,13 +356,16 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
     blur: 15.3 - 14 * clamp(((length("--lg-transparency") ?? 0.5) - 0.5) * 2, 0, 1),
     level: length("--lg-refraction") ?? 1,
     zoom: Math.max(1, length("--lg-zoom") ?? 1),
-    saturation: Math.max(1, length("--lg-rim-saturation") ?? 1),
     shine: Math.max(0, length("--lg-shine") ?? 1),
   };
   const { filter, rim } = lens(width, height, radius, selection, shape);
   if (filtered) {
     element.style.setProperty("--lg-filter", filter);
     if (!selection) element.style.setProperty("--lg-lens-blur", "0px");
+    if (refractsBackdrop()) installDarkCurve();
+    // The curve is regular glass's. Clearer glass stays on the tone.
+    if ((length("--lg-transparency") ?? 0.5) > 0.5) element.style.setProperty("--lg-curve", "initial");
+    else element.style.removeProperty("--lg-curve");
   }
   element.style.setProperty("--lg-rim", rim);
 }
@@ -328,7 +400,22 @@ function refract(element: HTMLElement, selection: boolean, filtered: boolean): (
     observer.disconnect();
     element.style.removeProperty("--lg-filter");
     element.style.removeProperty("--lg-lens-blur");
+    element.style.removeProperty("--lg-curve");
     element.style.removeProperty("--lg-rim");
+  };
+}
+
+/** The rim alone, kept fitted as the element changes size. */
+export const fitRim = (element: HTMLElement): (() => void) => refract(element, false, false);
+
+/** The lens for an element at its final size, where the browser can run it. Stop it before the size changes. */
+export function fitLens(element: HTMLElement): () => void {
+  if (!refractsBackdrop()) return () => {};
+  fit(element, false, true);
+  return () => {
+    element.style.removeProperty("--lg-filter");
+    element.style.removeProperty("--lg-lens-blur");
+    element.style.removeProperty("--lg-curve");
   };
 }
 

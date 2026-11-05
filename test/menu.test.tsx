@@ -80,8 +80,8 @@ test("reports each change once", () => {
   expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 });
 
-test("gives a labelled trigger its label as its name, and a chevron", () => {
-  render(<Menu aria-label="Shipment options" label="Create shipment" items={[{ label: "Parcel" }, { label: "Freight" }]} />);
+test("gives a labelled trigger its label as its name, and a chevron when asked", () => {
+  render(<Menu aria-label="Shipment options" label="Create shipment" chevron items={[{ label: "Parcel" }, { label: "Freight" }]} />);
   const trigger = screen.getByRole("button", { name: "Create shipment" });
   expect(trigger.hasAttribute("data-icon")).toBe(false);
   expect(trigger.querySelector(".lg-menu-chevron")).toBeTruthy();
@@ -185,8 +185,8 @@ test("leaves the popover attribute off where there are no popovers, so nothing h
   expect(screen.getByRole("menu").hasAttribute("popover")).toBe(false);
 });
 
-test("leaves the chevron off a labelled trigger when asked", () => {
-  render(<Menu aria-label="Account" label="Dana" chevron={false} items={[{ label: "Settings" }]} />);
+test("leaves the chevron off a labelled trigger by default, as iOS does", () => {
+  render(<Menu aria-label="Account" label="Dana" items={[{ label: "Settings" }]} />);
   const trigger = screen.getByRole("button", { name: "Dana" });
   expect(trigger.querySelector(".lg-menu-chevron")).toBeNull();
   fireEvent.click(trigger);

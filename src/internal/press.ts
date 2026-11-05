@@ -11,9 +11,10 @@ interface Feel {
 
 // A mouse press stays subtle.
 const POINTER: Feel = { grow: 6, press: [417.6, 29.2], release: [230, 23.7] };
-// A finger gets the iOS 26 glass button: it grows until its longer side is
-// about 15pt bigger, and bounces back past its resting size on release.
-const TOUCH: Feel = { grow: 15, press: [515, 27.3], release: [250, 11.8] };
+// A finger gets the iOS 27 glass button: it grows until its longer side is about
+// 16pt bigger, and bounces back past its resting size on release. Fitted to
+// recordings in parity/.
+const TOUCH: Feel = { grow: 16, press: [795, 38], release: [342, 13.5] };
 
 export function usePress(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {

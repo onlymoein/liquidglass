@@ -1,0 +1,51 @@
+name: Parity
+options:
+  bundleIdPrefix: local.liquidglass
+  deploymentTarget: { iOS: "26.0" }
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    SWIFT_VERSION: "5"
+targets:
+  Parity:
+    type: application
+    platform: iOS
+    sources:
+      - path: ../app/ParityApp.swift
+      - path: ../.build/web/index.html
+        buildPhase: resources
+      - path: ../.build/web/bundle.js
+        buildPhase: resources
+      - path: ../.build/web/step.png
+        buildPhase: resources
+      - path: ../.build/web/ramp.png
+        buildPhase: resources
+      - path: ../.build/web/lines.png
+        buildPhase: resources
+      - path: ../.build/web/hlines.png
+        buildPhase: resources
+      - path: ../.build/web/grid.png
+        buildPhase: resources
+    info:
+      path: Info.generated.plist
+      properties:
+        CFBundleIdentifier: local.liquidglass.parity
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.liquidglass.parity
+  Driver:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [driver.swift]
+    dependencies: [{ target: Parity }]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: local.liquidglass.driver
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Parity:
+    build: { targets: { Parity: all, Driver: [test] } }
+    test: { targets: [Driver] }

@@ -54,12 +54,86 @@ struct Backdrop: View {
   }
 }
 
+// The other controls, each as iOS draws it, for measuring.
+struct Gallery: View {
+  @State var pick = 0
+  @State var count = 2
+  @State var presented = true
+  @State var text = ""
+  @State var shown = false
+  var body: some View {
+    let scene = argument("scene", "panel")
+    ZStack(alignment: .top) {
+      Backdrop().ignoresSafeArea().onTapGesture { shown = true }
+      switch scene {
+      case "controls":
+        VStack(spacing: 34) {
+          Picker("", selection: $pick) { Text("Boxes").tag(0); Text("Pallets").tag(1); Text("Skids").tag(2) }.pickerStyle(.segmented).frame(width: 300)
+          Stepper("", value: $count).labelsHidden()
+          ProgressView(value: 0.5).frame(width: 300)
+          ProgressView()
+          TextField("Text field", text: $text).textFieldStyle(.roundedBorder).frame(width: 300)
+          Button("Small") {}.buttonStyle(.glass).controlSize(.small)
+          Button("Mini") {}.buttonStyle(.glass).controlSize(.mini)
+          Button("XLarge") {}.buttonStyle(.glass).controlSize(.extraLarge)
+          Button {} label: { Image(systemName: "plus") }.buttonStyle(.glass)
+          Button {} label: { Image(systemName: "plus") }.buttonStyle(.glass).buttonBorderShape(.circle).controlSize(.large)
+        }.padding(.top, 90)
+      case "menu", "context":
+        VStack(spacing: 40) {
+          if scene == "menu" {
+            Menu {
+              Button("Parcel", systemImage: "shippingbox") {}
+              Button("Freight", systemImage: "truck.box") {}
+              Divider()
+              Button("Delete", systemImage: "trash", role: .destructive) {}
+            } label: { Label("Create shipment", systemImage: "plus") }.buttonStyle(.glass).controlSize(.large).accessibilityIdentifier("target")
+          } else {
+            Text("Hold me").padding(30).glassEffect(.regular, in: .rect(cornerRadius: 24)).accessibilityIdentifier("target")
+              .contextMenu { Button("Copy", systemImage: "doc.on.doc") {}; Button("Delete", systemImage: "trash", role: .destructive) {} }
+          }
+        }.padding(.top, 240)
+      default: EmptyView()
+      }
+    }
+    .sheet(isPresented: Binding(get: { scene == "sheet" || (scene == "show-sheet" && shown) }, set: { shown = $0 })) {
+      VStack { Text("Sheet title").font(.headline); Text("Body") }.presentationDetents([.medium, .large])
+    }
+    .alert("Delete shipment?", isPresented: Binding(get: { scene == "alert" || (scene == "show-alert" && shown) }, set: { shown = $0 })) {
+      Button("Cancel", role: .cancel) {}; Button("Delete", role: .destructive) {}
+    } message: { Text("This can't be undone.") }
+    .confirmationDialog("Delete shipment?", isPresented: Binding(get: { scene == "dialog" }, set: { _ in }), titleVisibility: .visible) {
+      Button("Delete", role: .destructive) {}; Button("Cancel", role: .cancel) {}
+    }
+  }
+}
+
+struct Navigation: View {
+  @State var text = ""
+  var body: some View {
+    NavigationStack {
+      ZStack { Backdrop().ignoresSafeArea() }
+        .navigationTitle("Shipments")
+        .toolbar {
+          ToolbarItem(placement: .topBarLeading) { Button("Back", systemImage: "chevron.left") {} }
+          ToolbarItemGroup(placement: .topBarTrailing) { Button("Share", systemImage: "square.and.arrow.up") {}; Button("Edit", systemImage: "pencil") {} }
+          ToolbarItem(placement: .bottomBar) { Button("Add", systemImage: "plus") {} }
+        }
+        .searchable(text: $text, prompt: "Search")
+    }
+  }
+}
+
 struct Native: View {
   @State var on = true
   @State var value = 0.5
   @State var tab = 0
   var body: some View {
-    if argument("scene", "panel") == "all" {
+    if ["controls", "menu", "context", "sheet", "alert", "dialog", "show-sheet", "show-alert"].contains(argument("scene", "panel")) {
+      Gallery()
+    } else if argument("scene", "panel") == "navigation" {
+      Navigation()
+    } else if argument("scene", "panel") == "all" {
       ZStack(alignment: .top) {
         Backdrop()
         VStack(spacing: 0) {

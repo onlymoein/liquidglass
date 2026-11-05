@@ -4,6 +4,7 @@ import { Button, type ButtonProps } from "./button";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { placeMenu, type Placement } from "./internal/placement";
+import { fitLens, fitRim } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
 
 export interface MenuItem {
@@ -41,14 +42,14 @@ export interface MenuProps {
   "aria-label": string;
   /** The trigger's icon. Defaults to an ellipsis when there's no `label`. */
   icon?: ReactNode;
-  /** Turns the trigger into a pill with this label and a chevron, like an iOS pull-down button. */
+  /** Turns the trigger into a pill with this label, like an iOS pull-down button. */
   label?: ReactNode;
-  /** Whether a labelled trigger shows its chevron. Defaults to `true`. */
+  /** Adds a chevron after a `label`. iOS doesn't draw one on a glass pull-down, so it's off by default. */
   chevron?: boolean;
   /** Anything else for the trigger button, such as its `variant` or `className`. */
   trigger?: Omit<ButtonProps, "icon" | "children" | "onClick">;
   /** The trigger edge the menu lines up with as it opens across it. */
-  align?: "start" | "end";
+  align?: "start" | "center" | "end";
   /** Whether the menu is open. Pass it with `onOpenChange` to open and close the menu yourself. */
   open?: boolean;
   defaultOpen?: boolean;
@@ -134,9 +135,9 @@ export function Menu({
   "aria-label": name,
   icon: iconProp,
   label,
-  chevron = true,
   trigger,
-  align = "end",
+  align = "center",
+  chevron = false,
   open: openProp,
   defaultOpen = false,
   onOpenChange,
@@ -206,7 +207,7 @@ export function Menu({
     const place: Placement = placeMenu(
       start,
       { width: card.offsetWidth, height: card.offsetHeight },
-      card.dataset.align === "start" ? "start" : "end",
+      card.dataset.align as "start" | "center" | "end",
       viewport(),
     );
     card.dataset.side = place.side;
@@ -234,14 +235,21 @@ export function Menu({
     // The face keeps the trigger's ink, such as white on a filled one, as it goes.
     glyph.style.color = getComputedStyle(trigger).color;
     let leaving = false;
-    const shape = createSpring(0, 600, 46, (value) => {
+    let stopLens: (() => void) | undefined;
+    const stopRim = fitRim(surface);
+    const shape = createSpring(0, 443, 24.8, (value) => {
       const t = clamp(value);
-      const settled = t === 1;
-      // The glass's rect, from the trigger's to the menu's.
-      const x = from.x * (1 - t);
-      const y = from.y * (1 - t);
-      const width = from.width + (to.width - from.width) * t;
-      const height = from.height + (to.height - from.height) * t;
+      const settled = value === 1;
+      if (settled && !leaving) stopLens ??= fitLens(surface);
+      // The glass's rect, from the trigger's to the menu's. As on iOS it goes a
+      // little past on the way: down by the spring's overshoot, and across by a
+      // third of that.
+      const tall = Math.max(0, value);
+      const wide = t + (tall - t) * 0.35;
+      const x = from.x * (1 - wide);
+      const y = from.y * (1 - tall);
+      const width = from.width + (to.width - from.width) * wide;
+      const height = from.height + (to.height - from.height) * tall;
       const scale = 0.5 + 0.5 * t;
       // The items stay inside the glass: clip them to its rect, mapped back
       // through their own scale.
@@ -276,8 +284,11 @@ export function Menu({
       ...shape,
       set(target, instant) {
         leaving = target === 0;
-        if (leaving) shape.tune(900, 57);
-        else shape.tune(600, 46);
+        if (leaving) {
+          stopLens?.();
+          stopLens = undefined;
+          shape.tune(276, 23);
+        } else shape.tune(443, 24.8);
         shape.set(target, instant);
       },
     };
@@ -298,7 +309,7 @@ export function Menu({
       const next = placeMenu(
         now,
         { width: card.offsetWidth, height: card.offsetHeight },
-        card.dataset.align === "start" ? "start" : "end",
+        card.dataset.align as "start" | "center" | "end",
         viewport(),
       );
       card.style.left = `${next.left}px`;
@@ -461,6 +472,8 @@ export function Menu({
     window.addEventListener("resize", follow);
     return () => {
       [shape, scale, x, y].forEach((spring) => spring.stop());
+      stopLens?.();
+      stopRim();
       morphRef.current = null;
       trigger.style.opacity = "";
       card.removeEventListener("pointerdown", down);
@@ -506,7 +519,7 @@ export function Menu({
           data-align={align}
           data-label={label == null ? undefined : ""}
         >
-          <span ref={surfaceRef} className="lg-menu-surface" aria-hidden />
+          <span ref={surfaceRef} className="lg-glass lg-menu-surface" aria-hidden />
           <span ref={glyphRef} className="lg-menu-glyph" aria-hidden>
             {face}
           </span>
