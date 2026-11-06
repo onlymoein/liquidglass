@@ -453,8 +453,8 @@
   color: var(--lg-tab-accent);
 }
 
-/* At rest the selection sits under the icon, so it doesn't dim the tint. */
-.lg-tab-bar[data-icons]:not([data-lifted]) .lg-tab-tint {
+/* At rest the selection sits under the tab's content, so it doesn't dim it. */
+.lg-tab-bar:not([data-lifted]) .lg-tab-tint {
   z-index: 3;
 }
 
