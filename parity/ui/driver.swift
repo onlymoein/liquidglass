@@ -12,7 +12,7 @@ final class Driver: XCTestCase {
     func at(_ x: Double, _ y: Double) -> XCUICoordinate {
       app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x, dy: y))
     }
-    while Date().timeIntervalSince(started) < 3600 {
+    while Date().timeIntervalSince(started) < 28800 {
       let lines = ((try? String(contentsOfFile: commands, encoding: .utf8)) ?? "").split(separator: "\n").map(String.init)
       if lines.count > seen {
         for line in lines[seen...] {

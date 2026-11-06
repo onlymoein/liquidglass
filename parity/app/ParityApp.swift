@@ -54,6 +54,13 @@ struct Backdrop: View {
   }
 }
 
+// The backdrop at the screen's own origin, whatever safe area a container gives it.
+struct Full: View {
+  var body: some View {
+    Color.clear.overlay(alignment: .top) { Backdrop() }.ignoresSafeArea()
+  }
+}
+
 // The other controls, each as iOS draws it, for measuring.
 struct Gallery: View {
   @State var pick = 0
@@ -179,9 +186,9 @@ struct Native: View {
       }.frame(width: 402, height: 874).ignoresSafeArea()
     } else if argument("scene", "panel") == "tabs" {
       TabView(selection: $tab) {
-        Tab("Home", systemImage: "house.fill", value: 0) { Backdrop().ignoresSafeArea() }
-        Tab("Search", systemImage: "magnifyingglass", value: 1) { Backdrop().ignoresSafeArea() }
-        Tab("Settings", systemImage: "gearshape.fill", value: 2) { Backdrop().ignoresSafeArea() }
+        Tab("Home", systemImage: "house.fill", value: 0) { Full() }
+        Tab("Search", systemImage: "magnifyingglass", value: 1) { Full() }
+        Tab("Settings", systemImage: "gearshape.fill", value: 2) { Full() }
       }
     } else {
       ZStack(alignment: .topLeading) {

@@ -41,11 +41,11 @@ function All() {
   );
 }
 
-const icon = (d: string) => <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d={d} /></svg>;
+const icon = (d: string) => <svg viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd" aria-hidden><path d={d} /></svg>;
 const tabs = [
-  { value: "home", label: "Home", icon: icon("M12 3 2 12h3v9h5v-6h4v6h5v-9h3z") },
-  { value: "search", label: "Search", icon: icon("M10 3a7 7 0 1 0 4.2 12.6l5.1 5.1 1.4-1.4-5.1-5.1A7 7 0 0 0 10 3zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10z") },
-  { value: "settings", label: "Settings", icon: icon("M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 5.5v-3l-2.4-.5-.7-1.7 1.4-2-2.1-2.1-2 1.4-1.7-.7L13.5 3h-3l-.5 2.4-1.7.7-2-1.4-2.1 2.1 1.4 2-.7 1.7L3 10.5v3l2.4.5.7 1.7-1.4 2 2.1 2.1 2-1.4 1.7.7.5 2.4h3l.5-2.4 1.7-.7 2 1.4 2.1-2.1-1.4-2 .7-1.7z") },
+  { value: "home", label: "Home", icon: icon("M12 2.2 16.6 6V3.6h2.6v4.5l3.4 2.8-1.2 1.5-1.4-1.1v8.2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8.2l-1.4 1.1-1.2-1.5zM10 21h4v-6.4h-4z") },
+  { value: "search", label: "Search", icon: icon("M10.2 1.6a8.6 8.6 0 1 0 5 15.6l5.3 5.3 2-2-5.3-5.3a8.6 8.6 0 0 0-7-13.6zm0 2.7a5.9 5.9 0 1 1 0 11.8 5.9 5.9 0 0 1 0-11.8z") },
+  { value: "settings", label: "Settings", icon: icon("M13.8 1.4h-3.6l-.6 2.9-2 .8-2.5-1.6-2.5 2.5 1.6 2.5-.8 2-2.9.6v3.6l2.9.6.8 2 -1.6 2.5 2.5 2.5 2.5-1.6 2 .8.6 2.9h3.6l.6-2.9 2-.8 2.5 1.6 2.5-2.5-1.6-2.5.8-2 2.9-.6v-3.6l-2.9-.6-.8-2 1.6-2.5-2.5-2.5-2.5 1.6-2-.8zM12 8.6a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z") },
 ];
 
 function Controls() {
@@ -74,7 +74,7 @@ function Shown({ kind }: { kind: "sheet" | "alert" }) {
         <Alert open={open} onOpenChange={setOpen} title="Delete shipment?" message="This can't be undone." actions={[{ label: "Cancel", role: "cancel" }, { label: "Delete", role: "destructive" }]} />
       ) : (
         <Sheet aria-label="Sheet" open={open} onOpenChange={setOpen}>
-          <div style={{ textAlign: "center", marginTop: 180 }}><b style={{ fontWeight: 600 }}>Sheet title</b><br />Body</div>
+          <div style={{ height: "100%", marginTop: -30, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: "22px" }}><b style={{ fontWeight: 600 }}>Sheet title</b><span>Body</span></div>
         </Sheet>
       )}
     </div>
@@ -127,12 +127,27 @@ function Merged() {
   );
 }
 
+function Probe() {
+  const tests = ["corner-shape: squircle", "corner-shape: superellipse(1.6)", "mix-blend-mode: plus-darker", "mix-blend-mode: multiply", "mask-image: url(a.svg)", "color: color-mix(in srgb, red, blue)", "backdrop-filter: blur(1px)", "shape(from 0 0, line to 1px 1px)".replace(/^/, "clip-path: ")];
+  const big = { width: 300, height: 90, borderRadius: 34, display: "grid", placeItems: "center", color: "#000", fontSize: 17 } as const;
+  return (
+    <div style={{ position: "absolute", left: 10, right: 10, top: 70, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+      <div style={{ background: "#fff", color: "#000", font: "13px monospace", padding: 6, width: 370 }}>{tests.map((t) => <div key={t}>{CSS.supports(t) ? "YES " : "no  "}{t}</div>)}<div>{navigator.userAgent.slice(0, 90)}</div></div>
+      <div style={{ width: 300, height: 90, background: "#fff", borderRadius: 34, cornerShape: "squircle" } as never} />
+      <Glass style={big}><span style={{ color: "rgb(90 90 90)" }}>plain text</span></Glass>
+      <Glass style={big}><span style={{ color: "rgb(120 120 120)", mixBlendMode: "multiply" }}>multiply text</span></Glass>
+      <Glass style={big}><span style={{ color: "rgb(120 120 120)", mixBlendMode: "plus-darker" } as never}>plus-darker text</span></Glass>
+      <Glass style={big}><span style={{ color: "rgb(70 70 70)", mixBlendMode: "color-burn" }}>color-burn text</span></Glass>
+    </div>
+  );
+}
+
 function App() {
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: hex ? `#${bg}` : "#000" }}>
       {edge > 0 && <div data-liquidglass-backdrop={q.get("mark") ? "" : undefined} style={{ position: "absolute", inset: 0, background: `linear-gradient(90deg, #000 ${edge}px, #fff ${edge}px)` }} />}
       {!hex && <img data-liquidglass-backdrop={q.get("mark") ? "" : undefined} src={`${bg}.png`} alt="" style={{ position: "absolute", left: 0, top: 0, width: 402, height: 874, imageRendering: "pixelated" }} />}
-      {get("scene", "panel") === "navigation" ? <NavigationScene /> : get("scene", "panel") === "merge" ? <Merged /> : get("scene", "panel").endsWith("sheet") ? <Shown kind="sheet" /> : get("scene", "panel").endsWith("alert") ? <Shown kind="alert" /> : get("scene", "panel") === "controls" ? <Controls /> : get("scene", "panel") === "menu" ? menu : get("scene", "panel") === "tabs" ? <div style={{ position: "absolute", left: 63.5, top: 790 }}><TabBar aria-label="Tabs" defaultValue="home" items={tabs} /></div> : get("scene", "panel") === "all" ? <All /> : <div style={{ position: "absolute", left: num("x", 201), top: num("y", 300), transform: "translate(-50%, -50%)" }}><Element /></div>}
+      {get("scene", "panel") === "probe" ? <Probe /> : get("scene", "panel") === "navigation" ? <NavigationScene /> : get("scene", "panel") === "merge" ? <Merged /> : get("scene", "panel").endsWith("sheet") ? <Shown kind="sheet" /> : get("scene", "panel").endsWith("alert") ? <Shown kind="alert" /> : get("scene", "panel") === "controls" ? <Controls /> : get("scene", "panel") === "menu" ? menu : get("scene", "panel") === "tabs" ? <div style={{ position: "absolute", left: 63.5, top: 791 }}><TabBar aria-label="Tabs" defaultValue="home" items={tabs} /></div> : get("scene", "panel") === "all" ? <All /> : <div style={{ position: "absolute", left: num("x", 201), top: num("y", 300), transform: "translate(-50%, -50%)" }}><Element /></div>}
     </div>
   );
 }
