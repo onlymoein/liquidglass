@@ -210,3 +210,14 @@ test("passes over a row its own class hides", () => {
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Copy" }));
   style.remove();
 });
+
+test("a finger opens it as it lifts, once, and leaves no row ringed", () => {
+  render(<Menu aria-label="Options" label="Create" items={[{ label: "Parcel" }]} />);
+  const trigger = screen.getByRole("button", { name: "Create" });
+  fireEvent.pointerUp(trigger, { pointerType: "touch", clientX: 0, clientY: 0 });
+  const menu = screen.getByRole("menu");
+  expect(menu.dataset.phase).toBe("open");
+  expect(document.activeElement).toBe(menu);
+  fireEvent.click(trigger);
+  expect(menu.dataset.phase).toBe("open");
+});

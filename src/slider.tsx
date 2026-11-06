@@ -27,6 +27,9 @@ export interface SliderProps
   step?: number;
 }
 
+// The width of the thumb at rest, which is how far short of each end its centre stops.
+const THUMB = 37;
+
 export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLInputElement>> = /* @__PURE__ */ forwardRef<
   HTMLInputElement,
   SliderProps
@@ -42,25 +45,82 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
   useImperativeHandle(forwardedRef, () => inputRef.current!);
   useRefraction(thumbRef);
 
+  const latest = useRef({ value, setValue, min, max, step });
+  useEffect(() => {
+    latest.current = { value, setValue, min, max, step };
+  });
+
   useEffect(() => {
     const input = inputRef.current!;
     const thumb = thumbRef.current!;
     const face = faceRef.current!;
     const lift = createSpring(0, 2000, 80, (amount) => {
-      thumb.style.scale = String(0.62 + 0.38 * amount);
-      face.style.opacity = String(1 - Math.min(1, Math.max(0, amount)));
+      const shown = Math.min(1, Math.max(0, amount));
+      thumb.style.scale = String(0.627 + 0.373 * amount);
+      face.style.opacity = String(1 - shown);
+      thumb.style.setProperty("--lg-lift", String(shown));
     });
 
+    // A quick tap still shows the lens, as on iOS.
+    let linger = 0;
+    let heldAt = 0;
     const hold = () => {
-      if (!input.disabled) lift.set(1);
+      if (input.disabled) return;
+      clearTimeout(linger);
+      heldAt = performance.now();
+      lift.tune(2000, 80);
+      lift.set(1);
     };
-    const release = () => lift.set(0);
+    const release = () => {
+      clearTimeout(linger);
+      linger = window.setTimeout(() => {
+        lift.tune(600, 49);
+        lift.set(0);
+      }, Math.max(0, 240 - (performance.now() - heldAt)));
+    };
     const ends = ["pointerup", "pointercancel", "lostpointercapture", "blur"] as const;
 
+    // A finger takes hold of the thumb, not the track, and moves it by as much as it moves.
+    const root = input.parentElement!;
+    let drag: { id: number; x: number; from: number; span: number } | null = null;
+    const down = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !event.isPrimary || input.disabled || !matchMedia("(pointer: coarse)").matches) return;
+      const { value: now, min: low, max: high } = latest.current;
+      const box = root.getBoundingClientRect();
+      const span = box.width - THUMB;
+      const at = box.left + THUMB / 2 + (span * (now - low)) / Math.max(high - low, 1e-6);
+      if (Math.abs(event.clientX - at) > THUMB / 2 + 12) return;
+      drag = { id: event.pointerId, x: event.clientX, from: now, span };
+      root.setPointerCapture?.(event.pointerId);
+      hold();
+    };
+    const moved = (event: PointerEvent) => {
+      if (event.pointerId !== drag?.id) return;
+      const { setValue: set, value: now, min: low, max: high, step: by } = latest.current;
+      const raw = drag.from + ((event.clientX - drag.x) / Math.max(drag.span, 1)) * (high - low);
+      const stepped = low + Math.round((raw - low) / by) * by;
+      const next = Math.min(high, Math.max(low, Number(stepped.toFixed(6))));
+      if (next !== now) set(next);
+    };
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== drag?.id) return;
+      drag = null;
+      release();
+    };
+
+    root.addEventListener("pointerdown", down);
+    root.addEventListener("pointermove", moved);
+    root.addEventListener("pointerup", up);
+    root.addEventListener("pointercancel", up);
     input.addEventListener("pointerdown", hold);
     ends.forEach((type) => input.addEventListener(type, release));
     window.addEventListener("pointerup", release);
     return () => {
+      clearTimeout(linger);
+      root.removeEventListener("pointerdown", down);
+      root.removeEventListener("pointermove", moved);
+      root.removeEventListener("pointerup", up);
+      root.removeEventListener("pointercancel", up);
       lift.stop();
       input.removeEventListener("pointerdown", hold);
       ends.forEach((type) => input.removeEventListener(type, release));

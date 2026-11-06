@@ -30,3 +30,30 @@ test("keeps a touch on the thumb from scrolling the page", () => {
   const css = document.querySelector("style#liquidglass-styles")!.textContent!;
   expect(css).toMatch(/\.lg-slider input::-webkit-slider-thumb\s*\{[^}]*touch-action:\s*none/);
 });
+
+function fingerSlider() {
+  vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList);
+  const onValueChange = vi.fn();
+  render(<Slider aria-label="Value" defaultValue={50} onValueChange={onValueChange} />);
+  const root = screen.getByRole("slider").parentElement!;
+  vi.spyOn(root, "getBoundingClientRect").mockReturnValue({ left: 0, width: 337, right: 337, top: 0, bottom: 40, height: 40 } as DOMRect);
+  return { root, onValueChange };
+}
+
+test("a finger on the track doesn't move the thumb, as on iOS", () => {
+  const { root, onValueChange } = fingerSlider();
+  fireEvent.pointerDown(root, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 320 });
+  fireEvent.pointerMove(root, { pointerId: 1, pointerType: "touch", clientX: 300 });
+  fireEvent.pointerUp(root, { pointerId: 1, pointerType: "touch", clientX: 300 });
+  expect(onValueChange).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
+});
+
+test("a finger on the thumb moves it by as much as the finger moves, wherever it took hold", () => {
+  const { root, onValueChange } = fingerSlider();
+  fireEvent.pointerDown(root, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 180 });
+  fireEvent.pointerMove(root, { pointerId: 1, pointerType: "touch", clientX: 210 });
+  expect(onValueChange).toHaveBeenLastCalledWith(60);
+  fireEvent.pointerUp(root, { pointerId: 1, pointerType: "touch", clientX: 210 });
+  vi.restoreAllMocks();
+});

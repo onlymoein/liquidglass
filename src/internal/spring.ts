@@ -72,6 +72,23 @@ function tick(time: number): void {
   if (moving.size) frame = requestAnimationFrame(tick);
 }
 
+/**
+ * Runs after a few frames. Glass takes a moment to reach the screen when it's first
+ * shown, and motion started at once would be half over by the time it did.
+ */
+export function afterGlassShows(callback: () => void, frames = 3): () => void {
+  if (document.hidden || prefersReducedMotion()) {
+    callback();
+    return () => {};
+  }
+  let handle = 0;
+  const wait = (left: number) => {
+    handle = requestAnimationFrame(() => (left > 1 ? wait(left - 1) : callback()));
+  };
+  wait(frames);
+  return () => cancelAnimationFrame(handle);
+}
+
 export function prefersReducedMotion(): boolean {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }

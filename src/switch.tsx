@@ -21,8 +21,10 @@ export interface SwitchProps
   onCheckedChange?: (checked: boolean) => void;
 }
 
-// How far the thumb travels across the 60px track.
-const TRAVEL = 63.2 * 0.375;
+// How far the thumb travels across the 63pt track, leaving 2pt each side of its 37.
+const TRAVEL = 22;
+// iOS keeps the lens up for the whole trip, however quick the tap.
+const LENS_MS = 300;
 const unit = (value: number) => Math.min(1, Math.max(0, value));
 
 export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLButtonElement>> = /* @__PURE__ */ forwardRef<
@@ -54,7 +56,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
     const thumb = thumbRef.current!;
     const face = faceRef.current!;
     let x = 0;
-    let scale = 0.61;
+    let scale = 0.627;
     const paint = () => {
       thumb.style.transform = `translate(${x}px, -50%) scale(${scale})`;
     };
@@ -64,12 +66,14 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
       x = value * TRAVEL;
       paint();
     });
-    const color = createSpring(initial, 1000, 80, (value) => {
+    // The colour outlasts the thumb's trip.
+    const color = createSpring(initial, 300, 35, (value) => {
       fill.style.opacity = String(unit(value));
     });
     const lift = createSpring(0, 2000, 80, (value) => {
-      scale = 0.61 + 0.39 * value;
+      scale = 0.627 + 0.373 * value;
       face.style.opacity = String(1 - unit(value));
+      thumb.style.setProperty("--lg-lift", String(unit(value)));
       paint();
     });
     springs.current = { position, color };
@@ -86,10 +90,19 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
       color.set(latest.current.checked ? 1 : 0);
     };
 
+    let linger = 0;
+    const lower = (from: number) => {
+      clearTimeout(linger);
+      linger = window.setTimeout(() => {
+        lift.tune(600, 49);
+        lift.set(0);
+      }, Math.max(0, LENS_MS - (performance.now() - from)));
+    };
+
     const settle = (next?: boolean) => {
       const old = gesture;
       gesture = null;
-      lift.set(0);
+      lower(old?.at ?? 0);
       if (old && el.hasPointerCapture(old.id)) el.releasePointerCapture(old.id);
       if (next === undefined || next === latest.current.checked) return sync();
       latest.current.setChecked(next);
@@ -110,6 +123,8 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
         box: el.getBoundingClientRect(),
       };
       el.setPointerCapture(event.pointerId);
+      clearTimeout(linger);
+      lift.tune(2000, 80);
       lift.set(1);
     };
 
@@ -164,6 +179,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
     el.addEventListener("click", click);
     return () => {
       springs.current = null;
+      clearTimeout(linger);
       [position, color, lift].forEach((spring) => spring.stop());
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);

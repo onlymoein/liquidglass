@@ -4,7 +4,7 @@ import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { reducedMotion, useModal } from "./internal/modal";
 import { fitLens, fitRim } from "./internal/refraction";
-import { createSpring, type Spring } from "./internal/spring";
+import { afterGlassShows, createSpring, type Spring } from "./internal/spring";
 
 export type SheetDetent = "medium" | "large";
 
@@ -21,14 +21,14 @@ export interface SheetProps {
 
 // Measured on iOS 27: half height floats as glass, inset from the screen's edges;
 // full height is opaque, reaches them, and keeps its corners only at the top.
-const MEDIUM = 0.52;
+const MEDIUM = 0.516;
 const LARGE_TOP = 67;
 const INSET = 8;
-const BOTTOM = 5;
-const RADIUS = 46;
+const BOTTOM = 8;
+const RADIUS = 38;
 const LARGE_RADIUS = 38;
 // A fast launch that settles without overshooting, fitted to a recording.
-const SPRING = [1680, 134] as const;
+const SPRING = [700, 65] as const;
 // A flick this fast, in points a second, counts as meaning it.
 const FLICK = 500;
 
@@ -53,7 +53,6 @@ export function Sheet({ open: openProp, defaultOpen = false, onOpenChange, deten
       const screen = dialogRef.current?.clientHeight || innerHeight;
       return live.current.detents.map((detent) => (detent === "medium" ? screen * MEDIUM : screen - LARGE_TOP));
     };
-    const stopRim = fitRim(sheet);
     let stopLens: (() => void) | undefined;
     let height = 0;
     const paint = (next: number) => {
@@ -81,12 +80,14 @@ export function Sheet({ open: openProp, defaultOpen = false, onOpenChange, deten
     });
     motion.current = { spring, heights };
     spring.paint();
+    const stopRim = fitRim(sheet);
     const first = heights()[0] ?? 0;
-    spring.set(first, reducedMotion());
+    const cancelStart = afterGlassShows(() => spring.set(first, reducedMotion()));
     const settled = setInterval(() => {
       if (!stopLens && Math.abs(height - first) < 0.01 && live.current.phase === "open") stopLens = fitLens(sheet);
     }, 300);
     return () => {
+      cancelStart();
       clearInterval(settled);
       spring.stop();
       stopLens?.();

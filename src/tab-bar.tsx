@@ -13,7 +13,7 @@ import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
 import { useRefraction } from "./internal/refraction";
-import { createSpring } from "./internal/spring";
+import { createSpring, prefersReducedMotion } from "./internal/spring";
 
 export interface TabBarItem {
   value: string;
@@ -55,6 +55,10 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
 const REST = [1024, 58.9, 676, 47.8] as const;
 const DRAG = [2500, 94, 576, 44.2] as const;
+// A quick tap still lifts the lens and carries it across, as on iOS.
+const LIFT_MS = 230;
+// Under a finger the whole bar swells.
+const BAR_GROW = 0.049;
 
 function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) => void): Controller {
   const tabs = [...bar.querySelectorAll<HTMLElement>(".lg-tab")];
@@ -65,6 +69,7 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
   let active = -1;
   let shown = false;
   let settleFrame = 0;
+  let linger = 0;
   let gesture: { id: number; x: number; anchor: number; moved: boolean; box: DOMRect; at: number } | null = null;
   const state = { x: 0, lift: 0 };
 
@@ -85,10 +90,11 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const zoom = 1 + 0.19 * lift;
     const centre = `${slot / 2}px, ${height / 2}px`;
     row.style.transform = `translate(${centre}) scale(${zoom}) translate(-${slot / 2}px, -${height / 2}px) scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
-    // The lens shows its own enlarged copy of the tabs, so the ones under it make way.
+    bar.style.scale = lift > 0.001 ? String(1 + BAR_GROW * lift) : "";
+    // The selection shows its own copy of the tabs, so the ones under it make way.
     tabs.forEach((tab, index) => {
       const near = Math.max(0, 1 - Math.abs(x - index * slot) / (slot * 0.75));
-      tab.style.opacity = lift > 0.01 ? String(1 - Math.min(1, lift * 2) * near) : "";
+      tab.style.opacity = "hidden" in bar.dataset ? "" : String(1 - near);
     });
     if (!gesture && lift < 0.01) delete bar.dataset.refracting;
   };
@@ -115,7 +121,7 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const show = active >= 0;
     if (show) delete bar.dataset.hidden;
     else bar.dataset.hidden = "";
-    if (show) move(active * slot, false, instant || !shown);
+    if (show) move(active * slot, linger !== 0, instant || !shown);
     shown = show;
   };
 
@@ -127,11 +133,26 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     lens.style.setProperty("--lg-x", `${clamp(((event.clientX - box.left - 4 - state.x) / slot) * 100, 0, 100)}%`);
   };
 
-  const release = () => {
-    const old = gesture;
-    gesture = null;
+  const drop = () => {
+    clearTimeout(linger);
+    linger = 0;
     delete bar.dataset.lifted;
     delete lens.dataset.pressed;
+  };
+
+  const release = (keep = false) => {
+    const old = gesture;
+    gesture = null;
+    drop();
+    const left = keep && old && !prefersReducedMotion() ? LIFT_MS - (performance.now() - old.at) : 0;
+    if (left > 0) {
+      bar.dataset.lifted = "";
+      lens.dataset.pressed = "";
+      linger = window.setTimeout(() => {
+        drop();
+        settle();
+      }, left);
+    }
     if (old && bar.hasPointerCapture(old.id)) bar.releasePointerCapture(old.id);
     return old;
   };
@@ -144,6 +165,7 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     cancelAnimationFrame(settleFrame);
     settleFrame = 0;
+    drop();
     measure();
     const box = bar.getBoundingClientRect();
     gesture = {
@@ -180,10 +202,11 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     // tab's bubbling capture-loss event is a handoff, not the end of the drag.
     if (event.type === "lostpointercapture" && event.target !== bar) return;
     const index = Math.round(position(event) / slot);
-    const { moved, box } = release()!;
+    const { moved, box } = gesture;
     // A drag selects wherever it leaves the lens, even released off the bar.
     // A tap only counts if it ends on the bar, as with a button.
     const near = event.clientY >= box.top - 24 && event.clientY <= box.bottom + 24;
+    release(event.type === "pointerup" && !moved && near);
     if (event.type === "pointerup" && (moved || near)) {
       // Activate taps and drags at release, before settling. Waiting for the
       // browser's click briefly sends the lens back toward the old selection.
@@ -275,6 +298,8 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
       settle();
     },
     destroy() {
+      clearTimeout(linger);
+      bar.style.scale = "";
       cancelAnimationFrame(settleFrame);
       x.stop();
       lift.stop();

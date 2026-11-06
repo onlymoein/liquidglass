@@ -26,6 +26,10 @@ export function useModal(
     if (!dialog || phase !== "open" || dialog.open) return;
     if (typeof dialog.showModal === "function") dialog.showModal();
     else dialog.setAttribute("open", "");
+    // The browser would focus the first button and may ring it, which iOS never
+    // does. The dialog takes focus instead, and Tab goes on to the first button.
+    dialog.tabIndex = -1;
+    dialog.focus({ preventScroll: true });
   }, [phase, ref]);
 
   useEffect(() => {

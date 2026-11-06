@@ -5,7 +5,7 @@ import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { placeMenu, type Placement } from "./internal/placement";
 import { fitLens, rimAt } from "./internal/refraction";
-import { createSpring, type Spring } from "./internal/spring";
+import { createSpring, prefersReducedMotion } from "./internal/spring";
 
 export interface MenuItem {
   label: ReactNode;
@@ -69,6 +69,93 @@ const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const resistance = (value: number) => Math.sign(value) * 7 * (1 - Math.exp((-Math.abs(value) * 0.12) / 7));
 const isItem = (entry: MenuEntry | undefined): entry is MenuItem =>
   entry != null && entry !== "separator" && !("heading" in entry);
+
+// The glass's shape as it opens and closes, one row a frame at 60fps, read from iOS 27.
+// Width, height and centre are how far along from the trigger (0) to the menu (1). The
+// width goes well below 0: the pill squeezes into a ball as it drops, and the ball swells
+// into the menu. Then how much the items are zoomed, and how round the corners are, from
+// as round as the shape allows (1) to the menu's own (0).
+type Row = readonly [width: number, height: number, centre: number, zoom: number, round: number];
+const OPENING: readonly Row[] = [
+  [0, 0, 0, 0.7, 1],
+  [-0.43, 0, 0.01, 0.7, 1],
+  [-1.28, 0.04, 0.15, 0.7, 1],
+  [-1.48, 0.435, 0.73, 0.75, 1],
+  [-1.22, 0.53, 0.88, 0.85, 1],
+  [-0.97, 0.6, 1, 0.95, 1],
+  [-0.52, 0.73, 1.2, 1.08, 1],
+  [-0.14, 0.81, 1.33, 1.19, 1],
+  [0.21, 0.88, 1.4, 1.25, 0.92],
+  [0.45, 0.91, 1.4, 1.27, 0.83],
+  [0.66, 0.95, 1.365, 1.28, 0.75],
+  [0.8, 0.97, 1.31, 1.25, 0.66],
+  [0.93, 0.99, 1.25, 1.2, 0.58],
+  [1.03, 1.01, 1.2, 1.16, 0.49],
+  [1.07, 1.02, 1.14, 1.12, 0.41],
+  [1.1, 1.02, 1.087, 1.09, 0.32],
+  [1.1, 1.02, 1.052, 1.06, 0.24],
+  [1.1, 1.02, 1.035, 1.04, 0.15],
+  [1.07, 1.02, 1.017, 1.03, 0.1],
+  [1.07, 1.02, 1, 1.02, 0.05],
+  [1.07, 1.01, 0.99, 1.01, 0.02],
+  [1.03, 1.01, 0.99, 1, 0],
+  [1.02, 1.01, 0.99, 1, 0],
+  [1.01, 1, 0.99, 1, 0],
+  [1, 1, 1, 1, 0],
+];
+const CLOSING: readonly Row[] = [
+  [1, 1, 1, 1, 0],
+  [0.86, 0.98, 1.226, 1, 0.2],
+  [0.64, 0.94, 1.41, 0.98, 0.5],
+  [0.33, 0.9, 1.44, 0.95, 0.75],
+  [-0.02, 0.86, 1.365, 0.92, 1],
+  [-0.38, 0.81, 1.21, 0.9, 1],
+  [-0.72, 0.74, 1.02, 0.88, 1],
+  [-1.05, 0.66, 0.82, 0.86, 1],
+  [-1.34, 0.57, 0.63, 0.84, 1],
+  [-1.59, 0.49, 0.47, 0.82, 1],
+];
+// The drop's width, as a share of the trigger's, and how far it hangs below it, as a share
+// of the menu's height. Then the trigger's width, and its lift in points, as it comes back.
+const DROPLET: readonly (readonly [number, number, number, number])[] = [
+  [0.41, 0.35, 0.61, -3],
+  [0.35, 0.25, 0.69, -5],
+  [0.31, 0.165, 0.76, -6],
+  [0.28, 0.096, 0.81, -7],
+  [0.23, 0.035, 0.865, -7],
+  [0.18, 0, 0.9, -6],
+  [0, 0, 0.93, -6],
+  [0, 0, 0.96, -5],
+  [0, 0, 0.98, -5],
+  [0, 0, 0.99, -4],
+  [0, 0, 1, -4],
+  [0, 0, 1.01, -3],
+  [0, 0, 1.016, -2],
+  [0, 0, 1.02, -2],
+  [0, 0, 1.02, -1],
+  [0, 0, 1.016, -1],
+  [0, 0, 1.016, -1],
+  [0, 0, 1.01, 0],
+  [0, 0, 1.008, 0],
+  [0, 0, 1.004, 0],
+  [0, 0, 1, 0],
+];
+
+function tableRow(table: readonly Row[], at: number): Row {
+  const lower = table[Math.min(Math.floor(at), table.length - 1)]!;
+  const upper = table[Math.min(Math.floor(at) + 1, table.length - 1)]!;
+  const part = at - Math.floor(at);
+  return lower.map((value, i) => value + (upper[i]! - value) * part) as unknown as Row;
+}
+
+// The row whose height is closest, so one motion can take over from the other part-way.
+function nearest(table: readonly Row[], height: number): number {
+  let best = 0;
+  table.forEach((row, i) => {
+    if (Math.abs(row[1] - height) < Math.abs(table[best]![1] - height)) best = i;
+  });
+  return best;
+}
 
 const chevronIcon = (
   <svg className="lg-menu-chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" aria-hidden>
@@ -165,9 +252,10 @@ export function Menu({
   const glyphRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const plateRef = useRef<HTMLSpanElement>(null);
-  const morphRef = useRef<Spring | null>(null);
+  const morphRef = useRef<{ set(target: number): void } | null>(null);
   const latest = useRef({ items, open, setOpen });
   const refocus = useRef(true);
+  const tapped = useRef(0);
   const mounted = phase !== "closed";
 
   useEffect(() => {
@@ -222,86 +310,165 @@ export function Menu({
     // from its centre and come into focus. Closing runs it back.
     const from = { x: start.left - place.left, y: start.top - place.top, width: start.width, height: start.height };
     const to = { width: card.offsetWidth, height: card.offsetHeight };
-    const radius = parseFloat(getComputedStyle(surface).borderTopLeftRadius);
-    // A lone icon swells as it goes; a label grows less, so it doesn't sprawl.
-    const swell = card.hasAttribute("data-label") ? 0.15 : 0.6;
-    const origin = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
-    content.style.transformOrigin = `${origin.x}px ${origin.y}px`;
-    card.style.transformOrigin = `${origin.x}px ${origin.y}px`;
+    const radius = Math.min(parseFloat(getComputedStyle(surface).borderTopLeftRadius) || 0, to.width / 2, to.height / 2);
+    const roundest = Math.min(1, radius / (Math.min(to.width, to.height) / 2));
+    const centre = { x: to.width / 2, y: to.height / 2 };
+    const home = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
+    content.style.transformOrigin = `${centre.x}px ${centre.y}px`;
+    card.style.transformOrigin = `${home.x}px ${home.y}px`;
     glyph.style.left = `${from.x}px`;
     glyph.style.top = `${from.y}px`;
     glyph.style.width = `${from.width}px`;
     glyph.style.height = `${from.height}px`;
-    // The face keeps the trigger's ink, such as white on a filled one, as it goes.
-    glyph.style.color = getComputedStyle(trigger).color;
-    let leaving = false;
+    // The face keeps the trigger's ink, such as white on a filled one, and its
+    // layout, so its label lands exactly on the trigger's.
+    const ink = getComputedStyle(trigger);
+    glyph.style.color = ink.color;
+    glyph.style.padding = `0 ${ink.paddingRight} 0 ${ink.paddingLeft}`;
+    glyph.style.gap = ink.columnGap;
+    glyph.style.fontSize = ink.fontSize;
     let stopLens: (() => void) | undefined;
-    // Worked out once, for where it's going: it stretches on the way there.
-    const stopRim = rimAt(surface, to.width, to.height, Math.min(parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0, to.width / 2, to.height / 2));
-    const shape = createSpring(0, 529, 25.8, (value) => {
-      const t = clamp(value);
-      const settled = value === 1;
-      if (settled && !leaving) stopLens ??= fitLens(surface);
-      // The glass's rect, from the trigger's to the menu's. As on iOS it goes a
-      // little past on the way: down by the spring's overshoot, and across by a
-      // third of that.
-      const tall = Math.max(0, value);
-      const wide = t + (tall - t) * 0.35;
-      const x = from.x * (1 - wide);
-      const y = from.y * (1 - tall);
-      const width = from.width + (to.width - from.width) * wide;
-      const height = from.height + (to.height - from.height) * tall;
-      const scale = 0.5 + 0.5 * t;
-      // The items stay inside the glass: clip them to its rect, mapped back
-      // through their own scale.
-      const local = (edge: number, centre: number) => centre + (edge - centre) / scale;
-      const left = local(x, origin.x);
-      const right = local(x + width, origin.x);
-      const top = local(y, origin.y);
-      const bottom = local(y + height, origin.y);
-      surface.style.left = settled ? "" : `${x}px`;
-      surface.style.top = settled ? "" : `${y}px`;
-      surface.style.width = settled ? "" : `${width}px`;
-      surface.style.height = settled ? "" : `${height}px`;
-      surface.style.opacity = String(clamp(t / 0.2));
-      trigger.style.opacity = t === 0 ? "" : String(1 - clamp(t / 0.2));
-      // The trigger's icon rides the glass towards its centre, swelling and
-      // blurring away as the items arrive.
-      const drift = 0.3 * t;
-      const dx = (x + width / 2 - origin.x) * drift;
-      const dy = (y + height / 2 - origin.y) * drift;
-      glyph.style.opacity = String(1 - clamp(t / 0.45));
-      glyph.style.transform = `translate(${dx}px, ${dy}px) scale(${1 + swell * t})`;
-      glyph.style.filter = `blur(${8 * t}px)`;
-      content.style.opacity = String(leaving ? clamp((t - 0.55) / 0.45) : clamp((t - 0.15) / 0.6));
-      content.style.transform = settled ? "" : `scale(${scale})`;
-      content.style.filter = settled ? "" : `blur(${6 * (1 - t)}px)`;
-      content.style.clipPath = settled
-        ? ""
-        : `inset(${top}px ${to.width - right}px ${to.height - bottom}px ${left}px round ${radius / scale}px)`;
-      if (leaving && value === 0) setPhase("closed");
-    });
-    const morph: Spring = {
-      ...shape,
-      set(target, instant) {
-        leaving = target === 0;
-        if (leaving) {
-          stopLens?.();
-          stopLens = undefined;
-          shape.tune(276, 23);
-        } else shape.tune(529, 25.8);
-        shape.set(target, instant);
+    // Worked out once, for where it's going.
+    const stopRim = rimAt(surface, to.width, to.height, radius);
+
+    // The measured sizes are for a 192 x 52 trigger and a 250 x 167 menu. Past either
+    // end of the range they're kept as a share of the size they run from.
+    const wide = (n: number) =>
+      Math.max(from.height * 0.8, n < 0 ? from.width * (1 + 0.302 * n) : n > 1 ? to.width * (1 + 0.232 * (n - 1)) : from.width + (to.width - from.width) * n);
+    const tall = (n: number) => (n > 1 ? to.height * (1 + 0.69 * (n - 1)) : from.height + (to.height - from.height) * n);
+
+    // The glass as a blob at one row of a table, with the items inside it.
+    const blob = ([w, h, c, zoom, round]: Row, items: number, soft: number, face: number) => {
+      const width = wide(w);
+      const height = tall(h);
+      const x = home.x + (centre.x - home.x) * clamp(w) - width / 2;
+      const cy = home.y + (centre.y - home.y) * c;
+      const y = cy - height / 2;
+      const corner = ((roundest + (1 - roundest) * round) * Math.min(width, height)) / 2;
+      surface.style.left = `${x}px`;
+      surface.style.top = `${y}px`;
+      surface.style.width = `${width}px`;
+      surface.style.height = `${height}px`;
+      surface.style.borderRadius = `${corner}px`;
+      surface.style.opacity = "1";
+      glyph.style.opacity = String(face);
+      glyph.style.filter = `blur(${4 * (1 - face)}px)`;
+      // The items ride lower than the glass, and swell as they go through its middle.
+      const shift = (cy - centre.y) * 0.45;
+      const local = (edge: number, middle: number, by = 0) => middle + (edge - middle - by) / zoom;
+      content.style.opacity = String(items);
+      content.style.transform = `translateY(${shift}px) scale(${zoom})`;
+      content.style.filter = soft ? `blur(${soft}px)` : "";
+      content.style.clipPath = `inset(${local(y, centre.y, shift)}px ${to.width - local(x + width, centre.x)}px ${to.height - local(y + height, centre.y, shift)}px ${local(x, centre.x)}px round ${corner / zoom}px)`;
+    };
+
+    // The last of closing: the trigger is back, and what's left of the glass runs into it as a drop.
+    const drop = ([size, reach, sx, dy]: readonly [number, number, number, number]) => {
+      content.style.opacity = "0";
+      glyph.style.opacity = "0";
+      trigger.style.opacity = "";
+      trigger.style.transform = `translateY(${dy}px) scaleX(${sx})`;
+      const bottom = from.y + from.height + dy;
+      const height = reach * (to.height - from.height);
+      const width = size * from.width;
+      surface.style.opacity = size && height > 0 ? "1" : "0";
+      surface.style.left = `${home.x - width / 2}px`;
+      surface.style.top = `${bottom}px`;
+      surface.style.width = `${width}px`;
+      surface.style.height = `${Math.max(0, height)}px`;
+      surface.style.borderRadius = `0 0 ${width / 2}px ${width / 2}px`;
+    };
+
+    const rest = () => {
+      for (const name of ["left", "top", "width", "height", "borderRadius", "opacity"] as const) surface.style[name] = "";
+      for (const name of ["opacity", "transform", "filter", "clipPath"] as const) content.style[name] = "";
+      glyph.style.opacity = "0";
+      delete card.dataset.morphing;
+    };
+
+    let goal = -1;
+    let at = 0;
+    let frame = 0;
+    let last = 0;
+    let row: Row = OPENING[0]!;
+    const shapeNow = () => {
+      if (goal === 1) {
+        if (at >= OPENING.length - 1) {
+          rest();
+          stopLens ??= fitLens(surface);
+          return true;
+        }
+        row = tableRow(OPENING, at);
+        trigger.style.opacity = "0";
+        blob(row, clamp((at - 1) / 6), 5 * clamp(1 - (at - 2) / 14), clamp(1 - at / 2.5));
+        return false;
+      }
+      if (at < CLOSING.length) {
+        row = tableRow(CLOSING, at);
+        trigger.style.opacity = "0";
+        blob(row, clamp(1 - at / 4), 4 * clamp(at / 4), clamp((at - 5) / 3));
+        return false;
+      }
+      const index = at - CLOSING.length;
+      if (index >= DROPLET.length - 1) {
+        trigger.style.opacity = "";
+        trigger.style.transform = "";
+        setPhase("closed");
+        return true;
+      }
+      const lower = DROPLET[Math.floor(index)]!;
+      const upper = DROPLET[Math.floor(index) + 1]!;
+      const part = index - Math.floor(index);
+      drop(lower.map((value, i) => value + (upper[i]! - value) * part) as unknown as readonly [number, number, number, number]);
+      return false;
+    };
+    // Glass takes a moment to reach the screen when it's first shown.
+    let warming = 3;
+    const step = (time: number) => {
+      frame = 0;
+      if (warming > 0) {
+        warming--;
+        last = time;
+        frame = requestAnimationFrame(step);
+        return;
+      }
+      // A stalled frame shouldn't skip the shape.
+      at += (Math.min(34, Math.max(0, time - last)) * 60) / 1000;
+      last = time;
+      if (!shapeNow()) frame = requestAnimationFrame(step);
+    };
+    const morph = {
+      set(target: number) {
+        if (target === goal) return;
+        const interrupted = goal !== -1;
+        goal = target;
+        stopLens?.();
+        stopLens = undefined;
+        card.dataset.morphing = "";
+        const table = target === 1 ? OPENING : CLOSING;
+        // Taken up mid-way, it carries on from the row nearest where it is.
+        at = interrupted && (target === 0 || at < CLOSING.length) ? nearest(table, row[1]) : 0;
+        cancelAnimationFrame(frame);
+        if (document.hidden || prefersReducedMotion()) {
+          at = table === OPENING ? OPENING.length : CLOSING.length + DROPLET.length;
+          shapeNow();
+          return;
+        }
+        last = Number(document.timeline?.currentTime ?? performance.now());
+        shapeNow();
+        frame = requestAnimationFrame(step);
       },
     };
     morphRef.current = morph;
-    shape.paint();
     morph.set(1);
     // A row its own className hides, say for one kind of screen, is passed over.
     const rows = () =>
       [...card.querySelectorAll<HTMLElement>(".lg-menu-item:not(:disabled)")].filter(
         (row) => getComputedStyle(row).display !== "none",
       );
-    rows()[0]?.focus({ preventScroll: true });
+    // A keyboard starts on the first row. A finger has no use for it, and it'd come up ringed.
+    if (tapped.current) card.focus({ preventScroll: true });
+    else rows()[0]?.focus({ preventScroll: true });
 
     // The menu stays over its trigger as the page scrolls or the window changes size.
     const follow = (event: Event) => {
@@ -472,7 +639,9 @@ export function Menu({
     window.addEventListener("scroll", follow, true);
     window.addEventListener("resize", follow);
     return () => {
-      [shape, scale, x, y].forEach((spring) => spring.stop());
+      cancelAnimationFrame(frame);
+      trigger.style.transform = "";
+      [scale, x, y].forEach((spring) => spring.stop());
       stopLens?.();
       stopRim();
       morphRef.current = null;
@@ -501,7 +670,21 @@ export function Menu({
         aria-label={trigger?.["aria-label"] ?? (label == null ? name : undefined)}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen(!open)}
+        // A finger opens it as it lifts, as on iOS: the click comes a beat later.
+        onPointerUp={(event) => {
+          trigger?.onPointerUp?.(event);
+          if (event.pointerType !== "touch" || trigger?.disabled) return;
+          const box = event.currentTarget.getBoundingClientRect();
+          const inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+          if (!inside) return;
+          tapped.current = event.timeStamp;
+          setOpen(!open);
+        }}
+        onClick={(event) => {
+          const fromTap = tapped.current && event.timeStamp - tapped.current < 700;
+          tapped.current = 0;
+          if (!fromTap) setOpen(!open);
+        }}
       >
         {label == null ? null : (
           <>
@@ -514,6 +697,7 @@ export function Menu({
         <div
           ref={cardRef}
           role="menu"
+          tabIndex={-1}
           aria-label={name}
           className="lg-menu-card"
           data-phase={phase}

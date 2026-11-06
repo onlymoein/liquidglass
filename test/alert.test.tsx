@@ -36,6 +36,11 @@ test("runs the chosen action, then closes after animating out", () => {
   vi.useRealTimers();
 });
 
+test("takes focus itself, so no button comes up ringed as it opens", () => {
+  render(<Alert defaultOpen title="Delete?" actions={[{ label: "Cancel", role: "cancel" }]} />);
+  expect(document.activeElement).toBe(dialog());
+});
+
 test("Escape runs the cancel action", () => {
   const onSelect = vi.fn();
   const onOpenChange = vi.fn();

@@ -167,6 +167,17 @@ test("a tap on the selected tab releases its lift", async () => {
   expect(lens.style.transform).toBe("translateX(0px) scale(1, 1)");
 });
 
+test("a quick tap keeps the lens lifted for its trip, as on iOS", async () => {
+  const { bar, pointer } = touchTabs();
+  const month = screen.getByRole("tab", { name: "Month" });
+  vi.spyOn(window, "matchMedia").mockReturnValue({ matches: false } as MediaQueryList);
+  fireEvent.pointerDown(month, { ...pointer, clientX: 234 });
+  fireEvent.pointerUp(month, { ...pointer, clientX: 234 });
+  expect(bar.hasAttribute("data-lifted")).toBe(true);
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 280)); });
+  expect(bar.hasAttribute("data-lifted")).toBe(false);
+});
+
 test("leaves modified link taps to the browser", () => {
   const { bar, pointer, onValueChange } = touchTabs({ navigation: true });
   const month = screen.getByRole("link", { name: "Month" });
