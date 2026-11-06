@@ -4,6 +4,10 @@ Apple's iOS 27 Liquid Glass for React: glass that bends the light behind it, wit
 
 It started as a fork of [glisse](https://github.com/0kzh/glisse) by Kelvin Zhang. Its look and motion are now measured against real iOS 27 on the simulator; see [How close it is](#how-close-it-is-to-ios-27).
 
+<video src="assets/liquidglass-v0.10-parity.mp4" controls playsinline></video>
+
+Left is native iOS 27. Right is liquidglass.
+
 ## Usage
 
 Install it:
