@@ -320,8 +320,9 @@ function lens(width: number, height: number, radius: number, selection: boolean,
         result: "bent",
       }),
       // The displacement samples the nearest pixel, which leaves stair-steps
-      // where the rim bends hardest; a sub-pixel blur smooths them.
-      svg("feGaussianBlur", { in: "bent", stdDeviation: 0.4, result: "face" }),
+      // where the rim bends hardest; a sub-pixel blur smooths them. A sharp lens
+      // keeps it slight, or the labels under it go soft and dim.
+      svg("feGaussianBlur", { in: "bent", stdDeviation: shape.blur === 0 ? 0.12 : 0.4, result: "face" }),
     );
   }
   container().append(filter);
