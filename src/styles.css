@@ -43,6 +43,7 @@
   --lg-fill-edge: 62%, #000;
   --lg-destructive: #ff383c;
   --lg-destructive-ink: #dc1e30;
+  --lg-menu-destructive: #dc1e30;
   --lg-track: rgb(59 59 66 / 0.3);
   --lg-rail: rgb(0 0 0 / 0.1);
   --lg-on: #34c759;
@@ -61,12 +62,12 @@
   --lg-glass-active: rgb(255 255 255 / 0.3);
   --lg-edge: transparent;
   --lg-drop: rgb(0 0 0 / 0.05);
-  --lg-contrast: 0.6;
-  --lg-brightness: 0.9;
-  --lg-saturate: 2;
-  --lg-contrast-small: 0.588;
-  --lg-brightness-small: 0.952;
-  --lg-saturate-small: 2;
+  --lg-contrast: 0.66;
+  --lg-brightness: 0.83;
+  --lg-saturate: 1.7;
+  --lg-contrast-small: 0.68;
+  --lg-brightness-small: 0.98;
+  --lg-saturate-small: 1.6;
   /* Chromium can run the real curve; everywhere else falls back to the tone. */
   --lg-dark: opacity(1);
   --lg-drop-strength: 1.6;
@@ -89,6 +90,7 @@
   --lg-separator: rgb(235 235 245 / 0.16);
   --lg-destructive: #ff4245;
   --lg-destructive-ink: #ff8498;
+  --lg-menu-destructive: #ff5254;
   --lg-fill-edge: 70%, #fff;
   --lg-track: rgb(235 235 245 / 0.3);
   --lg-rail: rgb(255 255 255 / 0.1);
@@ -108,12 +110,12 @@
     --lg-glass-active: rgb(255 255 255 / 0.3);
     --lg-edge: transparent;
     --lg-drop: rgb(0 0 0 / 0.05);
-    --lg-contrast: 0.6;
-    --lg-brightness: 0.9;
-    --lg-saturate: 2;
-    --lg-contrast-small: 0.588;
-    --lg-brightness-small: 0.952;
-    --lg-saturate-small: 2;
+    --lg-contrast: 0.66;
+    --lg-brightness: 0.83;
+    --lg-saturate: 1.7;
+    --lg-contrast-small: 0.68;
+    --lg-brightness-small: 0.98;
+    --lg-saturate-small: 1.6;
     /* Chromium can run the real curve; everywhere else falls back to the tone. */
     --lg-dark: opacity(1);
     --lg-drop-strength: 1.6;
@@ -145,6 +147,7 @@
     --lg-separator: rgb(235 235 245 / 0.16);
     --lg-destructive: #ff4245;
     --lg-destructive-ink: #ff8498;
+    --lg-menu-destructive: #ff5254;
     --lg-fill-edge: 70%, #fff;
     --lg-track: rgb(235 235 245 / 0.3);
     --lg-rail: rgb(255 255 255 / 0.1);
@@ -977,6 +980,12 @@
 .lg-menu {
   position: relative;
   display: inline-flex;
+}
+
+/* A menu's destructive row is a truer red than a button's. No specificity, so setting
+   --lg-destructive-ink on a menu still works. */
+:where(.lg-menu-card) {
+  --lg-destructive-ink: var(--lg-menu-destructive);
 }
 
 /* In the top layer, set over its trigger by the menu itself. Its own resets

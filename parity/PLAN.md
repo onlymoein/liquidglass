@@ -57,7 +57,7 @@ Give the page a few seconds after launching before a gesture, more if the Mac is
 - Segmented control, stepper, progress, spinner, toolbar and merged glass: not looked at again in this pass.
 
 ### Close, with known differences
-- **Dark mode in Safari:** closer on colourful backdrops since its saturation came down from 2.4 to 2, compared by eye and by a few samples. Not re-swept: it was about 27 levels rms before, with bright backdrops worst. Its filters are linear and iOS's curve isn't.
+- **Dark mode in Safari:** its filters are linear and iOS's curve isn't, so it's the closest straight line. A brightness above 1 doesn't clip between filters in WebKit, so a knee can't be built from them (tried). Swept over 18 colours in rms levels: 19.9 at panel size, down from 24.3, and 9.6 at button size. Over black it's 36 at panel size and 40 at button size, where iOS is 32; over `#1c1c1e` a menu is 51 where iOS is 53. White backdrops are worst, at 176 where iOS is 121. Mid-dark greys came out a little darker than before, 9.4 from 7.7 for greys up to `808080`.
 - **What shows through the glass:** iOS's blur lets a faint blocky ghost of the backdrop through, faint in light mode and plain to see in dark, where a grid's lines stay visible. CSS's blur is smooth, so ours shows none of it.
 - **Secondary text and the grabber:** black at an opacity picks up the backdrop's colour but not as strongly as iOS's vibrancy, which blends. A blend can't reach the glass from inside it in WebKit (tried `multiply`, `plus-darker` and `color-burn`).
 - **A press in dark mode:** the glass lightens by the right amount but greyer than iOS's.
