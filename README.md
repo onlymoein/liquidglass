@@ -2,13 +2,13 @@
 
 Apple's iOS 27 Liquid Glass for React: glass that bends the light behind it, with controls that move like the real ones.
 
+**Try it live: [onlymoein.github.io/liquidglass](https://onlymoein.github.io/liquidglass/)**. Drag the glass, tune it, and use every control.
+
 It started as a fork of [glisse](https://github.com/0kzh/glisse) by Kelvin Zhang. Its look and motion are now measured against real iOS 27 on the simulator; see [How close it is](#how-close-it-is-to-ios-27).
 
 <a href="https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/assets/liquidglass-v0.10-parity.gif" width="546" alt="Side-by-side recording of native iOS 27 controls and liquidglass: buttons, switch, slider, menu, alert, sheet and tab bar."></a>
 
 Left is native iOS 27. Right is liquidglass, recorded on 0.10. [Watch the full video](https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4).
-
-**[Try it live](https://onlymoein.github.io/liquidglass/)**: drag the glass, tune it, and use every control.
 
 ## Usage
 
