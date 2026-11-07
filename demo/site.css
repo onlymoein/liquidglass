@@ -344,17 +344,32 @@ h3 {
   -webkit-user-select: none;
 }
 
+/* On the wallpaper, so its controls have something to show, in the ink that reads on it. */
 .lab-controls {
   display: grid;
   gap: 18px;
   padding: 24px;
   border-radius: 28px;
-  background: var(--card);
+  background: var(--wall) 75% 25% / max(1500px, 130%) auto;
+  color: var(--wall-ink);
+  text-shadow: var(--wall-shadow);
+}
+
+.lab-controls .lg-glass,
+.lab-controls [role="radiogroup"],
+.lab-controls pre {
+  text-shadow: none;
 }
 
 .lab-controls h3:not(:first-child) {
   padding-top: 18px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid color-mix(in srgb, var(--wall-ink) 24%, transparent);
+}
+
+.lab-controls .field-label output,
+.lab-controls .note {
+  color: inherit;
+  opacity: 0.8;
 }
 
 .field {
@@ -388,7 +403,7 @@ h3 {
 }
 
 .lab-controls .snippet {
-  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  background: color-mix(in srgb, var(--wall-ink) 14%, transparent);
 }
 
 .snippet > .lg-button {

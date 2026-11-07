@@ -238,7 +238,7 @@ const TILES: Tile[] = [
   },
   {
     title: "SegmentedControl",
-    how: "Tap a choice, or drag the thumb across.",
+    how: "Tap a choice, or hold the thumb and drag: it lifts as clear glass.",
     demo: <Segments />,
     code: `<SegmentedControl
   aria-label="Kind"

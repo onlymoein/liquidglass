@@ -134,7 +134,7 @@ function Lab({ theme, setTheme, wall, setWall, clear, setClear }: {
         </div>
         <Lens size="lab" label="Glass you can move. Drag it, or use the arrow keys." style={vars} start={(room, own) => ({ x: (room.width - own.width) / 2 + room.width * 0.14, y: (room.height - own.height) / 2 })} />
       </div>
-      <div className="lab-controls">
+      <div className="lab-controls" data-theme={wall === "dawn" ? "light" : "dark"}>
         <h3>The whole page</h3>
         <Field label="Transparency" value={clear < 0.5 ? "Tinted" : clear > 0.5 ? "Clear" : "Regular"}>
           <Slider aria-label="Transparency" value={clear * 100} min={0} max={100} onValueChange={(value) => setClear(value / 100)} />
