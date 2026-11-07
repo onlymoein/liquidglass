@@ -11,6 +11,13 @@ const INSTALL = "npm install @onlymoein/liquidglass";
 const REPO = "https://github.com/onlymoein/liquidglass";
 const NPM = "https://www.npmjs.com/package/@onlymoein/liquidglass";
 
+const contrast = (
+  <svg viewBox="0 0 24 24" aria-hidden>
+    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M12 3.500a8.500 8.500 0 0 1 0 17z" fill="currentColor" />
+  </svg>
+);
+
 type Theme = "system" | "light" | "dark";
 type Wall = "flow" | "dusk" | "dawn" | "lines";
 
@@ -62,7 +69,7 @@ function Hero() {
         style={refracts() ? HERO_LENS : undefined}
         kick={{ x: -900, y: 60 }}
         onMove={() => setTouched(true)}
-        start={(room, own) => ({ x: room.width * 0.86 - own.width / 2, y: room.height * 0.42 - own.height / 2 })}
+        start={(room, own) => ({ x: room.width * 0.86 - own.width / 2, y: room.height * (refracts() ? 0.42 : 0.26) - own.height / 2 })}
       >
         <span className="lens-hint" data-gone={touched || undefined}>Drag me</span>
       </Lens>
@@ -292,12 +299,14 @@ function App() {
         <ToolbarGroup aria-label="Home">
           <Button onClick={() => scrollTo({ top: 0 })}>liquidglass</Button>
         </ToolbarGroup>
-        <ToolbarGroup aria-label="Links and look">
-          <Button onClick={() => { location.href = REPO; }}>GitHub</Button>
-          <Button onClick={() => { location.href = NPM; }}>npm</Button>
+        <div className="bar-end">
+          <ToolbarGroup aria-label="Links">
+            <Button onClick={() => { location.href = REPO; }}>GitHub</Button>
+            <Button onClick={() => { location.href = NPM; }}>npm</Button>
+          </ToolbarGroup>
           <Menu
             aria-label="Look"
-            icon={stroke(icons.drop)}
+            icon={contrast}
             align="end"
             items={[
               { heading: "Appearance" },
@@ -307,7 +316,7 @@ function App() {
               ...WALLS.map(({ value, label }) => pick(label, wall === value, () => setWall(value))),
             ]}
           />
-        </ToolbarGroup>
+        </div>
       </Toolbar>
 
       <main>
@@ -339,7 +348,7 @@ function App() {
         <Start />
       </main>
 
-      <nav className="dock" aria-label="Sections">
+      <nav className="dock" aria-label="Sections" data-over-app={section === "app" || undefined}>
         {/* A fresh bar when the selection appears or goes: its lens has nowhere to rest with none. */}
         <TabBar
           key={section ? "selected" : "none"}

@@ -93,6 +93,25 @@ pre {
   line-height: 1.55;
 }
 
+/* A menu standing alone in a bar: a circle as tall as the groups beside it. */
+.lg-toolbar .lg-menu > .lg-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 22px;
+}
+
+.lg-toolbar .lg-menu > .lg-button > svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bar-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .site-bar.lg-toolbar {
   position: fixed;
   inset: 0 0 auto;
@@ -111,6 +130,10 @@ pre {
 
 .dock > * {
   pointer-events: auto;
+}
+
+.dock {
+  transition: transform 320ms cubic-bezier(0.3, 0.9, 0.4, 1), visibility 320ms;
 }
 
 /* Hero */
@@ -620,7 +643,8 @@ h3 {
   min-height: 560px;
   overflow: hidden;
   border-radius: 44px;
-  background: var(--page);
+  /* Glass needs something behind it, on every tab. */
+  background: var(--wall) 30% 40% / auto 120%;
   box-shadow: 0 0 0 1px var(--line), 0 30px 70px rgb(0 0 0 / 0.18);
 }
 
@@ -637,6 +661,8 @@ h3 {
 }
 
 .phone-title {
+  color: var(--wall-ink);
+  text-shadow: var(--wall-shadow);
   font-size: 34px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -818,6 +844,12 @@ footer {
 
   .phone {
     justify-self: center;
+  }
+
+  /* The phone has its own tab bar, and on a small screen the two would collide. */
+  .dock[data-over-app] {
+    visibility: hidden;
+    transform: translateY(120px);
   }
 }
 

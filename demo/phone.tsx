@@ -83,11 +83,9 @@ export function Phone() {
     <div className="phone">
       <div className="phone-scroll" ref={scroller} onScroll={(event) => scrolled(event.currentTarget.scrollTop)}>
         <Toolbar aria-label="Swatches">
-          <ToolbarGroup aria-label="Sort">
-            <Menu aria-label="Sort" icon={stroke(icons.sort)} align="start" items={[{ heading: "Sort" }, sortItem("Warm first"), sortItem("Cool first"), sortItem("A to Z")]} />
-          </ToolbarGroup>
-          <ToolbarGroup aria-label="Palette">
-            <Button onClick={() => go("settings")}>{palette.length} saved</Button>
+          <Menu aria-label="Sort" icon={stroke(icons.sort)} align="start" items={[{ heading: "Sort" }, sortItem("Warm first"), sortItem("Cool first"), sortItem("A to Z")]} />
+          <ToolbarGroup aria-label="Saved">
+            <Button aria-label={`${palette.length} saved`} icon={stroke(icons.swatch)} onClick={() => go("settings")}>{palette.length}</Button>
           </ToolbarGroup>
         </Toolbar>
 
