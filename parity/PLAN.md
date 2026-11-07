@@ -36,6 +36,7 @@ Give the page a few seconds after launching before a gesture, more if the Mac is
 - **Ink:** primary text is pure black in light mode. Secondary text takes up the colour behind it.
 - **Button:** 30, 36 and 52pt tall with 15 and 17pt labels. Pressing grows the long side about 16pt, lightens the glass by about a third towards white and fades a light-mode label to 77%; release dips about 29% past rest. A filled button is opaque and lightens 12% towards white.
 - **Switch and slider thumbs:** 37 x 24pt with no rim at rest. Under a finger, a sharp 59 x 38pt lens: no blur, no lift, a dark outline. A quick tap keeps the lens up for about 300ms, for the trip. A slider ignores a tap on its track, and a drag moves the thumb by as much as the finger moves, wherever it took hold.
+- **Segmented control:** a flat fill at rest, with a thumb 4pt narrower than its segment. Under a finger the thumb is a sharp lens 25pt wider and 44pt tall, over the labels, which bend at its rim. It follows a drag from the thumb. A tapped segment is reached by the lens, which settles flat when it arrives, about 300ms later. The settling wobble in the thumb's width isn't copied.
 - **Menu:** 250pt wide, 42pt rows, 17pt type, centred on its trigger. Opening, the pill squeezes into a ball about 106pt wide as it falls past the menu's centre, then swells out with very round corners; the items zoom to about 1.28x on the way. Closing runs the other way and ends in a drop that merges into the trigger, which comes back about 7pt high and 2% wide. The frames are tabled in `src/menu.tsx`.
 - **Tab bar:** 275 x 62pt with three tabs, 94 x 53pt selection growing to 117 x 73pt under a finger, 28pt icons, 10pt labels. The selection deepens the colour behind it rather than greying it. Under a finger the whole bar swells about 5%, and a quick tap keeps the lens up for about 230ms. Minimised: 49 x 39pt.
 - **Sheet:** at half height 451pt tall, floating glass inset 8pt all round; at full height opaque and edge to edge, 67pt from the top. It launches fast and settles without overshoot. Grabber 57 x 4pt.
@@ -54,7 +55,7 @@ Give the page a few seconds after launching before a gesture, more if the Mac is
 ### Matched by eye, side by side
 - Rim and shadow, built from the readings above. The last numeric comparison was before the final rim, so these want one more reading.
 - Sheet and alert at rest, switch and slider at rest and under a finger, tab bar and its lens, menu closing, continuous corners.
-- Segmented control, stepper, progress, spinner, toolbar and merged glass: not looked at again in this pass.
+- Stepper, progress, spinner, toolbar and merged glass: not looked at again in this pass.
 
 ### Close, with known differences
 - **Dark mode in Safari:** its filters are linear and iOS's curve isn't, so it's the closest straight line. A brightness above 1 doesn't clip between filters in WebKit, so a knee can't be built from them (tried). Swept over 18 colours in rms levels: 19.9 at panel size, down from 24.3, and 9.6 at button size. Over black it's 36 at panel size and 40 at button size, where iOS is 32; over `#1c1c1e` a menu is 51 where iOS is 53. White backdrops are worst, at 176 where iOS is 121. Mid-dark greys came out a little darker than before, 9.4 from 7.7 for greys up to `808080`.

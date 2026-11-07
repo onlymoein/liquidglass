@@ -50,7 +50,7 @@ React 18 or later.
 | `ContextMenu` | A menu that opens when you hold something down or right-click it. |
 | `Sheet` | A sheet that rises from the bottom, floats at half height and drags between its heights. |
 | `Alert` | A modal question with pill buttons. |
-| `SegmentedControl` | A row of choices with a thumb that slides to the chosen one. |
+| `SegmentedControl` | A row of choices with a thumb that slides to the chosen one, and lifts into a clear lens under a finger. |
 | `Stepper` | Two buttons that step a number down and up. |
 | `Progress`, `Spinner` | A thin progress bar and the activity indicator. |
 | `GlassGroup` | Glass inside it flows together as it comes close, like `GlassEffectContainer`. |

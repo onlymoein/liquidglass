@@ -775,7 +775,8 @@
 .lg-slider-thumb {
   --lg-transparency: 1;
   --lg-blur: 0px;
-  --lg-tone: none;
+  /* Not `none`: in a list of filters that would throw away the whole list, lens and all. */
+  --lg-tone: saturate(1);
   --lg-shine: 0.6;
   position: absolute;
   border-radius: 999px;
@@ -1408,14 +1409,40 @@
   grid-auto-flow: column;
   box-sizing: border-box;
   height: 32px;
-  padding: 2px;
   border-radius: 16px;
   background: var(--lg-fill-subtle);
   color: var(--lg-foreground);
   font-size: 14px;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Under a finger the thumb is a clear lens, as a switch's is, over the labels so that
+   they bend at its rim. */
+.lg-segmented-lens {
+  z-index: 1;
+  --lg-transparency: 1;
+  --lg-blur: 0px;
+  --lg-tone: saturate(1);
+  --lg-shine: 0.6;
+  position: absolute;
+  top: 50%;
+  left: -10.5px;
+  width: calc(100% / var(--lg-segments) + 21px);
+  height: 44px;
+  border-radius: 22px;
+  visibility: hidden;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
+}
+
+.lg-segmented-lens::before {
+  opacity: var(--lg-lift, 0);
 }
 
 .lg-segmented-thumb {
@@ -1423,7 +1450,7 @@
   top: 2px;
   bottom: 2px;
   left: 2px;
-  width: calc((100% - 4px) / var(--lg-segments));
+  width: calc(100% / var(--lg-segments) - 4px);
   border-radius: 14px;
   background: var(--lg-thumb);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
@@ -1445,6 +1472,10 @@
 
 .lg-segment[aria-checked="true"] {
   font-weight: 500;
+}
+
+.lg-segment:active:not(:disabled, [aria-checked="true"]) {
+  opacity: 0.6;
 }
 
 .lg-segment:disabled {
