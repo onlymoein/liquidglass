@@ -261,7 +261,7 @@ import { Button, Switch } from "@onlymoein/liquidglass";
 
 function App() {
   const [theme, setTheme] = useState<Theme>("system");
-  const [wall, setWall] = useState<Wall>("flow");
+  const [wall, setWall] = useState<Wall>("lines");
   const [clear, setClear] = useState(0.5);
   const [section, setSection] = useState<string | null>(null);
 
