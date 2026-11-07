@@ -8,6 +8,8 @@ It started as a fork of [glisse](https://github.com/0kzh/glisse) by Kelvin Zhang
 
 Left is native iOS 27. Right is liquidglass, recorded on 0.10. [Watch the full video](https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4).
 
+**[Try it live](https://onlymoein.github.io/liquidglass/)**: drag the glass, tune it, and use every control.
+
 ## Usage
 
 Install it:

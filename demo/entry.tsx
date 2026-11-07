@@ -1,102 +1,360 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  Alert, Button, ContextMenu, Glass, GlassGroup, Menu, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
-} from "../dist/index.js";
+import { Button, Glass, GlassGroup, Menu, SegmentedControl, Slider, TabBar, Toolbar, ToolbarGroup } from "../dist/index.js";
+import video from "../assets/liquidglass-v0.10-parity.mp4";
+import { version } from "../package.json";
+import { Gallery } from "./gallery";
+import { Phone } from "./phone";
+import { browserName, icons, refit, refracts, stroke, useCopied, useThrow } from "./shared";
 
-const icon = (d: string) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>
-);
-const solid = (d: string) => <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d={d} /></svg>;
-const I = {
-  plus: "M12 5v14M5 12h14", back: "M15 5l-7 7 7 7", share: "M12 15V4M8 8l4-4 4 4M6 12v8h12v-8", edit: "M4 20l1-4L16 5l3 3L8 19z",
-  box: "M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8", truck: "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z", trash: "M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13", copy: "M9 9h10v11H9zM5 15V4h10",
-  home: "M12 3 2 12h3v9h5v-6h4v6h5v-9h3z", search: "M10 3a7 7 0 1 0 4.2 12.6l5.1 5.1 1.4-1.4-5.1-5.1A7 7 0 0 0 10 3zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10z", gear: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 5.5v-3l-2.4-.5-.7-1.7 1.4-2-2.1-2.1-2 1.4-1.7-.7L13.5 3h-3l-.5 2.4-1.7.7-2-1.4-2.1 2.1 1.4 2-.7 1.7L3 10.5v3l2.4.5.7 1.7-1.4 2 2.1 2.1 2-1.4 1.7.7.5 2.4h3l.5-2.4 1.7-.7 2 1.4 2.1-2.1-1.4-2 .7-1.7z",
-};
+const INSTALL = "npm install @onlymoein/liquidglass";
+const REPO = "https://github.com/onlymoein/liquidglass";
+const NPM = "https://www.npmjs.com/package/@onlymoein/liquidglass";
 
-function Row({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
+type Theme = "system" | "light" | "dark";
+type Wall = "flow" | "dusk" | "dawn" | "lines";
+
+const WALLS: { value: Wall; label: string }[] = [
+  { value: "flow", label: "Flow" },
+  { value: "dusk", label: "Dusk" },
+  { value: "dawn", label: "Dawn" },
+  { value: "lines", label: "Lines" },
+];
+const THEMES: { value: Theme; label: string }[] = [
+  { value: "system", label: "Auto" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+/** A piece of glass that can be dragged and thrown round its parent. */
+function Lens({ style, size, label, kick, onMove, start, children }: {
+  style?: CSSProperties;
+  size: "hero" | "lab";
+  label: string;
+  kick?: { x: number; y: number };
+  onMove?: () => void;
+  start: Parameters<typeof useThrow>[1]["start"];
+  children?: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useThrow(ref, { start, kick, onMove });
   return (
-    <section className="row">
-      <h2>{title}</h2>
-      <div className="stage">{children}</div>
-      {note ? <p>{note}</p> : null}
+    <div ref={ref} className="drag" data-size={size} role="group" tabIndex={0} aria-label={label}>
+      <Glass className="lens" style={style}>{children}</Glass>
+    </div>
+  );
+}
+
+// Where the browser can bend the backdrop, the hero's lens is clear and magnifies,
+// so it visibly does. Elsewhere it stays regular glass, which frosts what's behind it.
+const HERO_LENS = { "--lg-transparency": 1, "--lg-blur": "1px", "--lg-zoom": 1.22, "--lg-bezel": 30, "--lg-thickness": 44 } as CSSProperties;
+
+function Hero() {
+  const [touched, setTouched] = useState(false);
+  const [copied, copy] = useCopied();
+  return (
+    <section className="hero">
+      <div className="wall" aria-hidden />
+      <h1>liquidglass</h1>
+      <Lens
+        size="hero"
+        label="Glass you can move. Drag it, or use the arrow keys."
+        style={refracts() ? HERO_LENS : undefined}
+        kick={{ x: -900, y: 60 }}
+        onMove={() => setTouched(true)}
+        start={(room, own) => ({ x: room.width * 0.86 - own.width / 2, y: room.height * 0.42 - own.height / 2 })}
+      >
+        <span className="lens-hint" data-gone={touched || undefined}>Drag me</span>
+      </Lens>
+      <div className="hero-foot">
+        <p>iOS 27 Liquid Glass for React. Glass that bends the light behind it, with controls that move like the real ones.</p>
+        <div className="line">
+          <Button size="large" className="mono" icon={stroke(icons.copy)} onClick={() => copy(INSTALL)}>{copied ? "Copied" : INSTALL}</Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Section({ id, title, intro, children }: { id: string; title: string; intro: ReactNode; children: ReactNode }) {
+  return (
+    <section id={id} className="section" data-spy>
+      <header>
+        <h2>{title}</h2>
+        <p>{intro}</p>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, value, children }: { label: string; value?: string; children: ReactNode }) {
+  return (
+    <div className="field">
+      <div className="field-label"><span>{label}</span>{value ? <output>{value}</output> : null}</div>
+      {children}
+    </div>
+  );
+}
+
+function Lab({ theme, setTheme, wall, setWall, clear, setClear }: {
+  theme: Theme; setTheme: (theme: Theme) => void; wall: Wall; setWall: (wall: Wall) => void; clear: number; setClear: (clear: number) => void;
+}) {
+  const [bend, setBend] = useState(30);
+  const [rim, setRim] = useState(12);
+  const [zoom, setZoom] = useState(1);
+  const [shine, setShine] = useState(1);
+  const stage = useRef<HTMLDivElement>(null);
+  const [copied, copy] = useCopied();
+  const bends = refracts();
+
+  useEffect(() => refit(stage.current!), [bend, rim, zoom, shine]);
+
+  const vars = { "--lg-thickness": bend, "--lg-bezel": rim, "--lg-zoom": zoom, "--lg-shine": shine } as CSSProperties;
+  const css = `.my-glass {
+  --lg-transparency: ${clear.toFixed(2)};
+  --lg-thickness: ${bend};
+  --lg-bezel: ${rim};
+  --lg-zoom: ${zoom.toFixed(2)};
+  --lg-shine: ${shine.toFixed(2)};
+}`;
+
+  return (
+    <div className="lab">
+      <div className="stage lab-stage" ref={stage}>
+        <div className="specimen" aria-hidden>
+          <span>Aa</span><span>Bend</span><span>123</span>
+        </div>
+        <Lens size="lab" label="Glass you can move. Drag it, or use the arrow keys." style={vars} start={(room, own) => ({ x: (room.width - own.width) / 2 + room.width * 0.14, y: (room.height - own.height) / 2 })} />
+      </div>
+      <div className="lab-controls">
+        <h3>The whole page</h3>
+        <Field label="Transparency" value={clear < 0.5 ? "Tinted" : clear > 0.5 ? "Clear" : "Regular"}>
+          <Slider aria-label="Transparency" value={clear * 100} min={0} max={100} onValueChange={(value) => setClear(value / 100)} />
+        </Field>
+        <Field label="Wallpaper">
+          <SegmentedControl aria-label="Wallpaper" value={wall} onValueChange={(value) => setWall(value as Wall)} items={WALLS} />
+        </Field>
+        <Field label="Appearance">
+          <SegmentedControl aria-label="Appearance" value={theme} onValueChange={(value) => setTheme(value as Theme)} items={THEMES} />
+        </Field>
+        <h3>This lens</h3>
+        <Field label="Bend" value={String(bend)}>
+          <Slider aria-label="Bend" value={bend} min={0} max={70} disabled={!bends} onValueChange={(value) => setBend(Math.round(value))} />
+        </Field>
+        <Field label="Rim width" value={String(rim)}>
+          <Slider aria-label="Rim width" value={rim} min={3} max={60} disabled={!bends} onValueChange={(value) => setRim(Math.round(value))} />
+        </Field>
+        <Field label="Zoom" value={`${zoom.toFixed(2)}×`}>
+          <Slider aria-label="Zoom" value={zoom * 100} min={100} max={170} disabled={!bends} onValueChange={(value) => setZoom(value / 100)} />
+        </Field>
+        <Field label="Shine" value={shine.toFixed(2)}>
+          <Slider aria-label="Shine" value={shine * 100} min={0} max={200} onValueChange={(value) => setShine(value / 100)} />
+        </Field>
+        {bends ? null : <p className="note">{browserName()} can't bend what's behind a page's element, so Bend, Rim width and Zoom need a Chromium browser.</p>}
+        <div className="snippet">
+          <pre><code>{css}</code></pre>
+          <Button size="small" onClick={() => copy(css)}>{copied ? "Copied" : "Copy"}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type Place = [x: number, y: number];
+
+// Side by side, or down a diagonal where the stage is narrow, so they start apart.
+function Piece({ className, wide, narrow, label, children }: { className: string; wide: Place; narrow: Place; label: string; children?: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useThrow(ref, {
+    start: (room, own) => {
+      const [x, y] = room.width < 620 ? narrow : wide;
+      return { x: room.width * x - own.width / 2, y: room.height * y - own.height / 2 };
+    },
+  });
+  return <Glass ref={ref} className={`piece ${className}`} role="group" tabIndex={0} aria-label={label}>{children}</Glass>;
+}
+
+function Merge() {
+  const [spacing, setSpacing] = useState(36);
+  return (
+    <div className="merge-wrap">
+      <div className="stage merge-stage" style={{ "--x": "70%", "--y": "20%" } as never}>
+        <GlassGroup spacing={spacing} className="merge">
+          <Piece className="round" wide={[0.2, 0.5]} narrow={[0.26, 0.17]} label="Round piece of glass. Drag it towards the others." />
+          <Piece className="pill" wide={[0.5, 0.5]} narrow={[0.54, 0.51]} label="Long piece of glass. Drag it towards the others." />
+          <Piece className="round small" wide={[0.8, 0.5]} narrow={[0.78, 0.85]} label="Small piece of glass. Drag it towards the others." />
+        </GlassGroup>
+      </div>
+      <div className="merge-controls">
+        <Field label="Reach" value={`${spacing} pt`}>
+          <Slider aria-label="Reach" value={spacing} min={0} max={80} onValueChange={(value) => setSpacing(Math.round(value))} />
+        </Field>
+        <pre><code>{`<GlassGroup spacing={${spacing}}>…</GlassGroup>`}</code></pre>
+      </div>
+    </div>
+  );
+}
+
+const SUPPORT: { browser: ReturnType<typeof browserName>; text: string }[] = [
+  { browser: "Chromium", text: "Glass colour is within 2 levels out of 255 of iOS, in both themes and at both sizes, and its edge bends." },
+  { browser: "Safari", text: "Light mode is within 2 levels. Dark mode is approximate, and the edge doesn't bend." },
+  { browser: "Firefox", text: "The same colour, blur and rim as Safari. It can bend a copy of a wallpaper you mark, not the live page." },
+];
+
+function Compare() {
+  const here = browserName();
+  return (
+    <div className="compare">
+      <figure>
+        <video src={video} autoPlay muted loop playsInline controls preload="metadata" aria-label="Side-by-side recording of native iOS 27 controls and liquidglass" />
+        <figcaption>Left is native iOS 27. Right is liquidglass, recorded on 0.10.</figcaption>
+      </figure>
+      <div className="support">
+        <p>The repo runs real iOS controls and this library on the same simulator, over the same backgrounds and through the same taps, and measures the difference. Button press and menu opening are fitted to recordings of the real thing.</p>
+        <ul>
+          {SUPPORT.map(({ browser, text }) => (
+            <li key={browser} data-here={browser === here || undefined}>
+              <strong>{browser}{browser === here ? <em>You're here</em> : null}</strong>
+              {text}
+            </li>
+          ))}
+        </ul>
+        <p><a href={`${REPO}/blob/main/parity/PLAN.md`}>The numbers, what still differs and what a web page can't do</a></p>
+      </div>
+    </div>
+  );
+}
+
+function Start() {
+  const [copied, copy] = useCopied();
+  return (
+    <section className="section start">
+      <header>
+        <h2>Use it.</h2>
+        <p>React 18 or later. The styles come with the components.</p>
+      </header>
+      <div className="snippet big">
+        <pre><code>{`${INSTALL}
+
+import { Button, Switch } from "@onlymoein/liquidglass";
+
+<Switch aria-label="Wi-Fi" defaultChecked />
+<Button variant="filled">Continue</Button>`}</code></pre>
+        <Button size="small" onClick={() => copy(INSTALL)}>{copied ? "Copied" : "Copy"}</Button>
+      </div>
+      <footer>
+        <p>
+          <a href={REPO}>GitHub</a> · <a href={NPM}>npm</a> · version {version}
+        </p>
+        <p>MIT. Copyright Kelvin Zhang and Moein Saharkhiz. Started as a fork of <a href="https://github.com/0kzh/glisse">glisse</a>. Not affiliated with Apple.</p>
+      </footer>
     </section>
   );
 }
 
 function App() {
-  const [on, setOn] = useState(true);
-  const [gap, setGap] = useState(24);
-  const [sheet, setSheet] = useState(false);
-  const [alert, setAlert] = useState(false);
-  const [count, setCount] = useState(3);
-  const [clear, setClear] = useState(50);
-  const [tab, setTab] = useState("home");
-  const [small, setSmall] = useState(false);
+  const [theme, setTheme] = useState<Theme>("system");
+  const [wall, setWall] = useState<Wall>("flow");
+  const [clear, setClear] = useState(0.5);
+  const [section, setSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "system") delete root.dataset.theme;
+    else root.dataset.theme = theme;
+    root.dataset.wall = wall;
+  }, [theme, wall]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--lg-transparency", String(clear));
+    const timer = setTimeout(() => refit(), 60);
+    return () => clearTimeout(timer);
+  }, [clear]);
+
+  // The tab for whichever section crosses the middle of the window. None on the hero,
+  // and the footer keeps the last one.
+  useEffect(() => {
+    const seen = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) setSection((entry.target as HTMLElement).id || null);
+      }
+    }, { rootMargin: "-50% 0px -50% 0px" });
+    for (const element of document.querySelectorAll(".hero, [data-spy]")) seen.observe(element);
+    return () => seen.disconnect();
+  }, []);
+
+  const pick = (label: string, active: boolean, onSelect: () => void) => ({ label, checked: active, keepOpen: true, onSelect });
+
   return (
-    <div className="page" style={{ "--lg-transparency": clear / 100 } as never} onScroll={(e) => setSmall(e.currentTarget.scrollTop > 900)}>
-      <div className="wall" aria-hidden />
-      <Toolbar aria-label="Page" className="bar">
-        <ToolbarGroup aria-label="Back"><Button aria-label="Back" icon={icon(I.back)} /></ToolbarGroup>
-        <ToolbarGroup aria-label="Actions"><Button aria-label="Share" icon={icon(I.share)} /><Button aria-label="Edit" icon={icon(I.edit)} /></ToolbarGroup>
+    <>
+      <Toolbar aria-label="Site" className="site-bar">
+        <ToolbarGroup aria-label="Home">
+          <Button onClick={() => scrollTo({ top: 0 })}>liquidglass</Button>
+        </ToolbarGroup>
+        <ToolbarGroup aria-label="Links and look">
+          <Button onClick={() => { location.href = REPO; }}>GitHub</Button>
+          <Button onClick={() => { location.href = NPM; }}>npm</Button>
+          <Menu
+            aria-label="Look"
+            icon={stroke(icons.drop)}
+            align="end"
+            items={[
+              { heading: "Appearance" },
+              ...THEMES.map(({ value, label }) => pick(label, theme === value, () => setTheme(value))),
+              "separator",
+              { heading: "Wallpaper" },
+              ...WALLS.map(({ value, label }) => pick(label, wall === value, () => setWall(value))),
+            ]}
+          />
+        </ToolbarGroup>
       </Toolbar>
+
       <main>
-        <header>
-          <h1>liquidglass</h1>
-          <p>Every control here is a web page copying iOS 27, measured against the real thing. Scroll so the colours pass under the glass, and hold things down.</p>
-        </header>
-        <Row title="Buttons" note="Press and hold one, then let go. It swells, then dips past its size as it settles.">
-          <Button size="small">Small</Button><Button>Regular</Button><Button size="large">Large</Button>
-          <Button variant="filled">Filled</Button><Button variant="filled" size="large">Filled</Button><Button destructive>Delete</Button><Button aria-label="Add" size="large" icon={icon(I.plus)} />
-        </Row>
-        <Row title="Menu" note="The button itself stretches into the menu.">
-          <Menu aria-label="Create shipment" label="Create shipment" icon={icon(I.plus)} trigger={{ size: "large" }} items={[
-            { icon: icon(I.box), label: "Parcel" }, { icon: icon(I.truck), label: "Freight" }, "separator", { icon: icon(I.trash), label: "Delete", destructive: true },
-          ]} />
-        </Row>
-        <Row title="Context menu" note="Hold this down, or right-click it.">
-          <ContextMenu aria-label="Note" items={[{ icon: icon(I.copy), label: "Copy" }, { icon: icon(I.trash), label: "Delete", destructive: true }]}>
-            <Glass className="note">Hold me</Glass>
-          </ContextMenu>
-        </Row>
-        <Row title="Switch and slider" note="Hold the thumbs: they lift as clear glass.">
-          <Switch aria-label="Example switch" checked={on} onCheckedChange={setOn} />
-          <div className="grow"><Slider aria-label="Example slider" defaultValue={40} min={0} max={100} /></div>
-        </Row>
-        <Row title="Segmented control and stepper">
-          <SegmentedControl aria-label="Kind" className="grow" items={[{ value: "b", label: "Boxes" }, { value: "p", label: "Pallets" }, { value: "s", label: "Skids" }]} />
-          <Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
-        </Row>
-        <Row title="Progress">
-          <div className="grow"><Progress aria-label="Example progress" value={count / 10} /></div><Spinner />
-        </Row>
-        <Row title="Glass that merges" note="Drag the slider and watch the two pieces flow together.">
-          <GlassGroup spacing={20} style={{ gap }}>
-            <Button size="large" aria-label="Add" icon={icon(I.plus)} />
-            <Button size="large" aria-label="Edit" icon={icon(I.edit)} />
-          </GlassGroup>
-          <div className="grow"><Slider aria-label="Gap between the pieces" value={gap} min={0} max={60} onValueChange={setGap} /></div>
-        </Row>
-        <Row title="Sheet and alert" note="Drag the sheet by its handle: up to full height, down to dismiss.">
-          <Button variant="filled" onClick={() => setSheet(true)}>Open sheet</Button>
-          <Button onClick={() => setAlert(true)}>Show alert</Button>
-        </Row>
-        <Row title="Search"><div className="grow"><SearchField /></div></Row>
-        <Row title="Clear to tinted" note="Like the iOS setting. It changes everything on this page; the middle is regular glass.">
-          <div className="grow"><Slider aria-label="Glass transparency" value={clear} min={0} max={100} onValueChange={setClear} /></div>
-        </Row>
-        <footer>Keep scrolling and the tab bar shrinks to its current tab. Tap it to bring it back.</footer>
+        <Hero />
+        <Section id="lab" title="Bend it yourself." intro="Drag the lens over the letters and move the sliders. Each one sets a CSS variable, so you can copy what you end up with.">
+          <Lab theme={theme} setTheme={setTheme} wall={wall} setWall={setWall} clear={clear} setClear={setClear} />
+        </Section>
+        <Section id="controls" title="Every control, live." intro="None of this is a video. Press, hold and drag them, and open the code for any of them.">
+          <h3 className="sub">GlassGroup</h3>
+          <p className="sub-text">Throw the pieces together. Closer than their reach, they become one shape, and part again as they move away.</p>
+          <Merge />
+          <Gallery />
+        </Section>
+        <Section id="app" title="On a screen." intro="A small app made of nothing but these components. Scroll so the colours pass under the bars, and the tab bar shrinks to its current tab.">
+          <div className="app-wrap">
+            <Phone />
+            <ul className="try">
+              <li><strong>Scroll</strong> and a frosted band fades in behind the toolbar.</li>
+              <li><strong>Drag along the tab bar</strong> and the lens follows your finger.</li>
+              <li><strong>Tap a swatch</strong> for a sheet, then save it.</li>
+              <li><strong>Sort</strong> from the menu at the top left.</li>
+              <li><strong>Clear saved</strong> in Settings asks with an alert.</li>
+            </ul>
+          </div>
+        </Section>
+        <Section id="compare" title="Next to the real thing." intro="Its look and motion are measured against real iOS 27 on the simulator.">
+          <Compare />
+        </Section>
+        <Start />
       </main>
-      <div className="tabs">
-        <TabBar aria-label="Sections" value={tab} onValueChange={setTab} minimized={small} onExpand={() => setSmall(false)} items={[
-          { value: "home", label: "Home", icon: solid(I.home) }, { value: "search", label: "Search", icon: solid(I.search) }, { value: "settings", label: "Settings", icon: solid(I.gear) },
-        ]} />
-      </div>
-      <Sheet aria-label="Example sheet" open={sheet} onOpenChange={setSheet}>
-        <div className="sheet"><h2>A real sheet</h2><p>It floats as glass at half height, and turns opaque as it reaches full height.</p><Button variant="filled" size="large" onClick={() => setSheet(false)}>Done</Button></div>
-      </Sheet>
-      <Alert open={alert} onOpenChange={setAlert} title="Delete shipment?" message="This can't be undone." actions={[{ label: "Cancel", role: "cancel" }, { label: "Delete", role: "destructive" }]} />
-    </div>
+
+      <nav className="dock" aria-label="Sections">
+        {/* A fresh bar when the selection appears or goes: its lens has nowhere to rest with none. */}
+        <TabBar
+          key={section ? "selected" : "none"}
+          aria-label="Sections"
+          value={section}
+          onValueChange={setSection}
+          items={[
+            { value: "lab", label: "Lab", icon: stroke(icons.sliders, 2), href: "#lab" },
+            { value: "controls", label: "Controls", icon: stroke(icons.grid, 2), href: "#controls" },
+            { value: "app", label: "App", icon: stroke(icons.phone, 2), href: "#app" },
+            { value: "compare", label: "Compare", icon: stroke(icons.columns, 2), href: "#compare" },
+          ]}
+        />
+      </nav>
+    </>
   );
 }
 

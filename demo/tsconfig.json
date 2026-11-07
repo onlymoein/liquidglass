@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "isolatedDeclarations": false,
+    "declaration": false,
+    "resolveJsonModule": true,
+    "types": ["vite/client"]
+  },
+  "include": ["."],
+  "exclude": ["dist", "walls.mjs"]
+}

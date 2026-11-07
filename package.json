@@ -57,7 +57,9 @@
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "demo": "npm run build && vite demo",
+    "demo:build": "npm run build && tsc -p demo && vite build demo"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -74,6 +76,7 @@
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.2",
     "typescript": "^7.0.2",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },
   "publishConfig": {
