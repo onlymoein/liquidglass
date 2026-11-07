@@ -227,7 +227,6 @@ function Compare() {
             </li>
           ))}
         </ul>
-        <p><a href={`${REPO}/blob/main/parity/PLAN.md`}>The numbers, what still differs and what a web page can't do</a></p>
       </div>
     </div>
   );

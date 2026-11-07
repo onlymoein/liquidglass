@@ -263,8 +263,6 @@ pre {
 .section {
   max-width: 1240px;
   margin: 0 auto;
-  /* GlassGroup's layers reach 24 points past the stage. */
-  overflow-x: clip;
   padding: clamp(72px, 10vw, 128px) var(--gutter) 0;
 }
 
@@ -273,7 +271,7 @@ pre {
   margin-bottom: clamp(28px, 4vw, 48px);
 }
 
-.section h2 {
+.section > header h2 {
   font-size: clamp(38px, 6vw, 72px);
   font-weight: 700;
   line-height: 1.04;
@@ -423,8 +421,6 @@ h3 {
 .merge-stage {
   height: clamp(320px, 42vw, 460px);
   padding: 0;
-  /* Chromium drops a clipped backdrop inside rounded overflow. The pieces stay inside anyway. */
-  overflow: visible;
 }
 
 .merge-stage .lg-glass-group.merge {

@@ -1,3 +1,4 @@
 .build
 ui/*.xcodeproj
 ui/Info.generated.plist
+PLAN.md

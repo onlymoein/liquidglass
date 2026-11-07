@@ -193,7 +193,7 @@ In Firefox, you can put `data-liquidglass-backdrop` on what sits behind your gla
 
 ## How close it is to iOS 27
 
-`parity/` runs real iOS controls and this library on the same simulator, over the same backgrounds and through the same taps, and measures the difference. `parity/PLAN.md` has the numbers, what still differs and what a web page can't do. In short:
+`parity/` runs real iOS controls and this library on the same simulator, over the same backgrounds and through the same taps, and measures the difference. In short:
 
 - **Chromium:** glass colour is within 2 levels out of 255 of iOS, in both themes and at both sizes, and its edge bends.
 - **Safari:** light mode is within 2 levels. Dark mode is approximate, because its filters can't follow iOS's curve, and the edge doesn't bend.
