@@ -348,9 +348,7 @@ function App() {
       </main>
 
       <nav className="dock" aria-label="Sections" data-over-app={section === "app" || undefined}>
-        {/* A fresh bar when the selection appears or goes: its lens has nowhere to rest with none. */}
         <TabBar
-          key={section ? "selected" : "none"}
           aria-label="Sections"
           value={section}
           onValueChange={setSection}

@@ -440,7 +440,16 @@
   padding: 4px 8.5px;
 }
 
-.lg-tab-bar[data-icons] :is(.lg-tab, .lg-tab-copy) {
+.lg-tab-face {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.lg-tab-bar[data-icons] :is(.lg-tab-face, .lg-tab-copy) {
   flex-direction: column;
   gap: 0;
   font-size: 10px;
@@ -451,9 +460,15 @@
   color: var(--lg-foreground);
 }
 
+/* The same shape as the lens, so blue ends and black begins exactly at its edge. */
 .lg-tab-bar[data-icons] .lg-tab-tint {
-  left: 8.5px;
+  left: 4.5px;
+  width: calc(var(--lg-tab-width) + 8px);
   color: var(--lg-tab-accent);
+}
+
+.lg-tab-bar[data-icons] .lg-tab-row {
+  margin-left: 4px;
 }
 
 /* At rest the selection sits under the tab's content, so it doesn't dim it. */
@@ -508,11 +523,6 @@
 .lg-tab-bar[data-minimized] :is(.lg-tab, .lg-tab-tint, .lg-tab-lens) {
   opacity: 0 !important;
   pointer-events: none;
-}
-
-/* The tab under the selection follows it exactly, except on the way to minimised. */
-.lg-tab-bar:not([data-minimized]) .lg-tab {
-  transition-property: color;
 }
 
 .lg-tab-mini {
@@ -583,8 +593,6 @@
 
 .lg-tab:focus-visible {
   outline-offset: -2px;
-  /* The bar hides the tab under its selection; a ring has to show. */
-  opacity: 1 !important;
 }
 
 @media (hover: hover) and (pointer: fine) {

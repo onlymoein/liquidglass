@@ -59,13 +59,20 @@ const DRAG = [2500, 94, 576, 44.2] as const;
 const LIFT_MS = 230;
 // Under a finger the whole bar swells.
 const BAR_GROW = 0.049;
+const ZOOM = 0.19;
+const PULL = 0.07;
 
 function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) => void): Controller {
   const tabs = [...bar.querySelectorAll<HTMLElement>(".lg-tab")];
+  const faces = [...bar.querySelectorAll<HTMLElement>(".lg-tab-face")];
+  const copies = [...row.children] as HTMLElement[];
   let slot = 0;
   let height = 0;
   let growX = 16;
   let growY = 12;
+  let edge = 0;
+  let top = 0;
+  let lensWidth = 0;
   let active = -1;
   let shown = false;
   let settleFrame = 0;
@@ -77,8 +84,34 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const style = getComputedStyle(bar);
     slot = (bar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / tabs.length;
     height = lens.offsetHeight;
+    edge = parseFloat(style.paddingLeft) || 0;
+    top = parseFloat(style.paddingTop) || 0;
+    lensWidth = lens.offsetWidth;
     growX = parseFloat(style.getPropertyValue("--lg-lens-grow-x")) || 0;
     growY = parseFloat(style.getPropertyValue("--lg-lens-grow-y")) || 0;
+  };
+
+  // The selection shows its own copy of the tabs, so the ones under it are cut away along
+  // its edge. Only the faces: a tab under the lens still has to take a touch.
+  const cutOut = (x: number, sx: number, sy: number) => {
+    const width = lensWidth * sx;
+    const tall = height * sy;
+    const left = edge + x + slot / 2 - width / 2;
+    const up = top + height / 2 - tall / 2;
+    const rx = Math.min((height / 2) * sx, width / 2);
+    const ry = tall / 2;
+    faces.forEach((face, index) => {
+      const from = edge + index * slot;
+      if ("hidden" in bar.dataset || left + width <= from || left >= from + slot) {
+        face.style.clipPath = "";
+        return;
+      }
+      const [l, r] = [left - from, left - from + width];
+      const [t, b] = [up - top, up - top + tall];
+      const n = (value: number) => value.toFixed(2);
+      const hole = `M${n(l + rx)} ${n(t)}H${n(r - rx)}A${n(rx)} ${n(ry)} 0 0 1 ${n(r)} ${n((t + b) / 2)}A${n(rx)} ${n(ry)} 0 0 1 ${n(r - rx)} ${n(b)}H${n(l + rx)}A${n(rx)} ${n(ry)} 0 0 1 ${n(l)} ${n((t + b) / 2)}A${n(rx)} ${n(ry)} 0 0 1 ${n(l + rx)} ${n(t)}Z`;
+      face.style.clipPath = `path(evenodd, "M-200 -200H${n(slot + 200)}V${n(height + 200)}H-200Z${hole}")`;
+    });
   };
 
   const paint = () => {
@@ -86,16 +119,15 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const sx = 1 + (growX / slot) * lift;
     const sy = 1 + (growY / height) * lift;
     lens.style.transform = tint.style.transform = `translateX(${x}px) scale(${sx}, ${sy})`;
-    // What's in the lens is enlarged a little as it lifts, about the lens's centre.
-    const zoom = 1 + 0.19 * lift;
+    // Everything in the lens is enlarged as it lifts, each tab about its own centre, and
+    // they draw in a little towards the lens's. Measured on iOS.
+    const pull = 1 - PULL * lift;
+    const zoom = (1 + ZOOM * lift) / pull;
     const centre = `${slot / 2}px, ${height / 2}px`;
-    row.style.transform = `translate(${centre}) scale(${zoom}) translate(-${slot / 2}px, -${height / 2}px) scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
+    row.style.transform = `translate(${centre}) scale(${pull}) translate(-${slot / 2}px, -${height / 2}px) scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
+    for (const copy of copies) copy.style.scale = String(zoom);
     bar.style.scale = lift > 0.001 ? String(1 + BAR_GROW * lift) : "";
-    // The selection shows its own copy of the tabs, so the ones under it make way.
-    tabs.forEach((tab, index) => {
-      const near = Math.max(0, 1 - Math.abs(x - index * slot) / (slot * 0.75));
-      tab.style.opacity = "hidden" in bar.dataset ? "" : String(1 - near);
-    });
+    cutOut(x, sx, sy);
     if (!gesture && lift < 0.01) delete bar.dataset.refracting;
   };
 
@@ -122,6 +154,7 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     if (show) delete bar.dataset.hidden;
     else bar.dataset.hidden = "";
     if (show) move(active * slot, linger !== 0, instant || !shown);
+    else paint();
     shown = show;
   };
 
@@ -400,7 +433,7 @@ export function TabBar({
             aria-current={index === selected ? "page" : undefined}
             draggable={false}
           >
-            {face(item)}
+            <span className="lg-tab-face">{face(item)}</span>
           </Link>
         ) : (
           <button
@@ -412,7 +445,7 @@ export function TabBar({
             aria-selected={index === selected}
             tabIndex={index === selected || (selected < 0 && index === 0) ? 0 : -1}
           >
-            {face(item)}
+            <span className="lg-tab-face">{face(item)}</span>
           </button>
         ),
       )}
