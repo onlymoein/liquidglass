@@ -29,3 +29,16 @@ test("keeps its children and adds the shared glass behind them", () => {
   expect(group.querySelector(".lg-glass-group-shape")).not.toBeNull();
   expect(group.textContent).toBe("One");
 });
+
+test("the shared glass takes its shape from a mask in the page, and the rim draws the same outline", () => {
+  const { container } = render(
+    <GlassGroup>
+      <Glass>One</Glass>
+    </GlassGroup>,
+  );
+  const shape = container.querySelector<HTMLElement>(".lg-glass-group-shape")!;
+  const id = /url\(["']?#([^"')]+)/.exec(shape.style.getPropertyValue("mask"))?.[1];
+  const path = container.querySelector(`mask[id="${id}"] path`);
+  expect(path).not.toBeNull();
+  expect(path!.getAttribute("d")).toBe(container.querySelector(".lg-glass-group-hairline")!.getAttribute("d"));
+});

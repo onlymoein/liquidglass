@@ -67,9 +67,10 @@ const RIM_OUTSET = 1;
 const CORNER_REACH = 1.2;
 const CORNER_POWER = 2.5;
 const continuous = (width: number, height: number, radius: number) => radius > 0 && radius * CORNER_REACH <= Math.min(width, height) / 2;
-// The same curve in CSS, where there's corner-shape. Safari has none, and gets a mask instead.
+// The same curve in CSS, where there's corner-shape. Safari gets a mask instead: on the Mac it
+// has corner-shape, but it doesn't clip the backdrop to it, and the frost shows square corners.
 const CORNER_SHAPE = `superellipse(${Math.log2(CORNER_POWER).toFixed(3)})`;
-const hasCornerShape = () => typeof CSS !== "undefined" && CSS.supports?.("corner-shape", CORNER_SHAPE);
+const hasCornerShape = () => /Chrom(?:e|ium)\//.test(navigator.userAgent) && typeof CSS !== "undefined" && CSS.supports?.("corner-shape", CORNER_SHAPE);
 
 /** How far inside a rounded rectangle a point is, measured from its centre, and which way is out. */
 function toEdge(px: number, py: number, width: number, height: number, radius: number): { distance: number; nx: number; ny: number } {

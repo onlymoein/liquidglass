@@ -11,7 +11,6 @@ import {
 
 import { outline, type RoundedRect } from "./internal/contour";
 import { cx } from "./internal/cx";
-import { refractsBackdrop } from "./internal/refraction";
 
 export interface GlassGroupProps extends HTMLAttributes<HTMLDivElement> {
   /** Glass closer together than this flows into one shape, in points. */
@@ -30,16 +29,18 @@ export const GlassGroup: ForwardRefExoticComponent<GlassGroupProps & RefAttribut
   GlassGroupProps
 >(function GlassGroup({ spacing = 20, className, children, ...props }, forwardedRef) {
   const ref = useRef<HTMLDivElement>(null);
-  const glassRef = useRef<HTMLSpanElement>(null);
   const rimRef = useRef<SVGSVGElement>(null);
   const shadowRef = useRef<SVGSVGElement>(null);
+  const shapeRef = useRef<HTMLSpanElement>(null);
   const id = useId().replace(/:/g, "");
   useImperativeHandle(forwardedRef, () => ref.current!);
 
   useEffect(() => {
     const group = ref.current!;
-    const glass = glassRef.current!;
-    const paths = [...rimRef.current!.querySelectorAll("path"), ...shadowRef.current!.querySelectorAll("path")];
+    const shape = shapeRef.current!;
+    const masks = [...rimRef.current!.querySelectorAll("mask")];
+    const paths = [...rimRef.current!.querySelectorAll(":scope > path"), ...shadowRef.current!.querySelectorAll("path")];
+    let showing = 0;
     let frame = 0;
     let last = "";
     const members = () =>
@@ -64,14 +65,14 @@ export const GlassGroup: ForwardRefExoticComponent<GlassGroupProps & RefAttribut
       if (key === last) return;
       last = key;
       const d = outline(rects, spacing, box.width + MARGIN * 2, box.height + MARGIN * 2);
-      // WebKit loses the backdrop behind a clip-path, but keeps it behind a mask.
-      if (refractsBackdrop()) glass.style.clipPath = d ? `path("${d}")` : "";
-      else {
-        const size = `${box.width + MARGIN * 2} ${box.height + MARGIN * 2}`;
-        const mask = d ? `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size}'><path d='${d}'/></svg>`)}")` : "";
-        glass.style.setProperty("-webkit-mask-image", mask);
-        glass.style.setProperty("mask-image", mask);
-      }
+      // WebKit doesn't repaint a mask whose path changes, so each outline goes in the other one.
+      showing = 1 - showing;
+      const mask = masks[showing]!;
+      mask.setAttribute("width", String(box.width + MARGIN * 2));
+      mask.setAttribute("height", String(box.height + MARGIN * 2));
+      mask.firstElementChild!.setAttribute("d", d);
+      shape.style.setProperty("-webkit-mask", `url(#${mask.id})`);
+      shape.style.setProperty("mask", `url(#${mask.id})`);
       for (const path of paths) path.setAttribute("d", d);
     };
     const schedule = () => {
@@ -114,9 +115,22 @@ export const GlassGroup: ForwardRefExoticComponent<GlassGroupProps & RefAttribut
       <svg ref={shadowRef} className="lg-glass-group-layer lg-glass-group-shadow" aria-hidden>
         <path />
       </svg>
-      <span ref={glassRef} className="lg-glass lg-glass-group-shape" aria-hidden />
+      {/* A mask in the page, not an image: it changes in the same frame as the pieces, where
+          an image would flash as it loads. A clip-path loses the backdrop in Chromium inside
+          rounded overflow. */}
+      <span
+        ref={shapeRef}
+        className="lg-glass lg-glass-group-shape"
+        style={{ WebkitMask: `url(#${id}-shape-0)`, mask: `url(#${id}-shape-0)` }}
+        aria-hidden
+      />
       <svg ref={rimRef} className="lg-glass-group-layer lg-glass-group-rim" aria-hidden>
         <defs>
+          {[0, 1].map((which) => (
+            <mask key={which} id={`${id}-shape-${which}`} maskUnits="userSpaceOnUse" x="0" y="0">
+              <path fill="#fff" />
+            </mask>
+          ))}
           <linearGradient id={`${id}-light`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#fff" stopOpacity="0.34" />
             <stop offset="0.3" stopColor="#fff" stopOpacity="0" />
