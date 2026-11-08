@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode } from "react";
 
 import { Button, type ButtonProps } from "./button";
+import { safeHref } from "./internal/href";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { placeMenu, type Placement } from "./internal/placement";
@@ -593,10 +594,11 @@ export function Menu({
       const item = latest.current.items[Number(row.dataset.index)];
       if (!isItem(item)) return;
       const elsewhere = Object.values(modifiers(event)).some(Boolean);
-      if (!item.keepOpen || (item.href && elsewhere)) close();
-      if (item.href && elsewhere) window.open(item.href, "_blank", "noopener");
+      const href = safeHref(item.href);
+      if (!item.keepOpen || (href && elsewhere)) close();
+      if (href && elsewhere) window.open(href, "_blank", "noopener");
       else if (item.onSelect) item.onSelect();
-      else if (item.href) window.location.assign(item.href);
+      else if (href) window.location.assign(href);
     };
 
     const key = (event: KeyboardEvent) => {
@@ -738,8 +740,9 @@ export function Menu({
                   {item.label}
                 </>
               );
-              return item.href && !item.disabled ? (
-                <a key={index} href={item.href} {...props}>
+              const href = safeHref(item.href);
+              return href && !item.disabled ? (
+                <a key={index} href={href} {...props}>
                   {body}
                 </a>
               ) : (
