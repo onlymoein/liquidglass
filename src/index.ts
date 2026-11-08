@@ -10,6 +10,7 @@ export { ContextMenu, type ContextMenuProps } from "./context-menu";
 export { GlassGroup, type GlassGroupProps } from "./glass-group";
 export { Input, type InputProps } from "./input";
 export { Menu, type MenuEntry, type MenuItem, type MenuProps } from "./menu";
+export { NavigationBar, type NavigationBarProps } from "./navigation-bar";
 export { PageControl, type PageControlProps } from "./page-control";
 export { Progress, Spinner, type ProgressProps, type SpinnerProps } from "./progress";
 export { SearchField, type SearchFieldProps } from "./search-field";

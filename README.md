@@ -49,6 +49,7 @@ React 18 or later.
 | `Glass` | A plain piece of glass to put anything on. |
 | `Button` | A glass or filled button in the iOS sizes (`small`, `regular`, `large`), with an optional icon, tint or destructive style. |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it. |
+| `NavigationBar` | The bar at the top of a screen: a back button, actions and the title, which starts large and slides into the bar as it scrolls under. |
 | `TabBar` | Tabs with a lens that follows your finger between them. Give items an `icon` for the iOS tab bar. |
 | `Switch` | An on/off switch with a glass thumb. |
 | `Slider` | A slider with a glass thumb. |
@@ -82,6 +83,24 @@ import { Button, Toolbar, ToolbarGroup } from "@onlymoein/liquidglass";
 ```
 
 The toolbar sticks to the top of whatever scrolls around it. Buttons in a group share one piece of glass. Once content scrolls under the bar, a frosted band fades in behind it, as on iOS 27. Pass `edge="soft"` for the lighter iOS 26 blur, or `edge="none"` for neither. The arrow keys, Home and End move between its actions.
+
+### NavigationBar
+
+```tsx
+import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
+
+<NavigationBar
+  title="Inbox"
+  onBack={goBack}
+  trailing={
+    <ToolbarGroup aria-label="Actions">
+      <Button aria-label="Compose" icon={<ComposeIcon />} />
+    </ToolbarGroup>
+  }
+/>
+```
+
+Put it first inside whatever scrolls, as with `Toolbar`, and it sticks to the top. It is a `Toolbar` underneath, so it frosts its edge the same way, takes `edge`, and the arrow keys move between its actions. The title is large and scrolls away with the content; once it's under the bar, the bar's own 17-point title fades in. Pass `large={false}` to keep the small title in the bar from the start. `onBack` adds the round back button, `leading` and `trailing` hold other actions, and `level` sets the heading level (1 by default).
 
 ### Menu
 
