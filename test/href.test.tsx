@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
-import { Menu } from "../src";
+import { Menu, TabBar } from "../src";
 import { safeHref } from "../src/internal/href";
 
 test("allows relative and web links and refuses script ones", () => {
@@ -22,4 +22,20 @@ test("a menu item with a javascript link is not a link and is never followed", (
   fireEvent.click(row, { metaKey: true });
   expect(open).not.toHaveBeenCalled();
   open.mockRestore();
+});
+
+test("a tab with a javascript link renders as a tab, not a link", () => {
+  render(
+    <TabBar
+      aria-label="Tabs"
+      items={[
+        { value: "a", label: "Safe", href: "/safe" },
+        { value: "b", label: "Bad", href: "javascript:alert(1)" },
+      ]}
+    />,
+  );
+  const links = Array.from(document.querySelectorAll(".lg-tab-bar a.lg-tab"));
+  expect(links.map((link) => link.getAttribute("href"))).toEqual(["/safe"]);
+  expect(document.querySelectorAll(".lg-tab-bar button.lg-tab")).toHaveLength(1);
+  expect(document.querySelector('[href^="javascript"]')).toBeNull();
 });

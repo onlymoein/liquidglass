@@ -425,7 +425,7 @@ export function TabBar({
     >
       <span ref={glassRef} className="lg-glass lg-tab-bar-glass" aria-hidden />
       {items.map((item, index) =>
-        navigation ? (
+        safeHref(item.href) !== undefined ? (
           <Link
             key={item.value}
             href={safeHref(item.href)!}
