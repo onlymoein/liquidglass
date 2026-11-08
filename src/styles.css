@@ -1549,6 +1549,66 @@
   background: var(--lg-separator);
 }
 
+/* Page control */
+
+.lg-page-control {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 13px;
+  color: var(--lg-foreground);
+}
+
+.lg-page-control:not(.lg-glass) {
+  padding: 0;
+}
+
+.lg-page-dots {
+  display: flex;
+  align-items: center;
+}
+
+.lg-page-dot {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-page-dot::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.lg-page-dot[aria-current="page"]::before {
+  opacity: 1;
+}
+
+.lg-page-dot:active::before {
+  transform: scale(0.85);
+}
+
+.lg-page-dot:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
 /* Progress */
 
 .lg-progress {

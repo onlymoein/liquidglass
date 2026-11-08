@@ -59,6 +59,7 @@ React 18 or later.
 | `Alert` | A modal question with pill buttons. |
 | `SegmentedControl` | A row of choices with a thumb that slides to the chosen one, and lifts into a clear lens under a finger. |
 | `Stepper` | Two buttons that step a number down and up. |
+| `PageControl` | A row of dots for the current page, on a capsule of glass. |
 | `Progress`, `Spinner` | A thin progress bar and the activity indicator. |
 | `GlassGroup` | Glass inside it flows together as it comes close, like `GlassEffectContainer`. |
 
