@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -84,6 +84,16 @@ function Steps() {
       </div>
       <Progress aria-label="Progress" value={count / 10} />
       <output className="readout">{count} of 10</output>
+    </div>
+  );
+}
+
+function Pages() {
+  const [page, setPage] = useState(1);
+  return (
+    <div className="stack center">
+      <PageControl aria-label="Photos" count={5} value={page} onValueChange={setPage} />
+      <output className="readout">Page {page + 1} of 5</output>
     </div>
   );
 }
@@ -257,6 +267,12 @@ const TILES: Tile[] = [
     code: `<Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
 <Progress aria-label="Progress" value={count / 10} />
 <Spinner />`,
+  },
+  {
+    title: "PageControl",
+    how: "Dots on a capsule of glass; click one or use the arrow keys.",
+    demo: <Pages />,
+    code: `<PageControl aria-label="Photos" count={5} value={page} onValueChange={setPage} />`,
   },
   {
     title: "Alert",
