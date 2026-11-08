@@ -12,6 +12,7 @@ import {
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
+import { safeHref } from "./internal/href";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
 
@@ -374,7 +375,7 @@ export function TabBar({
   const selected = items.findIndex((item) => item.value === value);
   const latest = useRef({ items, selected, setValue });
   const signature = items.map((item) => item.value).join("\n");
-  const navigation = items.every((item) => item.href !== undefined);
+  const navigation = items.every((item) => safeHref(item.href) !== undefined);
   const face = (item: TabBarItem) =>
     item.icon == null ? (
       item.label
@@ -424,10 +425,10 @@ export function TabBar({
     >
       <span ref={glassRef} className="lg-glass lg-tab-bar-glass" aria-hidden />
       {items.map((item, index) =>
-        item.href !== undefined ? (
+        navigation ? (
           <Link
             key={item.value}
-            href={item.href}
+            href={safeHref(item.href)!}
             className="lg-tab"
             data-selected={index === selected ? "" : undefined}
             aria-current={index === selected ? "page" : undefined}
