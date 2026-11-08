@@ -47,16 +47,16 @@ export const PageControl: ForwardRefExoticComponent<PageControlProps & RefAttrib
     if (next === undefined) return;
     event.preventDefault();
     go(next);
-    requestAnimationFrame(() => (event.currentTarget.parentElement?.children[Math.min(Math.max(next, 0), pages - 1)] as HTMLElement | undefined)?.focus());
+    (event.currentTarget.children[Math.min(Math.max(next, 0), pages - 1)] as HTMLElement | undefined)?.focus();
   };
   const body = (
-    <div role="group" className="lg-page-dots" onKeyDown={keys}>
+    <div className="lg-page-dots" onKeyDown={keys}>
       {dots}
     </div>
   );
-  if (!glass) return <div ref={ref} className={cx("lg-page-control", className)} {...props}>{body}</div>;
+  if (!glass) return <div ref={ref} role="group" className={cx("lg-page-control", className)} {...props}>{body}</div>;
   return (
-    <Glass ref={ref} className={cx("lg-page-control", className)} {...props}>
+    <Glass ref={ref} role="group" className={cx("lg-page-control", className)} {...props}>
       {body}
     </Glass>
   );
