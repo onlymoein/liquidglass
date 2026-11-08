@@ -16,15 +16,25 @@ const POINTER: Feel = { grow: 6, press: [417.6, 29.2], release: [230, 23.7] };
 // recordings in parity/.
 const TOUCH: Feel = { grow: 16, press: [795, 38], release: [342, 13.5] };
 
+/**
+ * What a press moves: a button sharing a toolbar group's glass moves the whole
+ * group, icons and all, as iOS does. A filled button keeps its own glass.
+ */
+const glassOf = (el: HTMLElement): HTMLElement => {
+  const group = el.parentElement;
+  return group?.classList.contains("lg-toolbar-group") && el.dataset.variant !== "filled" ? group : el;
+};
+
 export function usePress(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
     const value = [1, 1, 0, 0];
+    let glass = el;
     const paint = () => {
-      el.style.scale = `${value[0]} ${value[1]}`;
-      el.style.translate = `${value[2]}px ${value[3]}px`;
+      glass.style.scale = `${value[0]} ${value[1]}`;
+      glass.style.translate = `${value[2]}px ${value[3]}px`;
     };
     const springs = value.map((initial, i) =>
       createSpring(initial, ...POINTER.release, (next) => {
@@ -45,8 +55,8 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
     const track = (event: PointerEvent) => {
       if (!pointer) return;
       const { box, feel } = pointer;
-      el.style.setProperty("--lg-x", `${((event.clientX - box.left) / box.width) * 100}%`);
-      el.style.setProperty("--lg-y", `${((event.clientY - box.top) / box.height) * 100}%`);
+      glass.style.setProperty("--lg-x", `${((event.clientX - box.left) / box.width) * 100}%`);
+      glass.style.setProperty("--lg-y", `${((event.clientY - box.top) / box.height) * 100}%`);
 
       const { width, height } = box;
       const base = 1 + feel.grow / Math.max(width, height);
@@ -81,6 +91,7 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
       const feel = pointer?.feel ?? POINTER;
       pointer = null;
       delete el.dataset.pressed;
+      if (glass !== el) delete glass.dataset.pressed;
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
@@ -89,14 +100,22 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
 
     const down = (event: PointerEvent) => {
       if (!event.isPrimary || event.button !== 0 || pointer || el.matches(":disabled")) return;
+      // Settle wherever the last press left off before moving something else.
+      const next = glassOf(el);
+      if (next !== glass) {
+        glass.style.removeProperty("scale");
+        glass.style.removeProperty("translate");
+        glass = next;
+      }
       pointer = {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
-        box: el.getBoundingClientRect(),
+        box: glass.getBoundingClientRect(),
         feel: event.pointerType === "mouse" ? POINTER : TOUCH,
       };
       el.dataset.pressed = "";
+      glass.dataset.pressed = "";
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
@@ -112,8 +131,8 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
       springs.forEach((spring) => spring.stop());
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("blur", reset);
-      el.style.removeProperty("scale");
-      el.style.removeProperty("translate");
+      glass.style.removeProperty("scale");
+      glass.style.removeProperty("translate");
     };
   }, [ref]);
 }

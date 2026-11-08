@@ -1335,8 +1335,29 @@
   backdrop-filter: none;
 }
 
-.lg-toolbar-group > .lg-button:not([data-variant="filled"], :active, [data-pressed], :hover) {
+.lg-toolbar-group > .lg-button:not([data-variant="filled"]) {
   background-color: transparent;
+}
+
+/* Only a mouse lights a button under it: a touch browser keeps hover on whatever was tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .lg-toolbar-group > .lg-button:not([data-variant="filled"]):hover {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+/* A press lights and grows the whole group, not just the button under the finger. */
+.lg-toolbar-group > .lg-button:not([data-variant="filled"])::after {
+  display: none;
+}
+
+.lg-toolbar-group {
+  transition: background-color 200ms ease;
+}
+
+.lg-toolbar-group[data-pressed] {
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
 }
 
 .lg-toolbar-group > .lg-glass-copy {

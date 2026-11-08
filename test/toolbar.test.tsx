@@ -66,3 +66,29 @@ test("leaves its edge alone when asked to", () => {
   expect(toolbar.hasAttribute("data-scrolled")).toBe(false);
   expect(toolbar.hasAttribute("data-edge")).toBe(false);
 });
+
+test("pressing a button in a group grows and lights the group's glass, as iOS does", () => {
+  render(bar());
+  const undo = screen.getByRole("button", { name: "Undo" });
+  const group = screen.getByRole("group", { name: "History" });
+  fireEvent.pointerDown(undo, { pointerId: 1, isPrimary: true, button: 0, pointerType: "touch", clientX: 10, clientY: 10 });
+  expect(group.hasAttribute("data-pressed")).toBe(true);
+  expect(undo.style.scale).toBe("");
+  fireEvent.pointerUp(window, { pointerId: 1 });
+  expect(group.hasAttribute("data-pressed")).toBe(false);
+});
+
+test("a filled button in a group keeps its own glass when pressed", () => {
+  render(
+    <Toolbar aria-label="Editor">
+      <ToolbarGroup aria-label="Save">
+        <Button variant="filled">Save</Button>
+      </ToolbarGroup>
+    </Toolbar>,
+  );
+  const save = screen.getByRole("button", { name: "Save" });
+  fireEvent.pointerDown(save, { pointerId: 1, isPrimary: true, button: 0, pointerType: "touch", clientX: 10, clientY: 10 });
+  expect(screen.getByRole("group", { name: "Save" }).hasAttribute("data-pressed")).toBe(false);
+  expect(save.hasAttribute("data-pressed")).toBe(true);
+  fireEvent.pointerUp(window, { pointerId: 1 });
+});
