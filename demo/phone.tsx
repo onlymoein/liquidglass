@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, Toolbar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -56,6 +56,7 @@ export function Phone() {
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
+  const [pushed, setPushed] = useState(false);
   const [size, setSize] = useState(2);
   const [weight, setWeight] = useState(60);
   const scroller = useRef<HTMLDivElement>(null);
@@ -66,11 +67,19 @@ export function Phone() {
     else if (top < lastTop.current - 6) setSmall(false);
     lastTop.current = top;
   };
-  const go = (next: string) => {
-    setTab(next);
+  const top = () => {
     setSmall(false);
     scroller.current?.scrollTo({ top: 0 });
     lastTop.current = 0;
+  };
+  const go = (next: string) => {
+    setTab(next);
+    setPushed(false);
+    top();
+  };
+  const push = (next: boolean) => {
+    setPushed(next);
+    top();
   };
   const show = (swatch: Swatch) => {
     setPicked(swatch);
@@ -82,43 +91,61 @@ export function Phone() {
   return (
     <div className="phone">
       <div className="phone-scroll" ref={scroller} onScroll={(event) => scrolled(event.currentTarget.scrollTop)}>
-        <Toolbar aria-label="Swatches">
-          <Menu aria-label="Sort" icon={stroke(icons.sort)} align="start" items={[{ heading: "Sort" }, sortItem("Warm first"), sortItem("Cool first"), sortItem("A to Z")]} />
-          <ToolbarGroup aria-label="Saved">
-            <Button aria-label={`${palette.length} saved`} icon={stroke(icons.swatch)} onClick={() => go("settings")}>{palette.length}</Button>
-          </ToolbarGroup>
-        </Toolbar>
-
-        {tab === "swatches" && (
-          <div className="phone-page">
-            <h3 className="phone-title">Swatches</h3>
-            <Cards swatches={order(sort)} onOpen={show} />
-          </div>
+        {pushed ? (
+          <>
+            <NavigationBar key="saved" level={3} title="Saved" onBack={() => push(false)} />
+            <div className="phone-page">
+                {palette.length ? <Cards swatches={SWATCHES.filter((swatch) => palette.includes(swatch.name))} onOpen={show} /> : <p className="phone-empty">Nothing saved yet. Open a swatch and tap Save.</p>}
+            </div>
+          </>
+        ) : (
+          tab === "swatches" && (
+            <>
+              <NavigationBar
+                key="swatches"
+                level={3}
+                title="Swatches"
+                leading={<Menu aria-label="Sort" icon={stroke(icons.sort)} align="start" items={[{ heading: "Sort" }, sortItem("Warm first"), sortItem("Cool first"), sortItem("A to Z")]} />}
+                trailing={
+                  <ToolbarGroup aria-label="Saved">
+                    <Button aria-label={`${palette.length} saved`} icon={stroke(icons.swatch)} onClick={() => push(true)}>{palette.length}</Button>
+                  </ToolbarGroup>
+                }
+              />
+              <div className="phone-page">
+                <Cards swatches={order(sort)} onOpen={show} />
+              </div>
+            </>
+          )
         )}
-        {tab === "search" && (
-          <div className="phone-page">
-            <h3 className="phone-title">Search</h3>
-            <SearchField aria-label="Search swatches" placeholder="Try “plum”" value={query} onValueChange={setQuery} />
-            <Cards swatches={SWATCHES.filter((swatch) => swatch.name.toLowerCase().includes(query.trim().toLowerCase()))} onOpen={show} />
-          </div>
+        {!pushed && tab === "search" && (
+          <>
+            <NavigationBar key="search" level={3} title="Search" />
+            <div className="phone-page">
+              <SearchField aria-label="Search swatches" placeholder="Try “plum”" value={query} onValueChange={setQuery} />
+              <Cards swatches={SWATCHES.filter((swatch) => swatch.name.toLowerCase().includes(query.trim().toLowerCase()))} onOpen={show} />
+            </div>
+          </>
         )}
-        {tab === "settings" && (
-          <div className="phone-page">
-            <h3 className="phone-title">Settings</h3>
-            <div className="group">
-              <label className="row">Show names <Switch aria-label="Show names" defaultChecked /></label>
-              <label className="row">Sync <Switch aria-label="Sync" /></label>
-              <div className="row">Columns <Stepper aria-label="Columns" value={size} min={1} max={4} onValueChange={setSize} /></div>
+        {!pushed && tab === "settings" && (
+          <>
+            <NavigationBar key="settings" level={3} title="Settings" />
+            <div className="phone-page">
+              <div className="group">
+                <label className="row">Show names <Switch aria-label="Show names" defaultChecked /></label>
+                <label className="row">Sync <Switch aria-label="Sync" /></label>
+                <div className="row">Columns <Stepper aria-label="Columns" value={size} min={1} max={4} onValueChange={setSize} /></div>
+              </div>
+              <div className="group">
+                <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
+                <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} /></div>
+              </div>
+              <div className="group">
+                <div className="row column">Saved: {palette.length ? palette.join(", ") : "nothing yet"}</div>
+              </div>
+              <Button destructive size="large" className="wide" disabled={!palette.length} onClick={() => setAsking(true)}>Clear saved</Button>
             </div>
-            <div className="group">
-              <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
-              <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} /></div>
-            </div>
-            <div className="group">
-              <div className="row column">Saved: {palette.length ? palette.join(", ") : "nothing yet"}</div>
-            </div>
-            <Button destructive size="large" className="wide" disabled={!palette.length} onClick={() => setAsking(true)}>Clear saved</Button>
-          </div>
+          </>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -184,6 +184,27 @@ function Bar() {
   );
 }
 
+function Navigation() {
+  return (
+    <div className="scroll-demo" tabIndex={0} role="region" aria-label="Scroll under the navigation bar">
+      <NavigationBar
+        level={3}
+        title="Inbox"
+        onBack={() => {}}
+        trailing={
+          <ToolbarGroup aria-label="Actions">
+            <Button aria-label="Share" icon={stroke(icons.share)} />
+            <Button aria-label="Add" icon={stroke(icons.plus)} />
+          </ToolbarGroup>
+        }
+      />
+      <div className="scroll-fill">
+        {["Scroll", "and the", "title moves", "into the bar"].map((word) => <p key={word}>{word}</p>)}
+      </div>
+    </div>
+  );
+}
+
 interface Tile {
   title: string;
   how: string;
@@ -334,6 +355,22 @@ const TILES: Tile[] = [
     <Button>Edit</Button>
   </ToolbarGroup>
 </Toolbar>`,
+  },
+  {
+    title: "NavigationBar",
+    how: "Scroll this panel. The large title slides under the bar and its small twin fades into the middle.",
+    demo: <Navigation />,
+    wide: true,
+    bare: true,
+    code: `<NavigationBar
+  title="Inbox"
+  onBack={goBack}
+  trailing={
+    <ToolbarGroup aria-label="Actions">
+      <Button aria-label="Share" icon={<ShareIcon />} />
+    </ToolbarGroup>
+  }
+/>`,
   },
 ];
 

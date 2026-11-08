@@ -668,15 +668,19 @@ h3 {
 .phone-page {
   display: grid;
   gap: 14px;
-  padding: 0 16px 112px;
+  padding: 6px 16px 112px;
 }
 
-.phone-title {
+/* The titles sit on the wallpaper, so they take its ink. */
+.phone .lg-nav-title,
+.phone .lg-nav-large {
   color: var(--wall-ink);
   text-shadow: var(--wall-shadow);
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+}
+
+.phone-empty {
+  color: var(--wall-ink);
+  text-shadow: var(--wall-shadow);
 }
 
 .cards {

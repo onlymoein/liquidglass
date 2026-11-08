@@ -11,6 +11,7 @@ import {
 
 import { cx } from "./internal/cx";
 import { useRefraction } from "./internal/refraction";
+import { scroller } from "./internal/scroller";
 
 export interface ToolbarProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -29,14 +30,6 @@ const moves: Record<string, (index: number, count: number) => number> = {
   Home: () => 0,
   End: (_, count) => count - 1,
 };
-
-// The nearest ancestor that scrolls, or null for the page.
-function scroller(element: HTMLElement): HTMLElement | null {
-  for (let node = element.parentElement; node; node = node.parentElement) {
-    if (/auto|scroll/.test(getComputedStyle(node).overflowY)) return node;
-  }
-  return null;
-}
 
 /** A bar of actions that stays at the top of what scrolls beneath it. Put its buttons in `ToolbarGroup`s. */
 export const Toolbar: ForwardRefExoticComponent<ToolbarProps & RefAttributes<HTMLDivElement>> = /* @__PURE__ */ forwardRef<

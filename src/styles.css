@@ -1343,6 +1343,58 @@
   display: none;
 }
 
+/* Navigation bar */
+
+/* A toolbar with the title between two edges. The title stays centred unless the buttons need the room. */
+.lg-nav {
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  display: grid;
+}
+
+.lg-nav-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lg-nav-side[data-side="trailing"] {
+  justify-content: flex-end;
+}
+
+/* 17 points, semibold, as on iOS. */
+.lg-nav-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* With a large title the bar's own stays hidden until the large one has scrolled under. */
+.lg-nav[data-large] .lg-nav-title {
+  opacity: 0;
+  transition: opacity 200ms var(--lg-ease);
+}
+
+.lg-nav[data-large][data-collapsed] .lg-nav-title {
+  opacity: 1;
+}
+
+/* 34 points, bold. It sits in the content, under the bar, and scrolls with it. */
+.lg-nav-large {
+  padding: 0 16px 8px;
+  color: var(--lg-foreground);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 41px;
+  overflow-wrap: anywhere;
+}
+
 /* Glass group */
 
 .lg-glass-group {

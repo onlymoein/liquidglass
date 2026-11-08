@@ -333,10 +333,10 @@ function App() {
           <div className="app-wrap">
             <Phone />
             <ul className="try">
-              <li><strong>Scroll</strong> and a frosted band fades in behind the toolbar.</li>
+              <li><strong>Scroll</strong> and the large title slides under the bar as its small twin fades in, with a frosted band behind.</li>
               <li><strong>Drag along the tab bar</strong> and the lens follows your finger.</li>
               <li><strong>Tap a swatch</strong> for a sheet, then save it.</li>
-              <li><strong>Sort</strong> from the menu at the top left.</li>
+              <li><strong>Sort</strong> from the menu at the top left, or open the saved count for a screen with a back button.</li>
               <li><strong>Clear saved</strong> in Settings asks with an alert.</li>
             </ul>
           </div>
