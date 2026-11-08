@@ -5,7 +5,7 @@ import { Menu } from "../src";
 import { safeHref } from "../src/internal/href";
 
 test("allows relative and web links and refuses script ones", () => {
-  for (const ok of ["/ship?mode=1", "../x", "#top", "https://a.test/b", "HTTP://a.test", "mailto:a@b.c", "tel:+90", "page:1"].slice(0, 7)) {
+  for (const ok of ["/ship?mode=1", "../x", "#top", "https://a.test/b", "HTTP://a.test", "mailto:a@b.c", "tel:+90"]) {
     expect(safeHref(ok)).toBe(ok);
   }
   for (const bad of ["javascript:alert(1)", " JaVa\tScRiPt:alert(1)", "java\nscript:alert(1)", "data:text/html,x", "vbscript:x", "blob:x", "file:///etc"]) {
