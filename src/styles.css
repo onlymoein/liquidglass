@@ -621,12 +621,26 @@
   color: var(--lg-foreground);
 }
 
+/* The lens's copy of the labels, bent at the lens's rim while it's held. */
+.lg-tab-bend,
+.lg-tab-clip {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* WebKit sizes a filter in bounding-box units by everything inside, even what overflow hides,
+   so the labels' row is cut to the lens by a clip-path, which it does take into account. */
+.lg-tab-clip {
+  clip-path: inset(0);
+}
+
 .lg-tab-row {
   display: flex;
   height: 100%;
   transform: translateX(calc(var(--lg-tab-width) * var(--lg-index, 0) * -1));
   transform-origin: 0 0;
-  will-change: transform;
+  /* No layer of its own: WebKit draws a layer past its parent's filter, so the rim wouldn't bend it. */
 }
 
 .lg-tab-lens.lg-glass {

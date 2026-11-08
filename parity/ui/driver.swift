@@ -22,6 +22,8 @@ final class Driver: XCTestCase {
           case "tap": at(n[0], n[1]).tap()
           case "press": at(n[0], n[1]).press(forDuration: n[2])
           case "drag": at(n[0], n[1]).press(forDuration: n[4], thenDragTo: at(n[2], n[3]))
+          // drag, then hold still at the end before letting go: x1 y1 x2 y2 pressSecs holdSecs
+          case "hold": at(n[0], n[1]).press(forDuration: n[4], thenDragTo: at(n[2], n[3]), withVelocity: .slow, thenHoldForDuration: n[5])
           case "stop": return
           default: break
           }

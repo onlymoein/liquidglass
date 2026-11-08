@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { BEND_STEPS, bendFilters } from "./internal/bend";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
@@ -44,6 +45,7 @@ interface Parts {
   glass: HTMLElement;
   lens: HTMLElement;
   tint: HTMLElement;
+  bend: HTMLElement;
   row: HTMLElement;
 }
 
@@ -63,7 +65,7 @@ const BAR_GROW = 0.049;
 const ZOOM = 0.19;
 const PULL = 0.07;
 
-function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) => void): Controller {
+function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: number) => void): Controller {
   const tabs = [...bar.querySelectorAll<HTMLElement>(".lg-tab")];
   const faces = [...bar.querySelectorAll<HTMLElement>(".lg-tab-face")];
   const copies = [...row.children] as HTMLElement[];
@@ -74,6 +76,7 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
   let edge = 0;
   let top = 0;
   let lensWidth = 0;
+  let bends: string[] = [];
   let active = -1;
   let shown = false;
   let settleFrame = 0;
@@ -90,6 +93,9 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     lensWidth = lens.offsetWidth;
     growX = parseFloat(style.getPropertyValue("--lg-lens-grow-x")) || 0;
     growY = parseFloat(style.getPropertyValue("--lg-lens-grow-y")) || 0;
+    // The lens's copy of the labels bends at its rim. Made before the first lift, so it's ready.
+    const dark = style.getPropertyValue("--lg-dark").trim() !== "" && style.getPropertyValue("--lg-dark").trim() !== "initial";
+    if (tint.offsetWidth && tint.offsetHeight) bends = bendFilters(tint.offsetWidth, tint.offsetHeight, dark);
   };
 
   // The selection shows its own copy of the tabs, so the ones under it are cut away along
@@ -127,6 +133,10 @@ function attach({ bar, glass, lens, tint, row }: Parts, select: (index: number) 
     const centre = `${slot / 2}px, ${height / 2}px`;
     row.style.transform = `translate(${centre}) scale(${pull}) translate(-${slot / 2}px, -${height / 2}px) scale(${1 / sx}, ${1 / sy}) translate(${-x + ((sx - 1) * slot) / 2}px, ${((sy - 1) * height) / 2}px)`;
     for (const copy of copies) copy.style.scale = String(zoom);
+    // The rim's bend grows with the lift, a step at a time: each step is its own filter,
+    // as WebKit keeps drawing a filter's old output until it's given a new one.
+    const step = Math.round(lift * BEND_STEPS);
+    bend.style.filter = step > 0 ? (bends[Math.min(step, bends.length) - 1] ?? "") : "";
     bar.style.scale = lift > 0.001 ? String(1 + BAR_GROW * lift) : "";
     cutOut(x, sx, sy);
     if (!gesture && lift < 0.01) delete bar.dataset.refracting;
@@ -370,6 +380,7 @@ export function TabBar({
   const lensRef = useRef<HTMLSpanElement>(null);
   const tintRef = useRef<HTMLSpanElement>(null);
   const rowRef = useRef<HTMLSpanElement>(null);
+  const bendRef = useRef<HTMLSpanElement>(null);
   const controller = useRef<Controller | null>(null);
   const [value, setValue] = useControllable<string | null, string>(valueProp, defaultValue, onValueChange);
   const selected = items.findIndex((item) => item.value === value);
@@ -395,7 +406,7 @@ export function TabBar({
 
   useEffect(() => {
     const instance = attach(
-      { bar: barRef.current!, glass: glassRef.current!, lens: lensRef.current!, tint: tintRef.current!, row: rowRef.current! },
+      { bar: barRef.current!, glass: glassRef.current!, lens: lensRef.current!, tint: tintRef.current!, bend: bendRef.current!, row: rowRef.current! },
       (index) => {
         const item = latest.current.items[index];
         if (item) latest.current.setValue(item.value);
@@ -451,12 +462,16 @@ export function TabBar({
         ),
       )}
       <span ref={tintRef} className="lg-tab-tint" aria-hidden>
-        <span ref={rowRef} className="lg-tab-row">
-          {items.map((item) => (
-            <span key={item.value} className="lg-tab-copy">
-              {face(item)}
+        <span ref={bendRef} className="lg-tab-bend">
+          <span className="lg-tab-clip">
+            <span ref={rowRef} className="lg-tab-row">
+              {items.map((item) => (
+                <span key={item.value} className="lg-tab-copy">
+                  {face(item)}
+                </span>
+              ))}
             </span>
-          ))}
+          </span>
         </span>
       </span>
       <span ref={lensRef} className="lg-glass lg-tab-lens" aria-hidden />
