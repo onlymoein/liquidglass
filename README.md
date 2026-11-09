@@ -1,5 +1,16 @@
 # liquidglass
 
+[![npm version](https://img.shields.io/npm/v/@onlymoein/liquidglass?logo=npm)](https://www.npmjs.com/package/@onlymoein/liquidglass)
+[![npm downloads per month](https://img.shields.io/npm/dm/@onlymoein/liquidglass?logo=npm)](https://www.npmjs.com/package/@onlymoein/liquidglass)
+[![unpacked size](https://img.shields.io/npm/unpacked-size/@onlymoein/liquidglass)](https://www.npmjs.com/package/@onlymoein/liquidglass?activeTab=code)
+[![TypeScript types included](https://img.shields.io/npm/types/@onlymoein/liquidglass?logo=typescript&logoColor=white)](https://www.npmjs.com/package/@onlymoein/liquidglass)
+[![React peer dependency](https://img.shields.io/npm/dependency-version/@onlymoein/liquidglass/peer/react?logo=react&logoColor=white&label=react)](https://react.dev)
+[![license](https://img.shields.io/npm/l/@onlymoein/liquidglass)](https://github.com/onlymoein/liquidglass/blob/main/LICENSE)
+[![live demo](https://img.shields.io/website?url=https%3A%2F%2Fonlymoein.github.io%2Fliquidglass%2F&label=live%20demo)](https://onlymoein.github.io/liquidglass/)
+[![last commit](https://img.shields.io/github/last-commit/onlymoein/liquidglass)](https://github.com/onlymoein/liquidglass/commits/main)
+[![open issues](https://img.shields.io/github/issues/onlymoein/liquidglass)](https://github.com/onlymoein/liquidglass/issues)
+[![GitHub stars](https://img.shields.io/github/stars/onlymoein/liquidglass?logo=github)](https://github.com/onlymoein/liquidglass/stargazers)
+
 Apple's iOS 27 Liquid Glass for React: glass that bends the light behind it, with controls that move like the real ones.
 
 **Try it live: [onlymoein.github.io/liquidglass](https://onlymoein.github.io/liquidglass/)**. Drag the glass, tune it, and use every control.
