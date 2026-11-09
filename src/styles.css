@@ -1927,6 +1927,12 @@
   transition: none;
 }
 
+/* A drag that starts anywhere in the sheet moves it, so it mustn't also select text. */
+.lg-sheet[data-dragging] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .lg-sheet-handle {
   position: relative;
   z-index: 1;

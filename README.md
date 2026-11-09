@@ -56,7 +56,7 @@ React 18 or later.
 | `Input`, `SearchField` | Text fields set in glass. |
 | `Menu` | A menu that grows out of its trigger. |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it. |
-| `Sheet` | A sheet that rises from the bottom, floats at half height and drags between its heights. |
+| `Sheet` | A sheet that rises from the bottom, floats at half height and drags between its heights from anywhere in it, handing a long drag on to the content that scrolls. |
 | `Alert` | A modal question with pill buttons. |
 | `SegmentedControl` | A row of choices with a thumb that slides to the chosen one, and lifts into a clear lens under a finger. |
 | `Stepper` | Two buttons that step a number down and up. |
@@ -159,7 +159,9 @@ import { Alert, Sheet } from "@onlymoein/liquidglass";
 />
 ```
 
-A sheet rests at half height as floating glass and at full height as an opaque panel; `detents` chooses which it has. Drag its handle between them, or down to dismiss it.
+A sheet rests at half height as floating glass and at full height as an opaque panel; `detents` chooses which it has. Drag it between them, or down to dismiss it, starting the drag anywhere in the sheet, not only on its handle.
+
+Content that scrolls is shared out as iOS shares it. An upward drag grows the sheet first, and whatever is left of it scrolls the content; at full height it scrolls the content. A downward drag scrolls the content back to its top before the sheet shrinks. Sideways drags, and drags that start on a slider, a text field or anything marked `data-lg-no-sheet-drag`, stay with that element. A tap on a button still clicks it.
 
 ### GlassGroup
 

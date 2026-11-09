@@ -637,6 +637,35 @@ h3 {
   border-radius: 20px;
 }
 
+.sheet-body h4 {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.shades {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shades li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 0.5px solid rgb(127 127 127 / 0.3);
+  font-size: 17px;
+}
+
+.shade-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
 /* App */
 
 .app-wrap {

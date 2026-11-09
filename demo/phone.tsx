@@ -179,6 +179,15 @@ export function Phone() {
           >
             {saved ? "Remove" : "Save"}
           </Button>
+          <h4>Nearby shades</h4>
+          <ul className="shades">
+            {SWATCHES.filter((swatch) => picked && swatch.name !== picked.name && swatch.warm === picked.warm).map((swatch) => (
+              <li key={swatch.name}>
+                <span className="shade-chip" style={{ backgroundImage: `linear-gradient(145deg, ${swatch.from}, ${swatch.to})` }} />
+                {swatch.name}
+              </li>
+            ))}
+          </ul>
         </div>
       </Sheet>
       <Alert
