@@ -16,6 +16,7 @@ import { held } from "./internal/hold";
 import { safeHref } from "./internal/href";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
+import { DRAG, REST } from "./internal/tab-motion";
 
 export interface TabBarItem {
   value: string;
@@ -56,8 +57,6 @@ interface Controller {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
-const REST = [1024, 58.9, 676, 47.8] as const;
-const DRAG = [2500, 94, 576, 44.2] as const;
 // A quick tap still lifts the lens and carries it across, as on iOS.
 const LIFT_MS = 230;
 // Under a finger the whole bar swells.
@@ -152,7 +151,10 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
   });
 
   const move = (target: number, lifted: boolean, instant = false) => {
-    const [slideStiffness, slideDamping, liftStiffness, liftDamping] = gesture ? DRAG : REST;
+    // The lens keeps up with a finger that's dragging it on a stiff spring. A tap, a key or a
+    // change of tab carries it across on the looser one, which is what lets it swing past.
+    const [slideStiffness, slideDamping] = gesture?.moved ? DRAG : REST;
+    const [, , liftStiffness, liftDamping] = gesture ? DRAG : REST;
     x.tune(slideStiffness, slideDamping);
     lift.tune(liftStiffness, liftDamping);
     x.set(target, instant);
