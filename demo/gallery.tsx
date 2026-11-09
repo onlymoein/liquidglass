@@ -127,7 +127,7 @@ function SheetDemo() {
       <Sheet aria-label="Example sheet" open={open} onOpenChange={setOpen}>
         <div className="sheet-body">
           <h3>A real sheet</h3>
-          <p>It floats as glass at half height and turns opaque at full height. Drag the handle up, or down to dismiss it.</p>
+          <p>It floats as glass at half height and turns opaque at full height. Drag it up from anywhere, or down to dismiss it.</p>
           <Button variant="filled" size="large" onClick={() => setOpen(false)}>Done</Button>
         </div>
       </Sheet>
