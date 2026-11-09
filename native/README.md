@@ -101,7 +101,11 @@ Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or 
 - **Android 12:** blur and tone, without the bend.
 - **Android 11 and earlier:** a translucent pane.
 
-The controls on Android are still plain, apart from glass behind the buttons and the tab bar. Native Android versions of the switch, slider, segmented control and tab bar, with the held lens, come next. So does the merging of nearby glass in `GlassGroup`.
+The tab bar and buttons on Android are laid out as iOS lays them out, on the glass: each tab's icon above its label, the selected tab on a pill, badges, and the bar above the gesture handle.
+
+Apple only allows SF Symbols on its own platforms, so Android gets the package's own icons, drawn for it, under the same names: `house`, `magnifyingglass`, `gearshape`, `bookmark`, `heart`, `star`, `person`, `bell`, `trash`, `calendar`, `square.and.arrow.up`, `slider.horizontal.3`, `circle.hexagongrid`, `ellipsis`, `plus`, `minus`, `xmark`, `checkmark`, the chevrons, and more. Most have a `.fill` version. A name without a drawing shows no icon, and an icon-only button then shows its `accessibilityLabel`'s first letter.
+
+The switch, slider, stepper and segmented control on Android are still plain. Native versions with the held lens come next, and so does the merging of nearby glass in `GlassGroup`.
 
 ## Other platforms
 

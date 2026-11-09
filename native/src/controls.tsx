@@ -13,6 +13,7 @@ import {
 
 import { useControllable } from './controllable';
 import { Glass } from './glass';
+import { Icon, bottomInset, hasIcon } from './icon';
 import type {
   ButtonProps,
   MenuProps,
@@ -23,8 +24,8 @@ import type {
   TabBarProps,
 } from './types';
 
-// Stand-ins for where there's no Liquid Glass to draw: plain controls in the same sizes, so a
-// screen keeps its layout. Android's glass comes in a later release.
+// The controls where iOS's own aren't there: on Android, laid out as iOS lays them out and on the
+// package's glass; on the web, plain controls in the same sizes, so a screen keeps its layout.
 
 const BLUE = '#0a84ff';
 const RED = '#ff3b30';
@@ -36,6 +37,9 @@ function useInk() {
     faint: dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)',
     fill: dark ? 'rgba(120,120,128,0.36)' : 'rgba(120,120,128,0.16)',
     raised: dark ? '#636366' : '#fff',
+    /** Behind the selected tab, as iOS 27 lifts it. */
+    pill: dark ? 'rgba(0,0,0,0.32)' : 'rgba(120,120,128,0.14)',
+    accent: dark ? '#0a84ff' : '#007aff',
   };
 }
 
@@ -57,7 +61,13 @@ export function Button({
   const ink = useInk();
   const colour: ColorValue = destructive ? RED : (tint ?? BLUE);
   const filled = variant === 'filled';
-  const text = label ?? children ?? (icon ? '•' : '');
+  const text = label ?? children;
+  const ink2: ColorValue = filled ? '#fff' : destructive || tint ? colour : ink.text;
+  const height = heights[size];
+  const symbol = hasIcon(icon) ? icon : undefined;
+  // An icon on its own makes a circle, as on iOS. Without a drawing for it, its label's first letter.
+  const lone = !text;
+  const fallback = lone && !symbol ? (props.accessibilityLabel ?? '').slice(0, 1) : undefined;
   return (
     <Pressable
       {...props}
@@ -66,10 +76,12 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         {
-          height: heights[size],
-          minWidth: heights[size],
-          paddingHorizontal: label || children ? heights[size] / 2.4 : 0,
-          borderRadius: heights[size] / 2,
+          height,
+          minWidth: height,
+          paddingHorizontal: lone ? 0 : height / 2.4,
+          borderRadius: height / 2,
+          flexDirection: 'row',
+          gap: 6,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: filled ? colour : 'transparent',
@@ -77,10 +89,11 @@ export function Button({
         },
         style,
       ]}>
-      {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: heights[size] / 2 }]} />}
-      <Text style={{ color: filled ? '#fff' : destructive || tint ? colour : ink.text, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>
-        {text}
-      </Text>
+      {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
+      {symbol && <Icon name={symbol} color={ink2} size={Math.round(height * (lone ? 0.56 : 0.55))} />}
+      {(text || fallback) && (
+        <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>{text ?? fallback}</Text>
+      )}
     </Pressable>
   );
 }
@@ -102,9 +115,20 @@ export function Menu({ items, onSelect, style, ...props }: MenuProps) {
                 setOpen(false);
                 onSelect?.(item.value);
               }}
-              style={{ paddingVertical: 10, paddingHorizontal: 16, opacity: item.disabled ? 0.4 : 1 }}>
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingVertical: 11,
+                paddingHorizontal: 14,
+                opacity: item.disabled ? 0.4 : 1,
+              }}>
+              <View style={{ width: 18, alignItems: 'center' }}>
+                {item.checked && <Icon name="checkmark" color={ink.text} size={16} />}
+              </View>
+              {hasIcon(item.icon) && <Icon name={item.icon} color={item.destructive ? RED : ink.text} size={20} />}
               <Text style={{ color: item.destructive ? RED : ink.text, fontSize: 17 }}>
-                {item.checked ? '✓ ' : ''}
+                {!hasIcon('checkmark') && item.checked ? '✓ ' : ''}
                 {item.label}
               </Text>
             </Pressable>
@@ -224,13 +248,21 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
             justifyContent: 'center',
             backgroundColor: item.value === current ? ink.raised : 'transparent',
           }}>
-          <Text style={{ color: ink.text, fontSize: 13, fontWeight: item.value === current ? '600' : '400' }}>{item.label}</Text>
+          {!item.label && hasIcon(item.icon) ? (
+            <Icon name={item.icon} color={ink.text} size={18} />
+          ) : (
+            <Text style={{ color: ink.text, fontSize: 13, fontWeight: item.value === current ? '600' : '400' }}>{item.label}</Text>
+          )}
         </Pressable>
       ))}
     </View>
   );
 }
 
+/**
+ * The floating tab bar, laid out as iOS 27 lays it out: each tab's icon above its label, the
+ * selected one lifted on a pill, and the bar above the system's gesture handle.
+ */
 export function TabBar({ items, value, defaultValue = null, onValueChange, tint, style, ...props }: TabBarProps) {
   const ink = useInk();
   const [current, setCurrent] = useControllable<string | null>(
@@ -238,23 +270,55 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
     defaultValue ?? items[0]?.value ?? null,
     onValueChange as ((value: string | null) => void) | undefined
   );
+  const accent = tint ?? ink.accent;
   return (
-    <Glass
-      {...props}
-      accessibilityRole="tablist"
-      style={[{ flexDirection: 'row', height: 62, marginHorizontal: 21, borderRadius: 31 }, style]}>
-      {items.map((item) => (
-        <Pressable
-          key={item.value}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: item.value === current }}
-          onPress={() => setCurrent(item.value)}
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: item.value === current ? (tint ?? BLUE) : ink.faint, fontSize: 10, fontWeight: '600' }}>
-            {item.label}
-          </Text>
-        </Pressable>
-      ))}
-    </Glass>
+    <View {...props} accessibilityRole="tablist" style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8 }, style]}>
+      <Glass style={{ flexDirection: 'row', height: 62, borderRadius: 31, padding: 4 }}>
+        {items.map((item) => {
+          const selected = item.value === current;
+          const colour = selected ? accent : ink.text;
+          const icon = selected ? (item.selectedIcon ?? item.icon) : item.icon;
+          return (
+            <Pressable
+              key={item.value}
+              accessibilityRole="tab"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected }}
+              onPress={() => setCurrent(item.value)}
+              style={{
+                flex: 1,
+                borderRadius: 27,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: selected ? ink.pill : 'transparent',
+              }}>
+              {hasIcon(icon) && (
+                <View style={{ height: 28, justifyContent: 'center' }}>
+                  <Icon name={icon} color={colour} size={26} />
+                </View>
+              )}
+              <Text style={{ color: colour, fontSize: 10, fontWeight: '500', marginTop: 1 }}>{item.label}</Text>
+              {item.badge != null && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: '55%',
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 5,
+                    borderRadius: 9,
+                    backgroundColor: RED,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{item.badge}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </Glass>
+    </View>
   );
 }

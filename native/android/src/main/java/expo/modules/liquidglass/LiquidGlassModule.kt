@@ -1,6 +1,8 @@
 package expo.modules.liquidglass
 
 import android.graphics.Color
+import android.os.Build
+import android.view.WindowInsets
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -10,6 +12,25 @@ class LiquidGlassModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("LiquidGlass")
 
+    /** Whether the package draws an icon by this SF Symbols name. */
+    Function("hasIcon") { name: String -> IconView.has(name) }
+
+    /**
+     * How tall the system's navigation bar or gesture handle is, in points, so a bar at the foot
+     * of the screen can sit above it as iOS's tab bar sits above the home indicator.
+     */
+    Function("bottomInset") {
+      val view = appContext.currentActivity?.window?.decorView ?: return@Function 0.0
+      val insets = view.rootWindowInsets ?: return@Function 0.0
+      val bottom = if (Build.VERSION.SDK_INT >= 30) {
+        insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+      } else {
+        @Suppress("DEPRECATION")
+        insets.systemWindowInsetBottom
+      }
+      (bottom / view.resources.displayMetrics.density).toDouble()
+    }
+
     View(BackdropView::class) {}
 
     View(GlassView::class) {
@@ -17,6 +38,11 @@ class LiquidGlassModule : Module() {
       Prop("clear") { view: GlassView, clear: Boolean? -> view.clear = clear ?: false }
       Prop("dark") { view: GlassView, dark: Boolean? -> view.dark = dark ?: false }
       Prop("tint") { view: GlassView, tint: Color? -> view.tint = tint?.toArgb() }
+    }
+
+    View(IconView::class) {
+      Prop("name") { view: IconView, name: String? -> view.name = name ?: "" }
+      Prop("color") { view: IconView, color: Color? -> view.colour = color?.toArgb() ?: Color.BLACK }
     }
   }
 }
