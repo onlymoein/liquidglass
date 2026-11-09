@@ -3,6 +3,7 @@ package expo.modules.liquidglass
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RenderEffect
@@ -37,29 +38,47 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     set(value) { field = value; changed() }
   var tint: Int? = null
     set(value) { field = value; changed() }
+  /**
+   * A held thumb, or the tab bar's lens: perfectly clear, neither blurred nor toned, bending at
+   * its rim as a lens does.
+   */
+  var lens = false
+    set(value) { field = value; changed() }
+  /** How much a lens enlarges what's under it: 1 for glass that doesn't. */
+  var zoom = 1f
+    set(value) { field = value; changed() }
+  /** How far a lens parts the colours at its rim, as a share of its bend: 0 for none. */
+  var split = 0f
+    set(value) { field = value; changed() }
 
   private var backdrop: BackdropView? = null
   private val node: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-glass") else null
   private var effectFor = ""
   private val shape = Path()
   private val fallback = Paint(Paint.ANTI_ALIAS_FLAG)
-  private val here = IntArray(2)
-  private val there = IntArray(2)
-  private var offsetX = 0
-  private var offsetY = 0
+  private val toScreen = Matrix()
+  private val backdropToScreen = Matrix()
+  private val step = Matrix()
+  /** Takes the backdrop's points to this glass's own, scale and all. */
+  private val fromBackdrop = Matrix()
 
   private val follow = ViewTreeObserver.OnPreDrawListener {
-    // Glass that moves over its backdrop has to draw again to show what's now behind it.
+    // Glass that moves, or grows, over its backdrop has to draw again to show what's now behind
+    // it. Its whole transform counts, so a thumb that swells into a lens still lines up.
+    // Which backdrop is behind depends on where the glass is, so it's found once it's laid out.
+    if (backdrop == null && isLaidOut && width > 0) backdrop = findBackdrop()?.also { it.watch(this) }
     val source = backdrop
     if (source != null) {
-      getLocationInWindow(here)
-      source.getLocationInWindow(there)
-      val x = here[0] - there[0]
-      val y = here[1] - there[1]
-      if (x != offsetX || y != offsetY) {
-        offsetX = x
-        offsetY = y
-        invalidate()
+      toScreen.reset()
+      transformMatrixToGlobal(toScreen)
+      backdropToScreen.reset()
+      source.transformMatrixToGlobal(backdropToScreen)
+      if (toScreen.invert(step)) {
+        step.preConcat(backdropToScreen)
+        if (step != fromBackdrop) {
+          fromBackdrop.set(step)
+          invalidate()
+        }
       }
     }
     true
@@ -77,7 +96,6 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
-    backdrop = findBackdrop()?.also { it.watch(this) }
     viewTreeObserver.addOnPreDrawListener(follow)
   }
 
@@ -89,16 +107,20 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   }
 
   /**
-   * The backdrop drawn before this glass and nearest to it: a sibling of the glass or of one of
-   * its ancestors, or something inside one, that comes earlier and so lies behind.
+   * The backdrop behind this glass: the nearest one drawn before it, as a sibling of the glass or
+   * of one of its ancestors or inside one, that covers the glass's middle. A switch's thumb finds
+   * its track that way, and the card the switch sits on passes over that track for the page.
    */
   private fun findBackdrop(): BackdropView? {
+    getLocationInWindow(here)
+    val x = here[0] + width / 2
+    val y = here[1] + height / 2
     var child: View = this
     var parent = child.parent
     while (parent is ViewGroup) {
       val index = parent.indexOfChild(child)
       for (i in index - 1 downTo 0) {
-        search(parent.getChildAt(i))?.let { return it }
+        search(parent.getChildAt(i), x, y)?.let { return it }
       }
       child = parent
       parent = parent.parent
@@ -106,10 +128,17 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     return null
   }
 
-  private fun search(view: View): BackdropView? {
-    if (view is BackdropView) return view
-    if (view is GlassView || view !is ViewGroup) return null
-    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i))?.let { return it }
+  private val here = IntArray(2)
+  private val there = IntArray(2)
+
+  // Glass drawn earlier can hold a backdrop of its own, as the tab bar holds its tabs for its lens.
+  private fun search(view: View, x: Int, y: Int): BackdropView? {
+    if (view.visibility != View.VISIBLE || view !is ViewGroup) return null
+    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i), x, y)?.let { return it }
+    if (view is BackdropView && view.width > 0 && view.height > 0) {
+      view.getLocationInWindow(there)
+      if (x >= there[0] && x <= there[0] + view.width && y >= there[1] && y <= there[1] + view.height) return view
+    }
     return null
   }
 
@@ -151,7 +180,8 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     glass.setPosition(0, 0, width + margin * 2, height + margin * 2)
     updateEffect(glass, margin)
     val recording = glass.beginRecording()
-    recording.translate((margin - offsetX).toFloat(), (margin - offsetY).toFloat())
+    recording.translate(margin.toFloat(), margin.toFloat())
+    recording.concat(fromBackdrop)
     recording.drawRenderNode(source)
     glass.endRecording()
 
@@ -165,24 +195,24 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   // The values below follow the web version's styles.css and refraction.ts, in points.
 
   private val short: Float get() = min(width, height) / density
-  private val bezel: Float get() = (2.4f + short * 0.059f).coerceIn(3f, 12f)
-  private val reach: Float get() = min(short * 0.33f, 48f)
+  private val bezel: Float get() = if (lens) (short * 0.12f).coerceIn(4f, 10f) else (2.4f + short * 0.059f).coerceIn(3f, 12f)
+  private val reach: Float get() = if (lens) (short * 0.2f).coerceIn(8f, 24f) else min(short * 0.33f, 48f)
   /** How much of the size curve applies: none at 60 points tall or less, all of it at 120. */
   private val size: Float get() = ((short - 60f) / 60f).coerceIn(0f, 1f)
   /** The blur's standard deviation, in points. */
-  private val blur: Float get() = if (clear) 1.3f else 15.3f
+  private val blur: Float get() = if (lens) 0f else if (clear) 1.3f else 15.3f
 
   private fun marginPx(): Int = ((reach + blur * 3f) * density).toInt() + 2
 
   private fun updateEffect(glass: RenderNode, margin: Int) {
-    val key = "$width-$height-$margin-$cornerRadius-$clear-$dark-$tint"
+    val key = "$width-$height-$margin-$cornerRadius-$clear-$dark-$tint-$zoom-$split-$lens"
     if (key == effectFor) return
     effectFor = key
     if (Build.VERSION.SDK_INT < 31) return
 
     // RenderEffect takes a radius and turns it into a deviation as radius * 0.57735 + 0.5.
     val radius = max(0f, (blur * density - 0.5f) / 0.57735f)
-    val blurred = RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
+    val blurred = if (radius > 0f) RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP) else null
     if (Build.VERSION.SDK_INT < 33) {
       glass.setRenderEffect(blurred)
       return
@@ -191,6 +221,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     val light = !dark
     fun lerp(a: Float, b: Float) = a + (b - a) * size
     val (contrast, brightness, saturation) = when {
+      lens -> Triple(1f, 1f, 1f)
       clear -> Triple(0.793f, 1.205f, 1.117f)
       light -> Triple(lerp(0.314f, 0.307f), lerp(1.511f, 1.554f), lerp(2f, 2.081f))
       else -> Triple(lerp(0.68f, 0.66f), lerp(0.98f, 0.83f), lerp(1.6f, 1.7f))
@@ -205,7 +236,10 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("contrast", contrast)
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
-    shader.setFloatUniform("shine", if (clear) 2.1f else 1f)
+    shader.setFloatUniform("shine", if (lens) 0.6f else if (clear) 2.1f else 1f)
+    shader.setFloatUniform("lens", if (lens) 1f else 0f)
+    shader.setFloatUniform("zoom", zoom)
+    shader.setFloatUniform("split", split)
     if (dark) shader.setFloatUniform("base", 0f, 0f, 0f) else shader.setFloatUniform("base", 1f, 1f, 1f)
     val t = tint
     if (t != null) {
@@ -214,6 +248,6 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       shader.setFloatUniform("tint", 0f, 0f, 0f, 0f)
     }
     val bent = RenderEffect.createRuntimeShaderEffect(shader, "content")
-    glass.setRenderEffect(RenderEffect.createChainEffect(bent, blurred))
+    glass.setRenderEffect(if (blurred != null) RenderEffect.createChainEffect(bent, blurred) else bent)
   }
 }

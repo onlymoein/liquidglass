@@ -1,18 +1,19 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   PanResponder,
   Pressable,
   StyleSheet,
-  Switch as NativeSwitch,
   Text,
   View,
   useColorScheme,
   type ColorValue,
+  type GestureResponderEvent,
   type LayoutChangeEvent,
 } from 'react-native';
 
 import { useControllable } from './controllable';
-import { Glass } from './glass';
+import { Backdrop, Glass, Lens } from './glass';
 import { Icon, bottomInset, hasIcon } from './icon';
 import type {
   ButtonProps,
@@ -24,8 +25,10 @@ import type {
   TabBarProps,
 } from './types';
 
-// The controls where iOS's own aren't there: on Android, laid out as iOS lays them out and on the
-// package's glass; on the web, plain controls in the same sizes, so a screen keeps its layout.
+// The controls where iOS's own aren't there: on Android, built as iOS 27 builds them, on the
+// package's glass, with the sizes, colours and springs the web version measured on iOS. Under a
+// finger a thumb swells into a clear lens over its track, as on iOS. On the web, where glass is a
+// plain pane, they're the same controls without the bend.
 
 const BLUE = '#0a84ff';
 const RED = '#ff3b30';
@@ -33,6 +36,7 @@ const RED = '#ff3b30';
 function useInk() {
   const dark = useColorScheme() === 'dark';
   return {
+    dark,
     text: dark ? '#fff' : '#000',
     faint: dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)',
     fill: dark ? 'rgba(120,120,128,0.36)' : 'rgba(120,120,128,0.16)',
@@ -40,10 +44,90 @@ function useInk() {
     /** Behind the selected tab, as iOS 27 lifts it. */
     pill: dark ? 'rgba(0,0,0,0.32)' : 'rgba(120,120,128,0.14)',
     accent: dark ? '#0a84ff' : '#007aff',
+    track: dark ? 'rgba(235,235,245,0.3)' : 'rgba(59,59,66,0.3)',
+    on: dark ? '#30d158' : '#34c759',
+    rail: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    progress: dark ? '#0091ff' : '#0088ff',
+    thumb: dark ? 'rgba(255,255,255,0.25)' : '#fff',
+    segments: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)',
+    stepper: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    separator: dark ? 'rgba(235,235,245,0.16)' : 'rgba(0,0,0,0.1)',
   };
 }
 
 const heights = { small: 28, regular: 36, large: 52 } as const;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+/** The springs the web version tuned against iOS 27, as stiffness and damping for a unit mass. */
+const spring = (value: Animated.Value, toValue: number, stiffness: number, damping: number) =>
+  Animated.spring(value, { toValue, stiffness, damping, mass: 1, useNativeDriver: true });
+
+/** A lens stays up at least this long, so a quick tap still shows it, as on iOS. */
+const LENS_MS = 300;
+
+/** How far a held thumb has risen into a lens, from 0 at rest to 1. */
+function useLift() {
+  const lift = useRef(new Animated.Value(0)).current;
+  const raised = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return useMemo(
+    () => ({
+      lift,
+      raise() {
+        clearTimeout(timer.current);
+        raised.current = Date.now();
+        spring(lift, 1, 2000, 80).start();
+      },
+      lower() {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(
+          () => spring(lift, 0, 600, 49).start(),
+          Math.max(0, LENS_MS - (Date.now() - raised.current))
+        );
+      },
+    }),
+    [lift]
+  );
+}
+
+/** Keeps the latest value of something for handlers made once. */
+function useLatest<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+/** A thumb at rest is a white pill; held, it swells into a clear lens over what's under it. */
+function Thumb({ lift, radius, shadow }: { lift: Animated.Value; radius: number; shadow?: boolean }) {
+  return (
+    <>
+      <Lens style={[StyleSheet.absoluteFill, { borderRadius: radius }]} split={0.06} />
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            borderWidth: 0.5,
+            borderColor: 'rgba(0,0,0,0.3)',
+            opacity: lift,
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            backgroundColor: '#fff',
+            opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+            elevation: shadow ? 3 : 1,
+          },
+        ]}
+      />
+    </>
+  );
+}
 
 export function Button({
   label,
@@ -139,10 +223,84 @@ export function Menu({ items, onSelect, style, ...props }: MenuProps) {
   );
 }
 
-export function Switch({ checked, defaultChecked = false, onCheckedChange, tint, ...props }: SwitchProps) {
+const SWITCH_TRAVEL = 22;
+/** A held thumb grows from 37 by 24 to 59 by 38.3, as iOS 27's does. */
+const THUMB_SWELL = 59 / 37;
+
+export function Switch({ checked, defaultChecked = false, onCheckedChange, disabled, tint, style, ...props }: SwitchProps) {
+  const ink = useInk();
   const [value, setValue] = useControllable(checked, defaultChecked, onCheckedChange);
+  const latest = useLatest({ value, setValue, disabled });
+  const position = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const colour = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const { lift, raise, lower } = useLift();
+
+  const settle = (on: boolean) => {
+    spring(position, on ? 1 : 0, 1000, 80).start();
+    // The colour outlasts the thumb's trip.
+    spring(colour, on ? 1 : 0, 300, 35).start();
+  };
+  useEffect(() => settle(value), [value]);
+
+  const responder = useMemo(() => {
+    let from = 0;
+    let moved = false;
+    const at = (dx: number) => clamp(from + dx / SWITCH_TRAVEL, 0, 1);
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => !latest.current.disabled,
+      onPanResponderTerminationRequest: () => !moved,
+      onPanResponderGrant: () => {
+        from = latest.current.value ? 1 : 0;
+        moved = false;
+        raise();
+      },
+      onPanResponderMove: (_, gesture) => {
+        if (!moved && Math.abs(gesture.dx) < 4) return;
+        moved = true;
+        position.setValue(at(gesture.dx));
+      },
+      onPanResponderRelease: (_, gesture) => {
+        lower();
+        const next = moved ? at(gesture.dx) > 0.5 : !latest.current.value;
+        if (next !== latest.current.value) latest.current.setValue(next);
+        else settle(next);
+      },
+      onPanResponderTerminate: () => {
+        lower();
+        settle(latest.current.value);
+      },
+    });
+  }, []);
+
   return (
-    <NativeSwitch {...props} value={value} onValueChange={setValue} trackColor={{ true: tint ?? '#34c759' }} />
+    <View
+      {...props}
+      {...responder.panHandlers}
+      accessible
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      onAccessibilityTap={() => !disabled && setValue(!value)}
+      collapsable={false}
+      style={[{ width: 63, height: 28, opacity: disabled ? 0.35 : 1 }, style]}>
+      <Backdrop pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden', backgroundColor: ink.track }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: tint ?? ink.on, opacity: colour }]} />
+      </Backdrop>
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 2,
+          top: 2,
+          width: 37,
+          height: 24,
+          transform: [
+            { translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, SWITCH_TRAVEL] }) },
+            { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, THUMB_SWELL] }) },
+          ],
+        }}>
+        <Thumb lift={lift} radius={12} />
+      </Animated.View>
+    </View>
   );
 }
 
@@ -161,49 +319,98 @@ export function Slider({
 }: SliderProps) {
   const ink = useInk();
   const [current, setCurrent] = useControllable(value, defaultValue ?? min, onValueChange);
-  const width = useRef(0);
-  const latest = useRef(current);
-  latest.current = current;
-  const at = (x: number) => {
-    const share = Math.min(1, Math.max(0, x / (width.current || 1)));
-    const raw = min + share * (max - min);
-    return step > 0 ? Math.min(max, min + Math.round((raw - min) / step) * step) : raw;
-  };
-  const move = (x: number) => {
-    const next = at(x);
-    if (next !== latest.current) setCurrent(next);
-  };
-  const responder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled,
-      onPanResponderGrant: (event) => move(event.nativeEvent.locationX),
-      onPanResponderMove: (event) => move(event.nativeEvent.locationX),
-      onPanResponderRelease: () => onSlidingComplete?.(latest.current),
-    })
-  ).current;
-  const share = (current - min) / (max - min || 1);
+  const [width, setWidth] = useState(0);
+  const span = Math.max(1, width - 37);
+  const share = clamp((current - min) / (max - min || 1), 0, 1);
+  const progress = useRef(new Animated.Value(share)).current;
+  const { lift, raise, lower } = useLift();
+  const dragging = useRef(false);
+  const latest = useLatest({ current, setCurrent, span, min, max, step, disabled, onSlidingComplete });
+
+  useEffect(() => {
+    if (!dragging.current) progress.setValue(share);
+  }, [share]);
+
+  const responder = useMemo(() => {
+    let from = 0;
+    const valueAt = (dx: number) => {
+      const { span, min, max, step } = latest.current;
+      const raw = min + clamp(from + dx / span, 0, 1) * (max - min);
+      return step > 0 ? Math.min(max, min + Math.round((raw - min) / step) * step) : raw;
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => !latest.current.disabled,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        const { current, min, max } = latest.current;
+        from = (current - min) / (max - min || 1);
+        dragging.current = true;
+        raise();
+      },
+      onPanResponderMove: (_, gesture) => {
+        const { min, max } = latest.current;
+        const next = valueAt(gesture.dx);
+        progress.setValue((next - min) / (max - min || 1));
+        if (next !== latest.current.current) latest.current.setCurrent(next);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        dragging.current = false;
+        lower();
+        latest.current.onSlidingComplete?.(valueAt(gesture.dx));
+      },
+      onPanResponderTerminate: () => {
+        dragging.current = false;
+        lower();
+      },
+    });
+  }, []);
+
   return (
     <View
       {...props}
       {...responder.panHandlers}
-      onLayout={(event: LayoutChangeEvent) => (width.current = event.nativeEvent.layout.width)}
-      style={[{ height: 28, justifyContent: 'center', opacity: disabled ? 0.4 : 1 }, style]}>
-      <View style={{ height: 6, borderRadius: 3, backgroundColor: ink.fill }}>
-        <View style={{ width: `${share * 100}%`, height: 6, borderRadius: 3, backgroundColor: tint ?? BLUE }} />
-      </View>
-      <View
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityValue={{ min, max, now: current }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(event) => {
+        const by = (step || (max - min) / 10) * (event.nativeEvent.actionName === 'increment' ? 1 : -1);
+        setCurrent(clamp(current + by, min, max));
+      }}
+      collapsable={false}
+      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+      style={[{ height: 40, opacity: disabled ? 0.35 : 1 }, style]}>
+      <Backdrop
+        pointerEvents="none"
+        style={{ position: 'absolute', left: 0, right: 0, top: 17, height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: ink.rail }}>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width,
+            borderRadius: 3,
+            backgroundColor: tint ?? ink.progress,
+            transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [18.5 - width, span + 18.5 - width] }) }],
+          }}
+        />
+      </Backdrop>
+      <Animated.View
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: `${share * 100}%`,
-          marginLeft: -14,
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: '#fff',
-          elevation: 3,
-        }}
-      />
+          left: 0,
+          top: 8,
+          width: 37,
+          height: 24,
+          transform: [
+            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, span] }) },
+            { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, THUMB_SWELL] }) },
+          ],
+        }}>
+        <Thumb lift={lift} radius={12} shadow />
+      </Animated.View>
     </View>
   );
 }
@@ -211,57 +418,164 @@ export function Slider({
 export function Stepper({ value, defaultValue, onValueChange, min = 0, max = 100, step = 1, disabled, style, ...props }: StepperProps) {
   const ink = useInk();
   const [current, setCurrent] = useControllable(value, defaultValue ?? min, onValueChange);
-  const half = (sign: -1 | 1, text: string) => {
-    const next = Math.min(max, Math.max(min, current + sign * step));
+  const half = (sign: -1 | 1) => {
+    const next = clamp(current + sign * step, min, max);
+    const off = disabled || next === current;
+    const name = sign < 0 ? 'minus' : 'plus';
     return (
       <Pressable
+        accessibilityRole="button"
         accessibilityLabel={sign < 0 ? 'Decrement' : 'Increment'}
-        disabled={disabled || next === current}
+        accessibilityState={{ disabled: off }}
+        disabled={off}
         onPress={() => setCurrent(next)}
-        style={{ width: 47, alignItems: 'center', justifyContent: 'center', opacity: next === current ? 0.3 : 1 }}>
-        <Text style={{ color: ink.text, fontSize: 20 }}>{text}</Text>
+        style={({ pressed }) => ({
+          width: 46,
+          height: 32,
+          borderRadius: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: pressed ? ink.stepper : 'transparent',
+          opacity: off ? 0.3 : 1,
+        })}>
+        {hasIcon(name) ? <Icon name={name} color={ink.text} size={16} /> : <Text style={{ color: ink.text, fontSize: 20 }}>{sign < 0 ? '−' : '+'}</Text>}
       </Pressable>
     );
   };
   return (
-    <View {...props} style={[{ flexDirection: 'row', height: 32, borderRadius: 16, backgroundColor: ink.fill, alignSelf: 'flex-start' }, style]}>
-      {half(-1, '−')}
-      {half(1, '+')}
+    <View
+      {...props}
+      style={[{ flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: 16, backgroundColor: ink.stepper, alignSelf: 'flex-start' }, style]}>
+      {half(-1)}
+      <View style={{ width: 1, height: 16, marginHorizontal: -0.5, backgroundColor: ink.separator }} />
+      {half(1)}
     </View>
   );
 }
 
 export function SegmentedControl({ items, value, defaultValue, onValueChange, disabled, style, ...props }: SegmentedControlProps) {
   const ink = useInk();
-  const [current, setCurrent] = useControllable<string | undefined>(value, defaultValue ?? items[0]?.value, onValueChange as ((value: string | undefined) => void) | undefined);
+  const [current, setCurrent] = useControllable<string | undefined>(
+    value,
+    defaultValue ?? items[0]?.value,
+    onValueChange as ((value: string | undefined) => void) | undefined
+  );
+  const [width, setWidth] = useState(0);
+  const count = Math.max(1, items.length);
+  const segment = width / count;
+  const index = Math.max(0, items.findIndex((item) => item.value === current));
+  const thumb = useRef(new Animated.Value(index)).current;
+  const lens = useRef(new Animated.Value(0)).current;
+  const { lift, raise, lower } = useLift();
+  const latest = useLatest({ items, segment, width, setCurrent, disabled, index });
+
+  useEffect(() => spring(thumb, index, 500, 40).start(), [index]);
+
+  const responder = useMemo(() => {
+    let start = 0;
+    const to = (x: number) => {
+      const { segment, width } = latest.current;
+      return clamp(x, segment / 2, width - segment / 2);
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => !latest.current.disabled,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (event: GestureResponderEvent) => {
+        start = event.nativeEvent.locationX;
+        lens.setValue(to(start));
+        raise();
+      },
+      onPanResponderMove: (_, gesture) => lens.setValue(to(start + gesture.dx)),
+      onPanResponderRelease: (_, gesture) => {
+        const { items, segment, setCurrent } = latest.current;
+        const at = clamp(Math.floor((start + gesture.dx) / (segment || 1)), 0, items.length - 1);
+        const item = items[at];
+        spring(lens, (at + 0.5) * segment, 500, 40).start();
+        lower();
+        if (item && !item.disabled) setCurrent(item.value);
+      },
+      onPanResponderTerminate: () => lower(),
+    });
+  }, []);
+
+  const lensWidth = segment + 21;
   return (
-    <View {...props} style={[{ flexDirection: 'row', height: 32, borderRadius: 16, padding: 2, backgroundColor: ink.fill }, style]}>
-      {items.map((item) => (
-        <Pressable
-          key={item.value}
-          disabled={disabled || item.disabled}
-          onPress={() => setCurrent(item.value)}
+    <View
+      {...props}
+      {...responder.panHandlers}
+      accessibilityRole="tablist"
+      collapsable={false}
+      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+      style={[{ height: 32, opacity: disabled ? 0.35 : 1 }, style]}>
+      <Backdrop pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 16, backgroundColor: ink.segments }]}>
+        {width > 0 && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: 2,
+              bottom: 2,
+              left: 2,
+              width: segment - 4,
+              borderRadius: 14,
+              backgroundColor: ink.thumb,
+              // Not elevation: on Android that also draws it over the labels.
+              borderWidth: 0.5,
+              borderColor: 'rgba(0,0,0,0.04)',
+              transform: [{ translateX: Animated.multiply(thumb, segment) }],
+            }}
+          />
+        )}
+        <View style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
+          {items.map((item) => {
+            const selected = item.value === current;
+            return (
+              <View
+                key={item.value}
+                accessible
+                accessibilityRole="tab"
+                accessibilityLabel={item.label}
+                accessibilityState={{ selected, disabled: item.disabled }}
+                onAccessibilityTap={() => !item.disabled && setCurrent(item.value)}
+                style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, opacity: item.disabled ? 0.35 : 1 }}>
+                {!item.label && hasIcon(item.icon) ? (
+                  <Icon name={item.icon} color={ink.text} size={18} />
+                ) : (
+                  <Text numberOfLines={1} style={{ color: ink.text, fontSize: 14, fontWeight: selected ? '500' : '400' }}>
+                    {item.label}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </Backdrop>
+      {width > 0 && (
+        <Animated.View
+          pointerEvents="none"
           style={{
-            flex: 1,
-            borderRadius: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: item.value === current ? ink.raised : 'transparent',
+            position: 'absolute',
+            top: -6,
+            left: 0,
+            width: lensWidth,
+            height: 44,
+            opacity: lift,
+            transform: [
+              { translateX: Animated.subtract(lens, lensWidth / 2) },
+              { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) },
+            ],
           }}>
-          {!item.label && hasIcon(item.icon) ? (
-            <Icon name={item.icon} color={ink.text} size={18} />
-          ) : (
-            <Text style={{ color: ink.text, fontSize: 13, fontWeight: item.value === current ? '600' : '400' }}>{item.label}</Text>
-          )}
-        </Pressable>
-      ))}
+          <Lens style={[StyleSheet.absoluteFill, { borderRadius: 22 }]} zoom={1.08} split={0.08} />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 22, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.25)' }]} />
+        </Animated.View>
+      )}
     </View>
   );
 }
 
 /**
  * The floating tab bar, laid out as iOS 27 lays it out: each tab's icon above its label, the
- * selected one lifted on a pill, and the bar above the system's gesture handle.
+ * selected one lifted on a pill, and the bar above the system's gesture handle. Holding it brings
+ * up a lens that follows the finger and enlarges the tabs under it.
  */
 export function TabBar({ items, value, defaultValue = null, onValueChange, tint, style, ...props }: TabBarProps) {
   const ink = useInk();
@@ -271,54 +585,133 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
     onValueChange as ((value: string | null) => void) | undefined
   );
   const accent = tint ?? ink.accent;
+  const [width, setWidth] = useState(0);
+  const count = Math.max(1, items.length);
+  const tab = Math.max(0, width - 8) / count;
+  const index = items.findIndex((item) => item.value === current);
+  const pill = useRef(new Animated.Value(Math.max(0, index))).current;
+  const lens = useRef(new Animated.Value(0)).current;
+  const { lift, raise, lower } = useLift();
+  const latest = useLatest({ items, tab, setCurrent });
+
+  useEffect(() => {
+    if (index >= 0) spring(pill, index, 500, 40).start();
+  }, [index]);
+
+  const responder = useMemo(() => {
+    let start = 0;
+    const centre = (x: number) => {
+      const { tab, items } = latest.current;
+      return clamp(x - 4, tab / 2, tab * items.length - tab / 2);
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (event: GestureResponderEvent) => {
+        start = event.nativeEvent.locationX;
+        lens.setValue(centre(start));
+        raise();
+      },
+      onPanResponderMove: (_, gesture) => lens.setValue(centre(start + gesture.dx)),
+      onPanResponderRelease: (_, gesture) => {
+        const { tab, items, setCurrent } = latest.current;
+        const at = clamp(Math.floor((start + gesture.dx - 4) / (tab || 1)), 0, items.length - 1);
+        spring(lens, (at + 0.5) * tab, 500, 40).start();
+        lower();
+        const item = items[at];
+        if (item) setCurrent(item.value);
+      },
+      onPanResponderTerminate: () => lower(),
+    });
+  }, []);
+
+  const lensWidth = tab + 24;
   return (
-    <View {...props} accessibilityRole="tablist" style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8 }, style]}>
-      <Glass style={{ flexDirection: 'row', height: 62, borderRadius: 31, padding: 4 }}>
-        {items.map((item) => {
-          const selected = item.value === current;
-          const colour = selected ? accent : ink.text;
-          const icon = selected ? (item.selectedIcon ?? item.icon) : item.icon;
-          return (
-            <Pressable
-              key={item.value}
-              accessibilityRole="tab"
-              accessibilityLabel={item.label}
-              accessibilityState={{ selected }}
-              onPress={() => setCurrent(item.value)}
+    <View
+      {...props}
+      {...responder.panHandlers}
+      accessibilityRole="tablist"
+      collapsable={false}
+      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+      style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8, height: 62 }, style]}>
+      <Glass pointerEvents="none" style={{ height: 62, borderRadius: 31 }}>
+        <Backdrop style={StyleSheet.absoluteFill}>
+          {index >= 0 && tab > 0 && (
+            <Animated.View
               style={{
-                flex: 1,
+                position: 'absolute',
+                top: 4,
+                left: 4,
+                width: tab,
+                height: 54,
                 borderRadius: 27,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: selected ? ink.pill : 'transparent',
-              }}>
-              {hasIcon(icon) && (
-                <View style={{ height: 28, justifyContent: 'center' }}>
-                  <Icon name={icon} color={colour} size={26} />
-                </View>
-              )}
-              <Text style={{ color: colour, fontSize: 10, fontWeight: '500', marginTop: 1 }}>{item.label}</Text>
-              {item.badge != null && (
+                backgroundColor: ink.pill,
+                transform: [{ translateX: Animated.multiply(pill, tab) }],
+              }}
+            />
+          )}
+          <View style={{ position: 'absolute', top: 4, bottom: 4, left: 4, right: 4, flexDirection: 'row' }}>
+            {items.map((item) => {
+              const selected = item.value === current;
+              const colour = selected ? accent : ink.text;
+              const icon = selected ? (item.selectedIcon ?? item.icon) : item.icon;
+              return (
                 <View
-                  style={{
-                    position: 'absolute',
-                    top: 3,
-                    left: '55%',
-                    minWidth: 18,
-                    height: 18,
-                    paddingHorizontal: 5,
-                    borderRadius: 9,
-                    backgroundColor: RED,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{item.badge}</Text>
+                  key={item.value}
+                  accessible
+                  accessibilityRole="tab"
+                  accessibilityLabel={item.label}
+                  accessibilityState={{ selected }}
+                  onAccessibilityTap={() => setCurrent(item.value)}
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  {hasIcon(icon) && (
+                    <View style={{ height: 28, justifyContent: 'center' }}>
+                      <Icon name={icon} color={colour} size={26} />
+                    </View>
+                  )}
+                  <Text style={{ color: colour, fontSize: 10, fontWeight: '500', marginTop: 1 }}>{item.label}</Text>
+                  {item.badge != null && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 3,
+                        left: '55%',
+                        minWidth: 18,
+                        height: 18,
+                        paddingHorizontal: 5,
+                        borderRadius: 9,
+                        backgroundColor: RED,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{item.badge}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </Pressable>
-          );
-        })}
+              );
+            })}
+          </View>
+        </Backdrop>
       </Glass>
+      {tab > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -5,
+            left: 4,
+            width: lensWidth,
+            height: 72,
+            opacity: lift,
+            transform: [
+              { translateX: Animated.subtract(lens, lensWidth / 2) },
+              { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
+            ],
+          }}>
+          <Lens style={[StyleSheet.absoluteFill, { borderRadius: 36 }]} zoom={1.2} split={0.12} />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 36, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.18)' }]} />
+        </Animated.View>
+      )}
     </View>
   );
 }

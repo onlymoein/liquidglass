@@ -20,6 +20,9 @@ uniform float contrast;
 uniform float brightness;
 uniform float saturation;
 uniform float shine;
+uniform float zoom;
+uniform float split;
+uniform float lens;
 uniform half3 base;
 uniform half4 tint;
 
@@ -41,11 +44,24 @@ half4 main(float2 coord) {
     n = float2(0.0, sign(p.y));
   }
 
+  // A pane pulls in what lies further in, by an amount that falls in a straight line across the
+  // bezel. A lens, like a held thumb, bends light as a curved surface does, steeply at the very
+  // rim, and shows there what lies just outside it.
   float shift = 0.0;
   if (d >= 0.0 && d < bezel) {
-    shift = reach * (1.0 - d / bezel);
+    float t = 1.0 - d / bezel;
+    shift = lens > 0.5 ? -reach * t * t * t : reach * t;
   }
-  half4 seen = content.eval(coord - n * shift);
+  // A lens enlarges what's under it about its middle, then bends it at the rim. Its colours
+  // part there, red bending furthest, as light through a real lens does.
+  float2 middle = margin + half_size;
+  float2 from = middle + (coord - middle) / zoom;
+  float2 bend = n * shift;
+  half4 seen = content.eval(from - bend);
+  if (split > 0.0) {
+    seen.r = content.eval(from - bend * (1.0 + split)).r;
+    seen.b = content.eval(from - bend * (1.0 - split)).b;
+  }
   // Where nothing was drawn, the window shows through.
   half3 rgb = seen.rgb + base * (1.0 - seen.a);
 

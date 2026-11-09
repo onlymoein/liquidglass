@@ -21,6 +21,12 @@ class BackdropView(context: Context, appContext: AppContext) : ExpoView(context,
   internal val content: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-backdrop") else null
   private val watchers: MutableSet<GlassView> = Collections.newSetFromMap(WeakHashMap())
 
+  init {
+    // Android skips draw() for a view group with nothing of its own to draw, which here would
+    // leave the recording empty.
+    setWillNotDraw(false)
+  }
+
   internal fun watch(glass: GlassView) = watchers.add(glass)
   internal fun unwatch(glass: GlassView) = watchers.remove(glass)
 
@@ -32,15 +38,17 @@ class BackdropView(context: Context, appContext: AppContext) : ExpoView(context,
 
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) = Unit
 
-  override fun dispatchDraw(canvas: Canvas) {
+  // The whole drawing is recorded, background and all, so a switch's track, which is only a
+  // background, shows in the thumb's lens.
+  override fun draw(canvas: Canvas) {
     val node = content
     if (node == null || !canvas.isHardwareAccelerated) {
-      super.dispatchDraw(canvas)
+      super.draw(canvas)
       return
     }
     node.setPosition(0, 0, width, height)
     val recording = node.beginRecording()
-    super.dispatchDraw(recording)
+    super.draw(recording)
     node.endRecording()
     canvas.drawRenderNode(node)
     // Glass that shows this redraws with it.

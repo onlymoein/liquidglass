@@ -105,7 +105,7 @@ The tab bar and buttons on Android are laid out as iOS lays them out, on the gla
 
 Apple only allows SF Symbols on its own platforms, so Android gets the package's own icons, drawn for it, under the same names: `house`, `magnifyingglass`, `gearshape`, `bookmark`, `heart`, `star`, `person`, `bell`, `trash`, `calendar`, `square.and.arrow.up`, `slider.horizontal.3`, `circle.hexagongrid`, `ellipsis`, `plus`, `minus`, `xmark`, `checkmark`, the chevrons, and more. Most have a `.fill` version. A name without a drawing shows no icon, and an icon-only button then shows its `accessibilityLabel`'s first letter.
 
-The switch, slider, stepper and segmented control on Android are still plain. Native versions with the held lens come next, and so does the merging of nearby glass in `GlassGroup`.
+The switch, slider, stepper and segmented control on Android follow iOS 27's sizes, colours and springs. Under a finger, a switch or slider thumb swells into a clear lens over its track, the segmented control's lens slides across the labels, and holding the tab bar brings up a lens that enlarges the tabs under it and parts their colours at its rim. Merging nearby glass in `GlassGroup` comes next.
 
 ## Other platforms
 
