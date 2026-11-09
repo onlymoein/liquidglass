@@ -252,3 +252,31 @@ test("minimised, it keeps the current tab's icon and asks to come back when tapp
   fireEvent.click(screen.getByRole("button", { name: "Show tabs" }));
   expect(onExpand).toHaveBeenCalledOnce();
 });
+
+test("a tap carries the lens across on the loose spring, and it swings past its tab", () => {
+  vi.useFakeTimers();
+  try {
+    const { lens, pointer } = touchTabs();
+    const month = screen.getByRole("tab", { name: "Month" });
+    const at = () => Number(/translateX\(([-\d.]+)px/.exec(lens.style.transform)?.[1]);
+    // The tab is two slots in: the bar's 260 px less its padding, over three.
+    const target = 168;
+    const peaks: number[] = [];
+
+    fireEvent.pointerDown(month, { ...pointer, clientX: 234 });
+    for (let elapsed = 16; elapsed <= 800; elapsed += 16) {
+      vi.advanceTimersByTime(16);
+      if (elapsed === 64) fireEvent.pointerUp(window, { ...pointer, clientX: 234 });
+      if (elapsed === 80) {
+        // A finger's stiff spring would have it nearly there by now.
+        expect(at()).toBeLessThan(target * 0.7);
+      }
+      peaks.push(at());
+    }
+    expect(Math.max(...peaks)).toBeGreaterThan(target * 1.02);
+    expect(Math.max(...peaks)).toBeLessThan(target * 1.1);
+    expect(at()).toBeCloseTo(target, 0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
