@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import {
   PanResponder,
   Pressable,
+  StyleSheet,
   Switch as NativeSwitch,
   Text,
   View,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 
 import { useControllable } from './controllable';
+import { Glass } from './glass';
 import type {
   ButtonProps,
   MenuProps,
@@ -70,12 +72,13 @@ export function Button({
           borderRadius: heights[size] / 2,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: filled ? colour : ink.fill,
+          backgroundColor: filled ? colour : 'transparent',
           opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
         },
         style,
       ]}>
-      <Text style={{ color: filled ? '#fff' : colour, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>
+      {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: heights[size] / 2 }]} />}
+      <Text style={{ color: filled ? '#fff' : destructive || tint ? colour : ink.text, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>
         {text}
       </Text>
     </Pressable>
@@ -236,10 +239,10 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
     onValueChange as ((value: string | null) => void) | undefined
   );
   return (
-    <View
+    <Glass
       {...props}
       accessibilityRole="tablist"
-      style={[{ flexDirection: 'row', height: 62, marginHorizontal: 21, borderRadius: 31, backgroundColor: ink.raised, elevation: 8 }, style]}>
+      style={[{ flexDirection: 'row', height: 62, marginHorizontal: 21, borderRadius: 31 }, style]}>
       {items.map((item) => (
         <Pressable
           key={item.value}
@@ -252,6 +255,6 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
           </Text>
         </Pressable>
       ))}
-    </View>
+    </Glass>
   );
 }

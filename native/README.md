@@ -69,6 +69,7 @@ Put the tab bar at the very bottom of the screen, as above. It leaves room for t
 | --- | --- |
 | `Glass` | A pane of glass, `regular` or `clear`, optionally `tint`ed or `interactive` |
 | `GlassGroup` | Glass inside it flows together when shapes come within `spacing` |
+| `Backdrop` | What glass shows on Android; a plain view on iOS and the web. See [Android](#android) |
 | `Button` | A glass button, or `variant="filled"` for the primary action; `small`, `regular` or `large` |
 | `Menu` | A button that opens iOS's glass menu, with icons, checkmarks and destructive items |
 | `Switch` | `UISwitch` |
@@ -79,17 +80,39 @@ Put the tab bar at the very bottom of the screen, as above. It leaves room for t
 
 Each control works controlled (`value` / `checked`) or uncontrolled (`defaultValue` / `defaultChecked`), as React's inputs do.
 
+## Android
+
+Android has no Liquid Glass of its own, so the package draws it. Glass shows what's behind it bent at the rim, blurred, lifted and saturated, with a lit hairline along its top and bottom, following the same optics as the web version.
+
+<img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/android-vs-ios.png" width="900" alt="The example app side by side: iOS 27's own glass on the left, then this package's glass on Android in light and dark mode.">
+
+An Android view can't see what's drawn behind it, so glass there shows what's inside a `Backdrop`. Wrap what the glass should show, and keep the glass itself outside it:
+
+```tsx
+<Backdrop style={{ flex: 1 }}>
+  <ScrollView>{/* the page */}</ScrollView>
+</Backdrop>
+<TabBar items={tabs} />{/* shows the page, as it's outside the Backdrop */}
+```
+
+Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or of one of its parents. Give the backdrop a background colour, which is what glass shows where nothing is drawn. On iOS and the web a `Backdrop` is a plain view, so the same code works everywhere.
+
+- **Android 13 and later:** the full glass.
+- **Android 12:** blur and tone, without the bend.
+- **Android 11 and earlier:** a translucent pane.
+
+The controls on Android are still plain, apart from glass behind the buttons and the tab bar. Native Android versions of the switch, slider, segmented control and tab bar, with the held lens, come next. So does the merging of nearby glass in `GlassGroup`.
+
 ## Other platforms
 
-- **Android:** there's no Liquid Glass yet. The components draw plain stand-ins of the same size, so screens keep their layout. Real glass for Android is next.
 - **iOS 25 and earlier:** the controls are the system's ordinary ones, and `Glass` is a translucent pane.
-- **Web:** the same stand-ins for now. For a web app, use [liquidglass for the web](https://github.com/onlymoein/liquidglass).
+- **Web:** plain stand-ins for now. For a web app, use [liquidglass for the web](https://github.com/onlymoein/liquidglass).
 
 ## Example app
 
 ```sh
 cd native && npm install && npm run build
-cd example && npm install && npx expo run:ios
+cd example && npm install && npx expo run:ios   # or run:android
 ```
 
 ## License

@@ -23,6 +23,13 @@ export interface GlassProps extends ViewProps {
   colorScheme?: 'auto' | 'light' | 'dark';
 }
 
+/**
+ * What glass shows, on Android. iOS glass sees whatever lies behind it, but an Android view can't,
+ * so there glass shows what's inside the Backdrop drawn before it. Glass must not be inside the
+ * Backdrop it shows: put the backdrop behind, as a sibling of the glass or of a parent of it.
+ */
+export type BackdropProps = ViewProps;
+
 export interface GlassGroupProps extends ViewProps {
   /** Glass closer together than this flows into one shape, in points. */
   spacing?: number;

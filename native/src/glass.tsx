@@ -1,7 +1,7 @@
 import { GlassContainer, GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useColorScheme, View } from 'react-native';
 
-import type { GlassGroupProps, GlassProps } from './types';
+import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
 const available = isLiquidGlassAvailable();
 
@@ -42,6 +42,14 @@ export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'a
 /** Holds glass that flows together, as iOS 26 glass does when two shapes come close. */
 export function GlassGroup({ spacing, ...props }: GlassGroupProps) {
   if (available) return <GlassContainer spacing={spacing} {...props} />;
+  return <View {...props} />;
+}
+
+/**
+ * What glass shows. iOS glass sees whatever is behind it, so here this is a plain view; on
+ * Android, glass can only show what's inside a Backdrop. Put it behind the glass, not around it.
+ */
+export function Backdrop(props: BackdropProps) {
   return <View {...props} />;
 }
 
