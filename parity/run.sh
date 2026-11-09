@@ -28,7 +28,7 @@ ui)
 drive)
   # Runs the driver until `do stop`. Run it in the background.
   : > "$B/drive/commands.txt"; : > "$B/drive/done.txt"
-  SIMCTL_CHILD_PARITY_DIR="$B/drive" TEST_RUNNER_PARITY_DIR="$B/drive" xcodebuild test-without-building -project "$HERE/ui/Parity.xcodeproj" -scheme Parity -destination "id=$D" -derivedDataPath "$B/dd" -only-testing:Driver/Driver/testDrive 2>&1 | tail -3 ;;
+  TEST_RUNNER_PARITY_BUNDLE="${PARITY_BUNDLE:-$ID}" SIMCTL_CHILD_PARITY_DIR="$B/drive" TEST_RUNNER_PARITY_DIR="$B/drive" xcodebuild test-without-building -project "$HERE/ui/Parity.xcodeproj" -scheme Parity -destination "id=$D" -derivedDataPath "$B/dd" -only-testing:Driver/Driver/testDrive 2>&1 | tail -3 ;;
 do)
   # do <command...>: sends one command and waits for it to finish.
   shift; echo "$*" >> "$B/drive/commands.txt"; want=$(wc -l < "$B/drive/commands.txt" | tr -d ' ')

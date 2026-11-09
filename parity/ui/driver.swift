@@ -6,7 +6,7 @@ final class Driver: XCTestCase {
   func testDrive() throws {
     let root = ProcessInfo.processInfo.environment["PARITY_DIR"] ?? "/tmp/parity"
     let commands = root + "/commands.txt", done = root + "/done.txt"
-    let app = XCUIApplication(bundleIdentifier: "local.liquidglass.parity")
+    let app = XCUIApplication(bundleIdentifier: ProcessInfo.processInfo.environment["PARITY_BUNDLE"] ?? "local.liquidglass.parity")
     var seen = 0
     let started = Date()
     func at(_ x: Double, _ y: Double) -> XCUICoordinate {

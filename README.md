@@ -53,6 +53,8 @@ function Settings() {
 
 React 18 or later.
 
+For React Native and Expo there's [`@onlymoein/liquidglass-native`](native/), with the same component names. On iPhone it uses Apple's own glass and controls.
+
 ## Components
 
 | Component | |
