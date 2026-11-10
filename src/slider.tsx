@@ -11,6 +11,7 @@ import {
 
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { createJelly, type Jelly } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring } from "./internal/spring";
 
@@ -40,15 +41,22 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
   const inputRef = useRef<HTMLInputElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
   const faceRef = useRef<HTMLSpanElement>(null);
+  const jelly = useRef<{ jelly: Jelly; held: boolean; place: () => number } | null>(null);
   const [value, setValue] = useControllable(valueProp, defaultValue ?? min, onValueChange);
   const progress = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
   useImperativeHandle(forwardedRef, () => inputRef.current!);
-  useRefraction(thumbRef);
+  useRefraction(thumbRef, true);
 
   const latest = useRef({ value, setValue, min, max, step });
   useEffect(() => {
     latest.current = { value, setValue, min, max, step };
   });
+
+  // Under a finger the thumb trails it, stretching as it goes and swinging back when it stops.
+  useEffect(() => {
+    const trail = jelly.current;
+    if (trail) trail.jelly.follow(trail.place(), !trail.held);
+  }, [progress]);
 
   useEffect(() => {
     const input = inputRef.current!;
@@ -61,6 +69,25 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
       thumb.style.setProperty("--lg-lift", String(shown));
     });
 
+    const root = input.parentElement!;
+    const trail = {
+      held: false,
+      // Where the thumb is along the track, in px.
+      place: () => {
+        const { value: now, min: low, max: high } = latest.current;
+        return ((root.offsetWidth - THUMB) * (now - low)) / Math.max(high - low, 1e-6);
+      },
+      jelly: createJelly(
+        () => thumb.offsetWidth,
+        (shape) => {
+          thumb.style.transform = shape.x === 1 && shape.y === 1 && !shape.shift ? "" : `translateX(${shape.shift}px) scale(${shape.x}, ${shape.y})`;
+        },
+        // The thumb is set straight to the finger's place, so it shows the lag itself.
+        0.35,
+      ),
+    };
+    jelly.current = trail;
+
     // A quick tap still shows the lens, as on iOS.
     let linger = 0;
     let heldAt = 0;
@@ -70,18 +97,20 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
       heldAt = performance.now();
       lift.tune(2000, 80);
       lift.set(1);
+      trail.held = true;
+      trail.jelly.follow(trail.place(), true);
     };
     const release = () => {
       clearTimeout(linger);
       linger = window.setTimeout(() => {
         lift.tune(600, 49);
         lift.set(0);
+        trail.held = false;
       }, Math.max(0, 240 - (performance.now() - heldAt)));
     };
     const ends = ["pointerup", "pointercancel", "lostpointercapture", "blur"] as const;
 
     // A finger takes hold of the thumb, not the track, and moves it by as much as it moves.
-    const root = input.parentElement!;
     let drag: { id: number; x: number; from: number; span: number } | null = null;
     const down = (event: PointerEvent) => {
       if (event.pointerType !== "touch" || !event.isPrimary || input.disabled || !matchMedia("(pointer: coarse)").matches) return;
@@ -122,6 +151,9 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
       root.removeEventListener("pointerup", up);
       root.removeEventListener("pointercancel", up);
       lift.stop();
+      trail.jelly.stop();
+      jelly.current = null;
+      thumb.style.transform = "";
       input.removeEventListener("pointerdown", hold);
       ends.forEach((type) => input.removeEventListener(type, release));
       window.removeEventListener("pointerup", release);

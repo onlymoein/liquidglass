@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { BEND_STEPS, bendFilters } from "./internal/bend";
+import { createJelly, FLAT, type Squash } from "./internal/jelly";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
@@ -82,6 +83,7 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
   let linger = 0;
   let gesture: { id: number; x: number; anchor: number; moved: boolean; box: DOMRect; at: number } | null = null;
   const state = { x: 0, lift: 0 };
+  let squashed: Squash = FLAT;
 
   const measure = () => {
     const style = getComputedStyle(bar);
@@ -122,8 +124,9 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
 
   const paint = () => {
     const { x, lift } = state;
-    const sx = 1 + (growX / slot) * lift;
-    const sy = 1 + (growY / height) * lift;
+    // The lens stretches along a drag, and thins across it, by how far it trails the finger.
+    const sx = (1 + (growX / slot) * lift) * squashed.x;
+    const sy = (1 + (growY / height) * lift) * squashed.y;
     lens.style.transform = tint.style.transform = `translateX(${x}px) scale(${sx}, ${sy})`;
     // Everything in the lens is enlarged as it lifts, each tab about its own centre, and
     // they draw in a little towards the lens's. Measured on iOS.
@@ -141,8 +144,16 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
     if (!gesture && lift < 0.01) delete bar.dataset.refracting;
   };
 
+  const jelly = createJelly(
+    () => lensWidth || lens.offsetWidth,
+    (shape) => {
+      squashed = shape;
+      paint();
+    },
+  );
   const x = createSpring(0, REST[0], REST[1], (value) => {
     state.x = value;
+    jelly.follow(value);
     paint();
   });
   const lift = createSpring(0, REST[2], REST[3], (value) => {
@@ -157,6 +168,8 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
     const [, , liftStiffness, liftDamping] = gesture ? DRAG : REST;
     x.tune(slideStiffness, slideDamping);
     lift.tune(liftStiffness, liftDamping);
+    // A lens put straight in place has nothing trailing it.
+    if (instant) jelly.follow(target, true);
     x.set(target, instant);
     lift.set(lifted ? 1 : 0, instant);
   };
@@ -349,6 +362,7 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
       cancelAnimationFrame(settleFrame);
       x.stop();
       lift.stop();
+      jelly.stop();
       observer.disconnect();
       for (const key of ["ready", "hidden", "lifted", "refracting"]) delete bar.dataset[key];
       bar.removeEventListener("pointerdown", onPointerDown);

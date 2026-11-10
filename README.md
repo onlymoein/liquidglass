@@ -197,7 +197,7 @@ Add the `lg-grow` class to a popup from a library such as Base UI or Radix, and 
 
 Give items an `icon` for the iOS tab bar, 62 points tall. Pass `minimized` to shrink it to the current tab's icon, as iOS does when a page scrolls down, and `onExpand` to hear when that icon is tapped.
 
-The lens lifts under a finger and, when a tab is tapped or chosen from the keyboard, slides across on a spring that swings a little past the tab and settles back. While it is dragged it follows the finger without swinging.
+The lens lifts under a finger and, when a tab is tapped or chosen from the keyboard, slides across on a spring that swings a little past the tab and settles back. While it is dragged it follows the finger and, as on iOS, stretches along the drag by how fast you go: a slow drag leaves it as it was, a quick one pulls it out, and it swings back to its shape when you stop. The slider's thumb, the switch's and the segmented control's lens do the same.
 
 ## Transparency
 

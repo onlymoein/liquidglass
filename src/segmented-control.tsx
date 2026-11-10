@@ -13,6 +13,7 @@ import {
 
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { createJelly, FLAT } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
 
@@ -57,7 +58,7 @@ export const SegmentedControl: ForwardRefExoticComponent<SegmentedControlProps &
     const index = Math.max(0, items.findIndex((item) => item.value === value));
     const latest = useRef({ items, index, setValue });
     useImperativeHandle(ref, () => rootRef.current!);
-    useRefraction(lensRef);
+    useRefraction(lensRef, true);
 
     useEffect(() => {
       latest.current = { items, index, setValue };
@@ -69,23 +70,44 @@ export const SegmentedControl: ForwardRefExoticComponent<SegmentedControlProps &
       const lens = lensRef.current!;
       let at = index;
       let amount = 0;
+      let grow = { x: 1, y: 1 };
+      let across = 0;
+      let squashed = FLAT;
       const span = () => root.getBoundingClientRect().width / Math.max(latest.current.items.length, 1);
 
       // Both follow the same place: the flat thumb at rest, the lens under a finger.
       const draw = () => {
         const segment = span();
+        across = segment;
         const face = segment - THUMB_INSET * 2;
         const width = face + LENS_EXTRA;
         const shown = Math.min(1, Math.max(0, amount));
-        const x = face / width + (1 - face / width) * amount;
-        const y = THUMB_HEIGHT / LENS_HEIGHT + (1 - THUMB_HEIGHT / LENS_HEIGHT) * amount;
+        grow = {
+          x: face / width + (1 - face / width) * amount,
+          y: THUMB_HEIGHT / LENS_HEIGHT + (1 - THUMB_HEIGHT / LENS_HEIGHT) * amount,
+        };
         thumb.style.transform = `translateX(${at * segment}px)`;
         thumb.style.opacity = String(1 - shown);
-        lens.style.transform = `translate(${at * segment}px, -50%) scale(${x}, ${y})`;
         lens.style.opacity = String(Math.min(1, shown * 4));
         lens.style.visibility = shown > 0.001 ? "visible" : "hidden";
         lens.style.setProperty("--lg-lift", String(shown));
+        // Out of sight there's nothing to trail, so the lens starts afresh each time it's lifted.
+        jelly.follow(at * segment, shown < 0.01);
+        place();
       };
+      // The lens stretches along a drag, and thins across it, by how far it trails the finger.
+      const place = () => {
+        lens.style.transform = `translate(${at * across + squashed.shift}px, -50%) scale(${grow.x * squashed.x}, ${grow.y * squashed.y})`;
+      };
+      const jelly = createJelly(
+        () => lens.offsetWidth,
+        (shape) => {
+          squashed = shape;
+          place();
+        },
+        // Dragged straight to the finger, so the body trails it as the slider's does.
+        0.35,
+      );
       const motion = createSpring(index, 443, 34, (next) => {
         at = next;
         draw();
@@ -184,6 +206,7 @@ export const SegmentedControl: ForwardRefExoticComponent<SegmentedControlProps &
         window.removeEventListener("pointercancel", up);
         motion.stop();
         lift.stop();
+        jelly.stop();
       };
       // The springs start where the control does, then follow `index` below.
       // eslint-disable-next-line react-hooks/exhaustive-deps

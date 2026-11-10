@@ -17,6 +17,7 @@ interface State {
 const moving = new Set<State>();
 let frame = 0;
 let last = 0;
+let ticking = false;
 
 function advance(s: State, dt: number): void {
   const x = s.value - s.target;
@@ -60,14 +61,20 @@ function tick(time: number): void {
   frame = 0;
   const dt = Math.min(0.1, Math.max(0, (time - last) / 1000));
   last = time;
-  for (const s of moving) {
-    advance(s, dt);
-    if (Math.abs(s.value - s.target) < 1e-4 && Math.abs(s.velocity) < 1e-3) {
-      s.value = s.target;
-      s.velocity = 0;
-      moving.delete(s);
+  // A spring painting may set another one, which joins this frame rather than asking for its own.
+  ticking = true;
+  try {
+    for (const s of moving) {
+      advance(s, dt);
+      if (Math.abs(s.value - s.target) < 1e-4 && Math.abs(s.velocity) < 1e-3) {
+        s.value = s.target;
+        s.velocity = 0;
+        moving.delete(s);
+      }
+      s.paint(s.value);
     }
-    s.paint(s.value);
+  } finally {
+    ticking = false;
   }
   if (moving.size) frame = requestAnimationFrame(tick);
 }
@@ -112,7 +119,7 @@ export function createSpring(
         return;
       }
       moving.add(s);
-      if (!frame) {
+      if (!frame && !ticking) {
         // Measure from the start of the current frame, so the next one
         // already shows a frame's worth of motion.
         last = Number(document.timeline?.currentTime ?? performance.now());

@@ -808,8 +808,14 @@
     0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
 }
 
+/* Held, a thumb is a lens, as the tab bar's is: its rim bends what's behind it, and its edge
+   is drawn as one picture over that. */
 .lg-switch-thumb::before,
-.lg-slider-thumb::before {
+.lg-slider-thumb::before,
+.lg-segmented-lens::before {
+  inset: -1px;
+  border: 0;
+  background: var(--lg-rim, none) 0 0 / 100% 100%;
   opacity: var(--lg-lift, 0);
 }
 
@@ -1534,10 +1540,6 @@
   box-shadow:
     0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
     0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
-}
-
-.lg-segmented-lens::before {
-  opacity: var(--lg-lift, 0);
 }
 
 .lg-segmented-thumb {
