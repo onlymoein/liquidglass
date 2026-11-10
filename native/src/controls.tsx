@@ -14,6 +14,7 @@ import {
 import { useControllable } from './controllable';
 import { Backdrop, FilledGlass, Glass, Lens } from './glass';
 import { Icon, bottomInset, hasIcon } from './icon';
+import { haptic } from './haptics';
 import { usePress } from './press';
 import { Text } from './text';
 import type {
@@ -101,6 +102,21 @@ function useLift() {
 }
 
 /** Keeps the latest value of something for handlers made once. */
+/**
+ * Where a view's left edge is on the screen. A touch reports where it is relative to whatever it
+ * landed on, which may be a label inside, so a control that needs to know where along it the
+ * finger is works it out from the screen instead.
+ */
+function useLeftEdge() {
+  const ref = useRef<React.ComponentRef<typeof View>>(null);
+  const left = useRef(0);
+  const measure = () =>
+    ref.current?.measure((_x: number, _y: number, _w: number, _h: number, pageX: number) => {
+      left.current = pageX;
+    });
+  return { ref, left, measure };
+}
+
 function useLatest<T>(value: T) {
   const ref = useRef(value);
   ref.current = value;
@@ -251,7 +267,11 @@ const THUMB_SWELL = 59 / 37;
 
 export function Switch({ checked, defaultChecked = false, onCheckedChange, disabled, tint, style, ...props }: SwitchProps) {
   const ink = useInk();
-  const [value, setValue] = useControllable(checked, defaultChecked, onCheckedChange);
+  const [value, setChecked] = useControllable(checked, defaultChecked, onCheckedChange);
+  const setValue = (next: boolean) => {
+    if (next !== value) haptic(next ? 'on' : 'off');
+    setChecked(next);
+  };
   const latest = useLatest({ value, setValue, disabled });
   const position = useRef(new Animated.Value(value ? 1 : 0)).current;
   const colour = useRef(new Animated.Value(value ? 1 : 0)).current;
@@ -340,7 +360,12 @@ export function Slider({
   ...props
 }: SliderProps) {
   const ink = useInk();
-  const [current, setCurrent] = useControllable(value, defaultValue ?? min, onValueChange);
+  const [current, setValue] = useControllable(value, defaultValue ?? min, onValueChange);
+  // A tick on reaching either end, as iOS's slider gives.
+  const setCurrent = (next: number) => {
+    if (next !== current && (next === min || next === max)) haptic('tick');
+    setValue(next);
+  };
   const [width, setWidth] = useState(0);
   const span = Math.max(1, width - 37);
   const share = clamp((current - min) / (max - min || 1), 0, 1);
@@ -439,7 +464,11 @@ export function Slider({
 
 export function Stepper({ value, defaultValue, onValueChange, min = 0, max = 100, step = 1, disabled, style, ...props }: StepperProps) {
   const ink = useInk();
-  const [current, setCurrent] = useControllable(value, defaultValue ?? min, onValueChange);
+  const [current, setValue] = useControllable(value, defaultValue ?? min, onValueChange);
+  const setCurrent = (next: number) => {
+    if (next !== current) haptic('tick');
+    setValue(next);
+  };
   const half = (sign: -1 | 1) => {
     const next = clamp(current + sign * step, min, max);
     const off = disabled || next === current;
@@ -477,11 +506,15 @@ export function Stepper({ value, defaultValue, onValueChange, min = 0, max = 100
 
 export function SegmentedControl({ items, value, defaultValue, onValueChange, disabled, style, ...props }: SegmentedControlProps) {
   const ink = useInk();
-  const [current, setCurrent] = useControllable<string | undefined>(
+  const [current, setValue] = useControllable<string | undefined>(
     value,
     defaultValue ?? items[0]?.value,
     onValueChange as ((value: string | undefined) => void) | undefined
   );
+  const setCurrent = (next: string | undefined) => {
+    if (next !== current) haptic('select');
+    setValue(next);
+  };
   const [width, setWidth] = useState(0);
   const count = Math.max(1, items.length);
   const segment = width / count;
@@ -493,6 +526,7 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
 
   useEffect(() => spring(thumb, index, 500, 40).start(), [index]);
 
+  const edge = useLeftEdge();
   const responder = useMemo(() => {
     let start = 0;
     const to = (x: number) => {
@@ -503,7 +537,8 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
       onStartShouldSetPanResponder: () => !latest.current.disabled,
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (event: GestureResponderEvent) => {
-        start = event.nativeEvent.locationX;
+        start = event.nativeEvent.pageX - edge.left.current;
+        edge.measure();
         lens.setValue(to(start));
         raise();
       },
@@ -525,9 +560,13 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
     <View
       {...props}
       {...responder.panHandlers}
+      ref={edge.ref}
       accessibilityRole="tablist"
       collapsable={false}
-      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+      onLayout={(event: LayoutChangeEvent) => {
+        setWidth(event.nativeEvent.layout.width);
+        edge.measure();
+      }}
       style={[{ height: 32, opacity: disabled ? 0.35 : 1 }, style]}>
       <Backdrop pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 16, backgroundColor: ink.segments }]}>
         {width > 0 && (
@@ -601,11 +640,15 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
  */
 export function TabBar({ items, value, defaultValue = null, onValueChange, tint, style, ...props }: TabBarProps) {
   const ink = useInk();
-  const [current, setCurrent] = useControllable<string | null>(
+  const [current, setValue] = useControllable<string | null>(
     value,
     defaultValue ?? items[0]?.value ?? null,
     onValueChange as ((value: string | null) => void) | undefined
   );
+  const setCurrent = (next: string | null) => {
+    if (next !== current) haptic('select');
+    setValue(next);
+  };
   const accent = tint ?? ink.accent;
   const [width, setWidth] = useState(0);
   const count = Math.max(1, items.length);
@@ -620,6 +663,7 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
     if (index >= 0) spring(pill, index, 500, 40).start();
   }, [index]);
 
+  const edge = useLeftEdge();
   const responder = useMemo(() => {
     let start = 0;
     const centre = (x: number) => {
@@ -630,7 +674,8 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
       onStartShouldSetPanResponder: () => true,
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (event: GestureResponderEvent) => {
-        start = event.nativeEvent.locationX;
+        start = event.nativeEvent.pageX - edge.left.current;
+        edge.measure();
         lens.setValue(centre(start));
         raise();
       },
@@ -652,9 +697,13 @@ export function TabBar({ items, value, defaultValue = null, onValueChange, tint,
     <View
       {...props}
       {...responder.panHandlers}
+      ref={edge.ref}
       accessibilityRole="tablist"
       collapsable={false}
-      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+      onLayout={(event: LayoutChangeEvent) => {
+        setWidth(event.nativeEvent.layout.width);
+        edge.measure();
+      }}
       style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8, height: 62 }, style]}>
       <Glass pointerEvents="none" style={{ height: 62, borderRadius: 31 }}>
         <Backdrop style={StyleSheet.absoluteFill}>

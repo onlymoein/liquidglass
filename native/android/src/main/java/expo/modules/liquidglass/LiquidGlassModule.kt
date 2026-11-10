@@ -2,6 +2,7 @@ package expo.modules.liquidglass
 
 import android.graphics.Color
 import android.os.Build
+import android.view.HapticFeedbackConstants
 import android.view.WindowInsets
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -11,6 +12,21 @@ import expo.modules.kotlin.modules.ModuleDefinition
 class LiquidGlassModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("LiquidGlass")
+
+    /**
+     * A tick under the finger, as iOS's controls give: Android's own haptic effects, which follow
+     * the phone's touch feedback setting.
+     */
+    Function("haptic") { kind: String ->
+      val view = appContext.currentActivity?.window?.decorView ?: return@Function
+      val effect = when (kind) {
+        "on" -> if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.TOGGLE_ON else HapticFeedbackConstants.CLOCK_TICK
+        "off" -> if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.TOGGLE_OFF else HapticFeedbackConstants.CLOCK_TICK
+        "select" -> if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.CLOCK_TICK
+        else -> HapticFeedbackConstants.CLOCK_TICK
+      }
+      view.post { view.performHapticFeedback(effect) }
+    }
 
     /** Whether the package draws an icon by this SF Symbols name. */
     Function("hasIcon") { name: String -> IconView.has(name) }
