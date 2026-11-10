@@ -84,7 +84,7 @@ Each control works controlled (`value` / `checked`) or uncontrolled (`defaultVal
 
 ## Android
 
-Android has no Liquid Glass of its own, so the package draws it. Glass shows what's behind it bent at the rim, blurred, lifted and saturated, with a lit hairline along its top and bottom, following the same optics as the web version. Tilt the phone and the light stays where it is in the room, so the hairline slides round the rim toward the corners. It listens to gravity only while glass is on screen and the app is in front, and not at all when the system's animations are turned off.
+Android has no Liquid Glass of its own, so the package draws it. Glass shows what's behind it bent at the rim, blurred, lifted and saturated, following the same optics as the web version, and is drawn with what iOS draws round it, measured against the iPhone simulator: a lit line along the top and bottom, a dark hairline just outside the sides, iOS's continuous corners, and a soft shadow that grows with the glass. Tilt the phone and the light stays where it is in the room, so the hairline slides round the rim toward the corners. It listens to gravity only while glass is on screen and the app is in front, and not at all when the system's animations are turned off.
 
 <img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/android-vs-ios.png" width="900" alt="The example app side by side: iOS 27's own glass on the left, then this package's glass on Android in light and dark mode.">
 
@@ -102,6 +102,8 @@ Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or 
 - **Android 13 and later:** the full glass.
 - **Android 12:** blur and tone, without the bend.
 - **Android 11 and earlier:** a translucent pane.
+
+Buttons are iOS 27's sizes, and a filled button is tinted glass that darkens a little over what's behind it, as iOS's does. Under a finger, glass grows, follows the finger and stretches toward it, lights its rim and glows where it's touched, then springs back, and the switch, slider, stepper, segmented control and tab bar tick with Android's own haptic effects.
 
 The tab bar and buttons on Android are laid out as iOS lays them out, on the glass: each tab's icon above its label, the selected tab on a pill, badges, and the bar above the gesture handle.
 

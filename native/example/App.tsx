@@ -146,6 +146,15 @@ function Screen() {
             </Glass>
           </GlassGroup>
 
+          {/* Glass over something dark. iOS 27 keeps glass buttons light here, and so does Android. */}
+          <View style={styles.dark}>
+            <Backdrop style={[StyleSheet.absoluteFill, { backgroundColor: '#111114' }]} />
+            <View style={styles.darkRow}>
+              <Button label="Over dark" />
+              <Button icon="heart" accessibilityLabel="Like" />
+            </View>
+          </View>
+
           <Glass variant="clear" style={styles.card}>
             <Text style={[styles.body, { color: ink }]}>
               Clear glass, for over photos. Scroll to see the glass bend the colours behind it.
@@ -237,4 +246,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   swatch: { width: 44, height: 44, borderRadius: 12 },
+  dark: { marginHorizontal: 16, marginBottom: 16, height: 72, borderRadius: 24, overflow: 'hidden' },
+  darkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
 });
