@@ -77,12 +77,14 @@ Put the tab bar at the very bottom of the screen, as above. It leaves room for t
 | `Stepper` | `UIStepper` |
 | `SegmentedControl` | `UISegmentedControl` |
 | `TabBar` | The floating tab bar, with its lens, badges and selected icons |
+| `Text` | React Native's `Text` on iOS; on Android, set in a typeface close to San Francisco. See [Android](#android) |
+| `ScrollView` | React Native's `ScrollView` on iOS; on Android, its ends bounce as iOS's do |
 
 Each control works controlled (`value` / `checked`) or uncontrolled (`defaultValue` / `defaultChecked`), as React's inputs do.
 
 ## Android
 
-Android has no Liquid Glass of its own, so the package draws it. Glass shows what's behind it bent at the rim, blurred, lifted and saturated, with a lit hairline along its top and bottom, following the same optics as the web version.
+Android has no Liquid Glass of its own, so the package draws it. Glass shows what's behind it bent at the rim, blurred, lifted and saturated, with a lit hairline along its top and bottom, following the same optics as the web version. Tilt the phone and the light stays where it is in the room, so the hairline slides round the rim toward the corners. It listens to gravity only while glass is on screen and the app is in front, and not at all when the system's animations are turned off.
 
 <img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/android-vs-ios.png" width="900" alt="The example app side by side: iOS 27's own glass on the left, then this package's glass on Android in light and dark mode.">
 
@@ -105,7 +107,11 @@ The tab bar and buttons on Android are laid out as iOS lays them out, on the gla
 
 Apple only allows SF Symbols on its own platforms, so Android gets the package's own icons, drawn for it, under the same names: `house`, `magnifyingglass`, `gearshape`, `bookmark`, `heart`, `star`, `person`, `bell`, `trash`, `calendar`, `square.and.arrow.up`, `slider.horizontal.3`, `circle.hexagongrid`, `ellipsis`, `plus`, `minus`, `xmark`, `checkmark`, the chevrons, and more. Most have a `.fill` version. A name without a drawing shows no icon, and an icon-only button then shows its `accessibilityLabel`'s first letter.
 
-The switch, slider, stepper and segmented control on Android follow iOS 27's sizes, colours and springs. Under a finger, a switch or slider thumb swells into a clear lens over its track, the segmented control's lens slides across the labels, and holding the tab bar brings up a lens that enlarges the tabs under it and parts their colours at its rim. Merging nearby glass in `GlassGroup` comes next.
+The switch, slider, stepper and segmented control on Android follow iOS 27's sizes, colours and springs. Under a finger, a switch or slider thumb swells into a clear lens over its track, the segmented control's lens slides across the labels, and holding the tab bar brings up a lens that enlarges the tabs under it and parts their colours at its rim. Glass directly inside a `GlassGroup` is drawn as one surface, so pieces closer than `spacing` flow together and part again as they move apart. Tinted glass in a group draws on its own.
+
+Apple's San Francisco typeface is only for Apple's systems, so on Android the package's `Text` sets text in [Inter](https://rsms.me/inter/), an open typeface close to it, which the package carries (under the SIL Open Font License). It switches to Inter Display at 20 points, as iOS switches to SF Display, and is sized and spaced so a line runs as long as it does on an iPhone. Use it in place of React Native's `Text`; a `fontFamily` of your own wins. The package's controls use it already.
+
+The package's `ScrollView` makes the ends bounce on Android as they do on iOS, in place of Android's stretch: dragged past an end, the page follows the finger less and less and springs back, and a fling carries past the end and springs back. Horizontal scroll views, and ones with a `refreshControl`, are React Native's own.
 
 ## Other platforms
 

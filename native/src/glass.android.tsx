@@ -1,6 +1,6 @@
 import { requireNativeView } from 'expo';
 import type { ComponentType } from 'react';
-import { StyleSheet, useColorScheme, View, type ColorValue, type ViewProps } from 'react-native';
+import { StyleSheet, useColorScheme, type ColorValue, type ViewProps } from 'react-native';
 
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
@@ -20,6 +20,7 @@ type NativeGlassProps = ViewProps & {
 };
 const NativeGlass: ComponentType<NativeGlassProps> = requireNativeView('LiquidGlass', 'GlassView');
 const NativeBackdrop: ComponentType<ViewProps> = requireNativeView('LiquidGlass', 'BackdropView');
+const NativeGroup: ComponentType<ViewProps & { spacing: number }> = requireNativeView('LiquidGlass', 'GlassGroupView');
 
 export function Glass({ variant = 'regular', tint, interactive: _interactive, colorScheme = 'auto', style, ...props }: GlassProps) {
   const system = useColorScheme();
@@ -63,9 +64,12 @@ export function Backdrop(props: BackdropProps) {
   return <NativeBackdrop collapsable={false} {...props} />;
 }
 
-/** Holds glass that flows together. On Android the shapes don't merge yet. */
-export function GlassGroup({ spacing: _spacing, ...props }: GlassGroupProps) {
-  return <View {...props} />;
+/**
+ * Holds glass that flows together: the glass directly inside is drawn as one surface, and pieces
+ * closer than `spacing` merge, then part again as they move away.
+ */
+export function GlassGroup({ spacing = 20, ...props }: GlassGroupProps) {
+  return <NativeGroup collapsable={false} spacing={spacing} {...props} />;
 }
 
 /** Whether this is Apple's Liquid Glass. On Android the glass is this package's own. */

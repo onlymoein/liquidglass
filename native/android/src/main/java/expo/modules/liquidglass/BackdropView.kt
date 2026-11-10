@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.RenderNode
 import android.os.Build
+import android.view.View
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.views.ExpoView
 import java.util.Collections
@@ -19,7 +20,7 @@ import java.util.WeakHashMap
  */
 class BackdropView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   internal val content: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-backdrop") else null
-  private val watchers: MutableSet<GlassView> = Collections.newSetFromMap(WeakHashMap())
+  private val watchers: MutableSet<View> = Collections.newSetFromMap(WeakHashMap())
 
   init {
     // Android skips draw() for a view group with nothing of its own to draw, which here would
@@ -27,8 +28,8 @@ class BackdropView(context: Context, appContext: AppContext) : ExpoView(context,
     setWillNotDraw(false)
   }
 
-  internal fun watch(glass: GlassView) = watchers.add(glass)
-  internal fun unwatch(glass: GlassView) = watchers.remove(glass)
+  internal fun watch(glass: View) = watchers.add(glass)
+  internal fun unwatch(glass: View) = watchers.remove(glass)
 
   // React Native sizes and places the children itself. Expo's views are LinearLayouts
   // underneath, which would otherwise measure them again, squeezing text, and stack them.

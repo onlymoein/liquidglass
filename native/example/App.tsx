@@ -4,15 +4,17 @@ import {
   Glass,
   GlassGroup,
   Menu,
+  ScrollView,
   SegmentedControl,
   Slider,
   Stepper,
   Switch,
   TabBar,
+  Text,
   isLiquidGlassAvailable,
 } from '@onlymoein/liquidglass-native';
 import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const blobs = [

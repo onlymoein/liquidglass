@@ -4,7 +4,6 @@ import {
   PanResponder,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useColorScheme,
   type ColorValue,
@@ -15,6 +14,7 @@ import {
 import { useControllable } from './controllable';
 import { Backdrop, Glass, Lens } from './glass';
 import { Icon, bottomInset, hasIcon } from './icon';
+import { Text } from './text';
 import type {
   ButtonProps,
   MenuProps,

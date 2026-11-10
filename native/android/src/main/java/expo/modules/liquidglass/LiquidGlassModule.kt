@@ -31,7 +31,17 @@ class LiquidGlassModule : Module() {
       (bottom / view.resources.displayMetrics.density).toDouble()
     }
 
+    // The rim light follows the phone only while the app is in front.
+    OnActivityEntersForeground { Tilt.resume() }
+    OnActivityEntersBackground { Tilt.pause() }
+
     View(BackdropView::class) {}
+
+    View(GlassGroupView::class) {
+      Prop("spacing") { view: GlassGroupView, spacing: Float? -> view.spacing = spacing ?: 20f }
+    }
+
+    View(BounceView::class) {}
 
     View(GlassView::class) {
       Prop("cornerRadius") { view: GlassView, radius: Float? -> view.cornerRadius = radius ?: 0f }
