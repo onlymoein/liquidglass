@@ -177,7 +177,9 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   /** The blur's standard deviation, in points. */
   private val blur: Float get() = if (lens) 0f else if (clear) 1.3f else 15.3f
 
-  private fun marginPx(): Int = ((reach + blur * 3f) * density).toInt() + 2
+  // Room round the glass for the rim to reach into and the blur to gather from. Two deviations
+  // hold all but a sliver of a blur's weight.
+  private fun marginPx(): Int = ((reach + blur * 2f) * density).toInt() + 2
 
   private fun updateEffect(glass: RenderNode, margin: Int) {
     val key = "$width-$height-$margin-$cornerRadius-$clear-$dark-$tint-$zoom-$split-$lens-$prominent-$held-$touch-${if (lens) 0 else Tilt.version}"

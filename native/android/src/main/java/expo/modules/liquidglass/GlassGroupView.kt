@@ -147,7 +147,7 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
     val reach = min(shortest * 0.33f, 48f)
     val first = pieces[0]
     val blur = if (first.clear) 1.3f else 15.3f
-    val margin = ((reach + blur * 3f + 24f) * density).toInt()
+    val margin = ((reach + blur * 2f + 24f) * density).toInt()
 
     surface.setPosition(0, 0, width + margin * 2, height + margin * 2)
     updateEffect(surface, margin, shortest, bezel, reach, blur, first)

@@ -90,6 +90,10 @@ half4 rim(float points, float2 n, float2 light, float shine, float clear) {
 // the pixel's middle it would step from pixel to pixel along a curve; iOS's meets the glass in a
 // smooth pixel.
 half4 rimAcross(float d, float density, float2 n, float2 light, float shine, float clear) {
+  // Further in than the rim reaches there's nothing to draw, and away from the edge one reading
+  // is as good as four.
+  if (d > 15.0 * density + 1.0) return half4(0.0);
+  if (d > 1.5) return rim(d / density, n, light, shine, clear);
   half4 sum = half4(0.0);
   for (int i = 0; i < 4; i++) {
     sum += rim((d + (float(i) - 1.5) * 0.25) / density, n, light, shine, clear);

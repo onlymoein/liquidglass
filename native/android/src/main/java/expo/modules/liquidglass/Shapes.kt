@@ -1,12 +1,14 @@
 package expo.modules.liquidglass
 
+import android.graphics.Bitmap
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.os.Build
+import android.util.LruCache
 import kotlin.math.PI
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -51,27 +53,55 @@ internal object Shapes {
     path.close()
   }
 
-  private val shadow = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val shadow = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+  private val blurring = Paint(Paint.ANTI_ALIAS_FLAG)
+  private val traced = Path()
+
+  // A shadow is the same for every pane of one size, and blurring it is the slow part, so each
+  // is blurred once, at a quarter of its size since it's soft anyway, and kept.
+  private const val SCALE = 0.25f
+  private val shadows = object : LruCache<String, Bitmap>(4 * 1024 * 1024) {
+    override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+  }
 
   /**
    * The soft shadow iOS draws under glass, stronger and wider on bigger glass. Like a CSS box
    * shadow, it's only drawn outside the shape, since the glass is see-through.
    */
-  fun drawShadow(canvas: Canvas, shape: Path, short: Float, density: Float, dark: Boolean) {
-    if (Build.VERSION.SDK_INT < 28 || !canvas.isHardwareAccelerated) return
+  fun drawShadow(canvas: Canvas, shape: Path, width: Float, height: Float, radius: Float, short: Float, density: Float, dark: Boolean) {
+    if (!canvas.isHardwareAccelerated || width <= 0f || height <= 0f) return
     val size = ((short - 60f) / 60f).coerceIn(0f, 1f)
     val strength = if (dark) 1.6f else 1f
     val alpha = (0.016f + 0.054f * size) * strength
     val offset = (4f + 4f * size) * density
-    // A CSS blur radius is twice the deviation; a mask filter's radius maps to a deviation of
-    // radius * 0.57735 + 0.5.
+    // A CSS blur radius is twice the deviation.
     val sigma = (8f + 13f * size) / 2f * density
+    val pad = ceil(sigma * 3f)
+    val key = "${width.toInt()}x${height.toInt()}-${radius.toInt()}-${sigma.toInt()}"
+    val image = shadows.get(key) ?: blurred(width, height, radius, sigma, pad).also { shadows.put(key, it) }
     shadow.color = Color.argb((alpha * 255f).toInt().coerceIn(0, 255), 0, 0, 0)
-    shadow.maskFilter = BlurMaskFilter(max(0.1f, (sigma - 0.5f) / 0.57735f), BlurMaskFilter.Blur.NORMAL)
     canvas.save()
     canvas.clipOutPath(shape)
-    canvas.translate(0f, offset)
-    canvas.drawPath(shape, shadow)
+    canvas.translate(-pad, -pad + offset)
+    canvas.scale(1f / SCALE, 1f / SCALE)
+    canvas.drawBitmap(image, 0f, 0f, shadow)
     canvas.restore()
+  }
+
+  private fun blurred(width: Float, height: Float, radius: Float, sigma: Float, pad: Float): Bitmap {
+    val image = Bitmap.createBitmap(
+      max(1, ceil((width + pad * 2f) * SCALE).toInt()),
+      max(1, ceil((height + pad * 2f) * SCALE).toInt()),
+      Bitmap.Config.ALPHA_8,
+    )
+    val drawing = Canvas(image)
+    drawing.scale(SCALE, SCALE)
+    drawing.translate(pad, pad)
+    outline(traced, width, height, radius)
+    // A mask filter's radius maps to a deviation of radius * 0.57735 + 0.5, and it's scaled
+    // with the canvas.
+    blurring.maskFilter = BlurMaskFilter(max(0.1f, (sigma - 0.5f) / 0.57735f), BlurMaskFilter.Blur.NORMAL)
+    drawing.drawPath(traced, blurring)
+    return image
   }
 }
