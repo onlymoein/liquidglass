@@ -56,6 +56,7 @@ class LiquidGlassModule : Module() {
     View(IconView::class) {
       Prop("name") { view: IconView, name: String? -> view.name = name ?: "" }
       Prop("color") { view: IconView, color: Color? -> view.colour = color?.toArgb() ?: Color.BLACK }
+      Prop("weight") { view: IconView, weight: Float? -> view.weight = weight ?: 1f }
     }
   }
 }

@@ -23,6 +23,9 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
     set(value) { field = value; invalidate() }
   var colour = Color.BLACK
     set(value) { field = value; invalidate() }
+  /** How heavy the lines are, as a share of the regular weight. */
+  var weight = 1f
+    set(value) { field = value; invalidate() }
 
   private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     style = Paint.Style.STROKE
@@ -44,7 +47,7 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
     canvas.translate((width - 24f * scale) / 2f, (height - 24f * scale) / 2f)
     canvas.scale(scale, scale)
     line.color = colour
-    line.strokeWidth = 1.5f
+    line.strokeWidth = 1.5f * weight
     solid.color = colour
     val filled = name.endsWith(".fill")
     draw(canvas, name.removeSuffix(".fill"), filled)
@@ -54,7 +57,7 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
   private fun stroke(canvas: Canvas, width: Float = 1.5f, build: Path.() -> Unit) {
     path.reset()
     path.build()
-    line.strokeWidth = width
+    line.strokeWidth = width * weight
     canvas.drawPath(path, line)
   }
 
@@ -63,16 +66,16 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
     path.build()
     if (filled) {
       canvas.drawPath(path, solid)
-      line.strokeWidth = 1.5f
+      line.strokeWidth = 1.5f * weight
       canvas.drawPath(path, line)
     } else {
-      line.strokeWidth = 1.5f
+      line.strokeWidth = 1.5f * weight
       canvas.drawPath(path, line)
     }
   }
 
   private fun circle(canvas: Canvas, x: Float, y: Float, r: Float, filled: Boolean = false) {
-    line.strokeWidth = 1.5f
+    line.strokeWidth = 1.5f * weight
     canvas.drawCircle(x, y, r, if (filled) solid else line)
   }
 
@@ -201,7 +204,7 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
       }
 
       "calendar" -> {
-        line.strokeWidth = 1.5f
+        line.strokeWidth = 1.5f * weight
         canvas.drawRoundRect(RectF(4f, 5.5f, 20f, 20f), 2.5f, 2.5f, line)
         stroke(canvas) { moveTo(4f, 9.8f); lineTo(20f, 9.8f); moveTo(8f, 3.5f); lineTo(8f, 6.5f); moveTo(16f, 3.5f); lineTo(16f, 6.5f) }
       }
@@ -213,7 +216,7 @@ class IconView(context: Context, appContext: AppContext) : ExpoView(context, app
       }
 
       "internaldrive" -> {
-        line.strokeWidth = 1.5f
+        line.strokeWidth = 1.5f * weight
         canvas.drawRoundRect(RectF(3f, 7f, 21f, 17f), 2.5f, 2.5f, line)
         circle(canvas, 17f, 12f, 1.1f, true)
       }

@@ -4,7 +4,7 @@ import type { ColorValue } from 'react-native';
 // the stand-ins elsewhere have no icons yet.
 export const hasIcon = (_name: string | undefined): _name is string => false;
 
-export function Icon(_props: { name: string; color: ColorValue; size?: number }) {
+export function Icon(_props: { name: string; color: ColorValue; size?: number; weight?: number }) {
   return null;
 }
 

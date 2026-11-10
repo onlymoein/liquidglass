@@ -55,7 +55,15 @@ function useInk() {
   };
 }
 
-const heights = { small: 28, regular: 36, large: 52 } as const;
+// iOS 27's glass buttons, measured on the iPhone simulator: a text button's height and the room
+// either side of its text, and the circle an icon makes on its own.
+const heights = { small: 32, regular: 38, large: 52 } as const;
+const circles = { small: 34, regular: 40, large: 54 } as const;
+const paddings = { small: 10, regular: 11.5, large: 19 } as const;
+// SF Symbols stand about 1.4 times as large in a button as these icons are drawn by default, with
+// lines about as heavy as they are at the smaller size.
+const ICON_SCALE = 0.72;
+const ICON_WEIGHT = 0.75;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 /** The springs the web version tuned against iOS 27, as stiffness and damping for a unit mass. */
@@ -147,10 +155,10 @@ export function Button({
   const filled = variant === 'filled';
   const text = label ?? children;
   const ink2: ColorValue = filled ? '#fff' : destructive || tint ? colour : ink.text;
-  const height = heights[size];
   const symbol = hasIcon(icon) ? icon : undefined;
   // An icon on its own makes a circle, as on iOS. Without a drawing for it, its label's first letter.
   const lone = !text;
+  const height = lone ? circles[size] : heights[size];
   const fallback = lone && !symbol ? (props.accessibilityLabel ?? '').slice(0, 1) : undefined;
   return (
     <Pressable
@@ -162,7 +170,7 @@ export function Button({
         {
           height,
           minWidth: height,
-          paddingHorizontal: lone ? 0 : height / 2.4,
+          paddingHorizontal: lone ? 0 : paddings[size],
           borderRadius: height / 2,
           flexDirection: 'row',
           gap: 6,
@@ -174,7 +182,7 @@ export function Button({
         style,
       ]}>
       {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
-      {symbol && <Icon name={symbol} color={ink2} size={Math.round(height * (lone ? 0.56 : 0.55))} />}
+      {symbol && <Icon name={symbol} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
       {(text || fallback) && (
         <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>{text ?? fallback}</Text>
       )}
