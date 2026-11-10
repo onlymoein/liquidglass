@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0
+
+### Changed
+
+- **Android's tab bar acts as iOS 27's does under a finger.** Its lens was a white blob with black tabs in it. Now the selected tab's pill rises into a lens of the bar's own glass, about 117 by 73 points, standing out of the bar, and the whole bar swells about 5%. Inside the lens the tabs are enlarged and in the selected colour; outside it they stay as they are. The lens follows a drag, stretching along it as it's pulled and settling back, and shrinks back into the pill on the tab it's let go over. A tap carries it across from the tab that was selected, and keeps it up for the trip. The sizes, springs and stretch are the web version's, measured on iOS.
+- **The selected tab's pill on Android deepens the glass under it**, darker and richer, as iOS's does, rather than greying it. The pill also runs nearer the bar's ends, as iOS's does.
+- **Android glass blurs at a quarter of its size.** A blur that wide looks the same, measured at 0.07% different on screen, for a sixteenth of the work. Only the rim's reach is drawn round each piece at full size. Dragging the tab bar went from frames of 21 to 27 ms at the 90th percentile to a steady 60 fps on the emulator's GPU.
+
+### Added
+
+- **`minimized` on `TabBar`**, with `onExpand`. The bar shrinks to the selected tab's icon in a glass capsule 49 by 39 points, as iOS 27 minimises a tab bar when a page scrolls down, and comes back when it's cleared. On iOS the system's bar draws into one of iOS's own glass buttons; on Android the bar's glass folds into the capsule.
+
+### Fixed
+
+- **Touching interactive glass on Android no longer throws "undefined is not a function".** Glass with `interactive` measured itself through a ref that doesn't have `measure`.
+
+
 ## 0.3.0
 
 ### Changed

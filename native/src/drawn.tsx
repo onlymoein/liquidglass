@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 
 import { useControllable } from './controllable';
-import { Backdrop, FilledGlass, Glass, Lens } from './glass';
+import { Backdrop, FilledGlass, Glass, Lens, SelectionGlass } from './glass';
 import { fontFamilyFor } from './font';
 import { Icon, bottomInset, hasIcon } from './icon';
 import { sayNoDrawing } from './icons';
@@ -718,10 +718,62 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
   );
 }
 
+// The tab bar's measurements and motion, from the web version, which fitted them to iOS 27 on
+// the iPhone simulator (src/tab-bar.tsx, src/styles/tab-bar.css, src/internal/tab-motion.ts).
+const TAB = {
+  height: 62,
+  /** Round the tabs, inside the bar. */
+  padX: 8.5,
+  padY: 4,
+  /** The selection is this much wider than its tab, so it runs close to the bar's ends. */
+  wider: 8,
+  pill: 54,
+  /** How much the selection grows under a finger: 94 by 54 points becomes about 117 by 73. */
+  growX: 21,
+  growY: 20,
+  /** Under a finger the whole bar swells. */
+  barGrow: 0.049,
+  /** The tabs in the lens are enlarged about their own middles, and drawn in towards the lens's. */
+  zoom: 0.19,
+  pull: 0.07,
+  /** A quick tap keeps the lens up this long, for the trip. */
+  liftMs: 230,
+  /** Minimised, as when a page scrolls down: only the current tab's icon, in a capsule. */
+  miniWidth: 49,
+  miniHeight: 39,
+} as const;
+// [stiffness, damping]: at rest the selection swings a little past the tab it's going to;
+// under a finger it keeps up. The lift has springs of its own.
+const SLIDE = [225, 21] as const;
+const LIFT_UP = [576, 44.2] as const;
+const LIFT_DOWN = [676, 47.8] as const;
+// A dragged lens trails the finger, stretching along the drag and thinning across it by how far
+// behind it is, then swings back past its own shape and settles (src/internal/jelly.ts).
+const JELLY = [650, 24] as const;
+const STRETCH = 0.3;
+const REACH = 1.2;
+const THIN = 0.55;
+
+/** How far a lens trailing by `lag` stretches, as tanh does it, drawn by the native driver. */
+function stretchFor(lag: Animated.AnimatedNode, length: number) {
+  const steps = [0, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
+  const inputs = steps.map((t) => t * length * REACH);
+  const outputs = steps.map((t) => STRETCH * Math.tanh(t));
+  const out = (lag as Animated.Value).interpolate({
+    inputRange: [...inputs.slice(1).reverse().map((v) => -v), ...inputs],
+    outputRange: [...outputs.slice(1).reverse(), ...outputs],
+    extrapolate: 'clamp',
+  });
+  return out;
+}
+
 /**
  * The floating tab bar, laid out as iOS 27 lays it out: each tab's icon above its label, the
- * selected one lifted on a pill, and the bar above the system's gesture handle. Holding it brings
- * up a lens that follows the finger and enlarges the tabs under it.
+ * selected one on a pill that deepens the glass under it, and the bar above the system's gesture
+ * handle. Under a finger the pill rises into a clear lens, a little larger than the bar is tall,
+ * with the tabs under it enlarged and in the selected colour; it follows a drag, stretching as it
+ * goes, and settles back into a pill on the tab it's let go over. Minimised, it shrinks to the
+ * current tab's icon.
  */
 export function TabBar({
   items,
@@ -730,6 +782,8 @@ export function TabBar({
   onValueChange,
   tint,
   fontFamily,
+  minimized = false,
+  onExpand,
   onLayout,
   onHeight,
   onTabLayout,
@@ -749,46 +803,171 @@ export function TabBar({
   const accent = tint ?? ink.accent;
   const [width, setWidth] = useState(0);
   const count = Math.max(1, items.length);
-  const tab = Math.max(0, width - 8) / count;
+  const slot = Math.max(0, width - TAB.padX * 2) / count;
   const index = items.findIndex((item) => item.value === current);
-  const pill = useRef(new Animated.Value(Math.max(0, index))).current;
-  const lens = useRef(new Animated.Value(0)).current;
-  const { lift, raise, lower } = useLift();
-  const latest = useLatest({ items, tab, setCurrent });
+  const last = slot * (count - 1);
+
+  // Where the selection is, as a tab's distance from the first, and how far the finger's moved.
+  const base = useRef(new Animated.Value(Math.max(0, index) * slot)).current;
+  const lift = useRef(new Animated.Value(0)).current;
+  // What trails the lens, for its stretch. Only its shape comes from this, so it's worked out
+  // here rather than by the native driver, which restarts a spring that follows a moving value
+  // every frame, so that it doesn't move until the value stops. Where the lens is stays native.
+  const trail = useRef(new Animated.Value(0)).current;
+  const trailing = useRef({ at: 0, speed: 0, base: 0, dx: 0, frame: 0, last: 0 }).current;
+  const full = useRef(new Animated.Value(minimized ? 0 : 1)).current;
+  const raisedAt = useRef(0);
+  const holding = useRef(false);
+  const anchor = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const raise = () => {
+    clearTimeout(timer.current);
+    raisedAt.current = Date.now();
+    spring(lift, 1, ...LIFT_UP).start();
+  };
+  const lower = (wait: number) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => spring(lift, 0, ...LIFT_DOWN).start(), Math.max(0, wait));
+  };
 
   useEffect(() => {
-    if (index >= 0) spring(pill, index, 500, 40).start();
-  }, [index]);
+    if (holding.current || index < 0 || !slot) return;
+    spring(base, index * slot, ...SLIDE).start();
+  }, [index, slot]);
 
-  const track = useTrack(true, {
-    onStart: () => {
-      lens.stopAnimation();
-      lens.setValue(0);
+  useEffect(() => {
+    // Going, the selection and badges leave before the bar draws in past them; coming back, they
+    // return as it reaches its length.
+    Animated.timing(full, { toValue: minimized ? 0 : 1, duration: minimized ? 80 : 200, delay: minimized ? 0 : 120, useNativeDriver: true }).start();
+  }, [minimized]);
+
+  const latest = useLatest({ items, slot, last, setCurrent, index });
+  const track = useTrack(!minimized, {
+    onStart: ({ x }) => {
+      const { slot, items } = latest.current;
+      holding.current = true;
+      const at = clamp(Math.floor((x - TAB.padX) / (slot || 1)), 0, items.length - 1);
+      anchor.current = at * slot;
+      // The lens rises where the selection is and is carried to the tab under the finger.
+      base.stopAnimation();
+      spring(base, anchor.current, ...SLIDE).start();
       raise();
     },
-    onEnd: ({ x }, cancelled) => {
-      const { tab, items, setCurrent } = latest.current;
-      lens.setValue(clamp(x - 4, tab / 2, tab * items.length - tab / 2));
-      track.x.setValue(0);
-      lower();
-      if (cancelled) return;
-      const at = clamp(Math.floor((x - 4) / (tab || 1)), 0, items.length - 1);
-      spring(lens, (at + 0.5) * tab, 500, 40).start();
-      const item = items[at];
-      if (item) setCurrent(item.value);
+    onEnd: ({ dx }, cancelled) => {
+      const { slot, last, items, setCurrent, index } = latest.current;
+      holding.current = false;
+      const moved = Math.abs(dx) > 6;
+      const to = cancelled ? Math.max(0, index) : clamp(Math.round(clamp(anchor.current + dx, 0, last) / (slot || 1)), 0, items.length - 1);
+      // The finger's offset goes into where the selection is, so it settles from where it was let go.
+      base.stopAnimation((at) => {
+        base.setValue(clamp(at + dx, 0, last));
+        track.dx.setValue(0);
+        spring(base, to * slot, ...SLIDE).start();
+      });
+      lower(moved ? 0 : TAB.liftMs - (Date.now() - raisedAt.current));
+      const item = items[to];
+      if (!cancelled && item) setCurrent(item.value);
     },
   });
   const edge = track.edge;
-  const shownLens = useMemo(() => held(Animated.add(lens, Animated.add(track.x, -4)), tab / 2, tab * count - tab / 2), [tab, count]);
 
-  const lensWidth = tab + 24;
+  const lensWidth = slot + TAB.wider;
+  const nodes = useMemo(() => {
+    const x = held(Animated.add(base, track.dx), 0, last);
+    const lag = Animated.subtract(x, trail);
+    const stretch = stretchFor(lag, lensWidth || 1);
+    const along = Animated.add(1, stretch);
+    const across = Animated.subtract(1, Animated.multiply(stretch, THIN));
+    const sx = Animated.multiply(Animated.add(1, Animated.multiply(lift, TAB.growX / (slot || 1))), along);
+    const sy = Animated.multiply(Animated.add(1, Animated.multiply(lift, TAB.growY / TAB.pill)), across);
+    const pull = lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1 - TAB.pull] });
+    const steps = [0, 0.25, 0.5, 0.75, 1];
+    const zoom = lift.interpolate({ inputRange: steps, outputRange: steps.map((t) => (1 + TAB.zoom * t) / (1 - TAB.pull * t)) });
+    return {
+      x,
+      sx,
+      sy,
+      backX: Animated.divide(pull, sx),
+      backY: Animated.divide(pull, sy),
+      zoom,
+      left: Animated.multiply(x, -1),
+      bar: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1 + TAB.barGrow] }),
+      rest: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+    };
+  }, [slot, last, lensWidth]);
+
+  // The lens trails where it's been taken on a loose spring, for its stretch: from where it is,
+  // as the native driver reports it, a frame at a time while there's anything to catch up.
+  const follow = () => {
+    if (trailing.frame) return;
+    trailing.last = 0;
+    const step = (now: number) => {
+      const { slot, last } = latest.current;
+      const to = clamp(trailing.base + trailing.dx, 0, last);
+      const dt = trailing.last ? Math.min(0.032, (now - trailing.last) / 1000) : 1 / 60;
+      trailing.last = now;
+      for (let i = 0; i < 4; i++) {
+        trailing.speed += (-JELLY[0] * (trailing.at - to) - JELLY[1] * trailing.speed) * (dt / 4);
+        trailing.at += trailing.speed * (dt / 4);
+      }
+      const settled = Math.abs(to - trailing.at) < 0.05 && Math.abs(trailing.speed) < 0.5;
+      if (settled) trailing.at = to;
+      trail.setValue(trailing.at);
+      trailing.frame = settled && !holding.current && slot > 0 ? 0 : requestAnimationFrame(step);
+    };
+    trailing.frame = requestAnimationFrame(step);
+  };
+  useEffect(() => {
+    const listening = [
+      base.addListener(({ value }) => {
+        trailing.base = value;
+        follow();
+      }),
+      track.dx.addListener(({ value }) => {
+        trailing.dx = value;
+        follow();
+      }),
+    ];
+    return () => {
+      listening.forEach((id, i) => (i ? track.dx : base).removeListener(id));
+      cancelAnimationFrame(trailing.frame);
+      trailing.frame = 0;
+    };
+  }, []);
+  useEffect(() => {
+    if (!slot) return;
+    // Laid out afresh, it's where the selection is, with nothing trailing.
+    trailing.base = trailing.at = Math.max(0, index) * slot;
+    trailing.speed = 0;
+    trail.setValue(trailing.at);
+  }, [slot]);
+
+  const face = (item: (typeof items)[number], selected: boolean, colour: ColorValue, key?: string) => {
+    const icon = selected ? (item.selectedIcon ?? item.icon) : item.icon;
+    return (
+      <View key={key} style={{ width: slot, height: TAB.pill, alignItems: 'center', justifyContent: 'center' }}>
+        {hasGlyph(icon) ? (
+          <View style={{ height: 28, justifyContent: 'center' }}>
+            <Glyph icon={icon} color={colour} size={26} />
+          </View>
+        ) : (
+          typeof icon === 'string' && (sayNoDrawing(icon), null)
+        )}
+        <Text numberOfLines={1} style={{ color: colour, fontSize: 10, fontWeight: '500', marginTop: 1, fontFamily: fontFamilyFor(fontFamily) }}>
+          {item.label}
+        </Text>
+      </View>
+    );
+  };
+  const chosen = items[index];
+  const miniIcon = chosen ? (chosen.selectedIcon ?? chosen.icon) : undefined;
+
   return (
-    <View
+    <Animated.View
       {...props}
-      {...track.handlers}
-      ref={edge.ref}
-      accessibilityRole="tablist"
-      collapsable={false}
+      pointerEvents={minimized ? 'box-none' : 'auto'}
       onLayout={(event: LayoutChangeEvent) => {
         const { width: across, height: tall } = event.nativeEvent.layout;
         setWidth(across);
@@ -799,97 +978,109 @@ export function TabBar({
         onHeight?.(tall + (typeof below === 'number' ? below : bottomInset() + 8));
         if (onTabLayout) {
           edge.ref.current?.measure((_x: number, _y: number, _w: number, _h: number, left: number, top: number) => {
-            const each = Math.max(0, across - 8) / Math.max(1, items.length);
-            onTabLayout(items.map((item, i) => ({ value: item.value, x: left + 4 + i * each, y: top + 4, width: each, height: tall - 8 })));
+            const each = Math.max(0, across - TAB.padX * 2) / Math.max(1, items.length);
+            onTabLayout(items.map((item, i) => ({ value: item.value, x: left + TAB.padX + i * each, y: top + TAB.padY, width: each, height: tall - TAB.padY * 2 })));
           });
         }
       }}
-      style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8, height: 62 }, style]}>
-      <Glass pointerEvents="none" style={{ height: 62, borderRadius: 31 }}>
-        <Backdrop style={StyleSheet.absoluteFill}>
-          {index >= 0 && tab > 0 && (
-            <Animated.View
-              style={{
-                position: 'absolute',
-                top: 4,
-                left: 4,
-                width: tab,
-                height: 54,
-                borderRadius: 27,
-                backgroundColor: ink.pill,
-                // Held, the lens is the selection, as on iOS: the pill makes way for it, and comes
-                // back under the chosen tab as the lens settles.
-                opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-                transform: [{ translateX: Animated.multiply(pill, tab) }],
-              }}
-            />
-          )}
-          <View style={{ position: 'absolute', top: 4, bottom: 4, left: 4, right: 4, flexDirection: 'row' }}>
-            {items.map((item) => {
-              const selected = item.value === current;
-              const colour = selected ? accent : ink.text;
-              const icon = selected ? (item.selectedIcon ?? item.icon) : item.icon;
-              return (
-                <View
-                  key={item.value}
-                  testID={item.testID}
-                  accessible
-                  accessibilityRole="tab"
-                  accessibilityLabel={item.accessibilityLabel ?? item.label}
-                  accessibilityState={{ selected }}
-                  onAccessibilityTap={() => setCurrent(item.value)}
-                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  {hasGlyph(icon) ? (
-                    <View style={{ height: 28, justifyContent: 'center' }}>
-                      <Glyph icon={icon} color={colour} size={26} />
-                    </View>
-                  ) : (
-                    typeof icon === 'string' && (sayNoDrawing(icon), null)
-                  )}
-                  <Text style={{ color: colour, fontSize: 10, fontWeight: '500', marginTop: 1, fontFamily: fontFamilyFor(fontFamily) }}>{item.label}</Text>
-                  {item.badge != null && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 3,
-                        left: '55%',
-                        minWidth: 18,
-                        height: 18,
-                        paddingHorizontal: 5,
-                        borderRadius: 9,
-                        backgroundColor: RED,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{item.badge}</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </Backdrop>
-      </Glass>
-      {tab > 0 && (
-        <Animated.View
+      style={[{ marginHorizontal: 21, marginBottom: bottomInset() + 8, height: TAB.height, transform: [{ scale: nodes.bar }] }, style]}>
+      <View ref={edge.ref} collapsable={false} pointerEvents={minimized ? 'box-none' : 'auto'} accessibilityRole="tablist" style={StyleSheet.absoluteFill} {...track.handlers}>
+        <Glass
           pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: -5,
-            left: 4,
-            width: lensWidth,
-            height: 72,
-            opacity: lift,
-            transform: [
-              { translateX: Animated.subtract(shownLens, lensWidth / 2) },
-              { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
-            ],
-          }}>
-          <Lens style={[StyleSheet.absoluteFill, { borderRadius: 36 }]} zoom={1.2} split={0.12} />
-          <View style={[StyleSheet.absoluteFill, { borderRadius: 36, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.18)' }]} />
+          stays
+          open={!minimized}
+          growFrom={[0, TAB.height - TAB.miniHeight, TAB.miniWidth, TAB.miniHeight]}
+          style={{ height: TAB.height, borderRadius: TAB.height / 2 }}>
+          <View style={{ position: 'absolute', top: TAB.padY, left: TAB.padX, right: TAB.padX, flexDirection: 'row' }}>
+            {items.map((item) => (
+              <View
+                key={item.value}
+                testID={item.testID}
+                accessible={!minimized}
+                accessibilityRole="tab"
+                accessibilityLabel={item.accessibilityLabel ?? item.label}
+                accessibilityState={{ selected: item.value === current }}
+                onAccessibilityTap={() => setCurrent(item.value)}>
+                {face(item, false, ink.text)}
+              </View>
+            ))}
+          </View>
+        </Glass>
+        {slot > 0 && index >= 0 && (
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: TAB.padY,
+              left: TAB.padX - TAB.wider / 2,
+              width: lensWidth,
+              height: TAB.pill,
+              opacity: full,
+              transform: [{ translateX: nodes.x }, { scaleX: nodes.sx }, { scaleY: nodes.sy }],
+            }}>
+            <SelectionGlass style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2 }]} />
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: lift }]}>
+              {/* Lifted, it's the bar's own glass, risen: the same frosted look, with a rim of its own. */}
+              <Glass pointerEvents="none" held style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2 }]} />
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  // Held glass lightens towards white, as iOS's does under a finger.
+                  { borderRadius: TAB.pill / 2, backgroundColor: ink.dark ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.3)', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.12)' },
+                ]}
+              />
+            </Animated.View>
+            <View style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2, overflow: 'hidden' }]}>
+              <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scaleX: nodes.backX }, { scaleY: nodes.backY }] }]}>
+                <Animated.View style={{ position: 'absolute', top: 0, left: TAB.wider / 2, flexDirection: 'row', transform: [{ translateX: nodes.left }] }}>
+                  {items.map((item) => (
+                    <Animated.View key={item.value} style={{ transform: [{ scale: nodes.zoom }] }}>
+                      {face(item, true, accent)}
+                    </Animated.View>
+                  ))}
+                </Animated.View>
+              </Animated.View>
+            </View>
+          </Animated.View>
+        )}
+        <Animated.View pointerEvents="none" style={{ position: 'absolute', top: TAB.padY, left: TAB.padX, right: TAB.padX, flexDirection: 'row', opacity: full }}>
+          {items.map((item) => (
+            <View key={item.value} style={{ width: slot, height: TAB.pill }}>
+              {item.badge != null && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: '55%',
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 5,
+                    borderRadius: 9,
+                    backgroundColor: RED,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{item.badge}</Text>
+                </View>
+              )}
+            </View>
+          ))}
         </Animated.View>
-      )}
-      {track.catcher}
-    </View>
+        {track.catcher}
+      </View>
+      <Animated.View
+        pointerEvents={minimized ? 'auto' : 'none'}
+        style={{ position: 'absolute', left: 0, bottom: 0, width: TAB.miniWidth, height: TAB.miniHeight, opacity: Animated.subtract(1, full) }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={chosen ? `${chosen.accessibilityLabel ?? chosen.label}, show tabs` : 'Show tabs'}
+          accessibilityElementsHidden={!minimized}
+          importantForAccessibility={minimized ? 'auto' : 'no-hide-descendants'}
+          onPress={onExpand}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          {hasGlyph(miniIcon) && <Glyph icon={miniIcon} color={accent} size={22} />}
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
   );
 }

@@ -256,6 +256,93 @@ final class TabBarView: ControlView, UITabBarDelegate {
   let onValueChange = EventDispatcher()
   /// Where each tab is on the screen, for anything that points one out, such as an intro tour.
   let onTabLayout = EventDispatcher()
+  /// The selected tab's colour, if the app gives one. UIKit's own is the system blue.
+  var tint: UIColor? {
+    didSet { bar.tintColor = tint }
+  }
+
+  /// The minimised bar was tapped: the app is asked for the whole bar back.
+  let onExpand = EventDispatcher()
+
+  /// Minimised, as iOS 27 minimises a tab bar when a page scrolls down: the bar draws into a glass
+  /// capsule at its leading end, 49 by 39 points, showing the selected tab's icon.
+  private lazy var mini: UIButton = {
+    var config = TabBarView.capsule()
+    let button = UIButton(configuration: config)
+    button.addAction(UIAction { [weak self] _ in self?.onExpand([:]) }, for: .primaryActionTriggered)
+    button.accessibilityLabel = "Show tabs"
+    button.alpha = 0
+    button.isHidden = true
+    addSubview(button)
+    return button
+  }()
+
+  var minimized = false {
+    didSet {
+      guard minimized != oldValue else { return }
+      shrink(animated: window != nil)
+    }
+  }
+
+  /// iOS 26's glass for the capsule, or a grey one before it.
+  private static func capsule() -> UIButton.Configuration {
+    var config: UIButton.Configuration
+    if #available(iOS 26.0, *) { config = .glass() } else { config = .gray() }
+    config.cornerStyle = .capsule
+    return config
+  }
+
+  private func miniFrame() -> CGRect {
+    // Where the capsule's leading end is: from where UIKit put the tabs, or iOS 27's own margins.
+    let tabs = measured.compactMap { tab -> CGRect? in
+      guard let x = tab["x"] as? CGFloat, let y = tab["y"] as? CGFloat, let w = tab["width"] as? CGFloat, let h = tab["height"] as? CGFloat else { return nil }
+      return convert(CGRect(x: x, y: y, width: w, height: h), from: nil)
+    }
+    if let first = tabs.min(by: { $0.minX < $1.minX }), let deepest = tabs.map(\.maxY).max() {
+      return CGRect(x: max(0, first.minX - 4), y: deepest + 4 - 39, width: 49, height: 39)
+    }
+    return CGRect(x: 21, y: bounds.height - 21 - 39, width: 49, height: 39)
+  }
+
+  private func shrink(animated: Bool) {
+    let frame = miniFrame()
+    mini.frame = frame
+    var config = mini.configuration ?? TabBarView.capsule()
+    let item = items.first { $0.value == selected }
+    // In the selected tab's colour, as the bar shows it. Glass buttons draw their symbols in the
+    // label colour whatever they're given, so the colour goes into the image itself.
+    let colour = tint ?? .systemBlue
+    config.image = item.flatMap { Images.icon(uri: $0.selectedIconUri ?? $0.iconUri, symbol: $0.selectedIcon ?? $0.icon, size: 20)?.withTintColor(colour, renderingMode: .alwaysOriginal) }
+    mini.configuration = config
+    mini.isHidden = false
+    // The bar draws in towards the capsule, about the capsule's middle, as it fades.
+    let centre = CGPoint(x: bar.bounds.midX, y: bar.bounds.midY)
+    let towards = CGPoint(x: frame.midX - bar.frame.minX, y: frame.midY - bar.frame.minY)
+    let sx = frame.width / max(1, bar.bounds.width)
+    let sy = min(1, frame.height / 62)
+    let small = CGAffineTransform(translationX: (towards.x - centre.x) * (1 - sx), y: (towards.y - centre.y) * (1 - sy)).scaledBy(x: sx, y: sy)
+    let change = {
+      self.bar.transform = self.minimized ? small : .identity
+      self.bar.alpha = self.minimized ? 0 : 1
+      self.mini.alpha = self.minimized ? 1 : 0
+      self.mini.transform = self.minimized ? .identity : CGAffineTransform(scaleX: 1.6, y: 1.2)
+    }
+    let done: (Bool) -> Void = { _ in if !self.minimized { self.mini.isHidden = true } }
+    if animated {
+      if minimized { mini.transform = CGAffineTransform(scaleX: 1.6, y: 1.2) }
+      UIView.animate(withDuration: 0.42, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0, options: [.allowUserInteraction, .beginFromCurrentState], animations: change, completion: done)
+    } else {
+      change()
+      done(true)
+    }
+    bar.isUserInteractionEnabled = !minimized
+  }
+
+  /// Minimised, only the capsule takes a touch: the rest of the bar's box lets it through.
+  override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    guard minimized else { return super.hitTest(point, with: event) }
+    return mini.frame.contains(point) ? mini : nil
+  }
   private var items: [TabItem] = []
   private var selected: String?
   override var hosted: UIView { bar }
@@ -299,6 +386,8 @@ final class TabBarView: ControlView, UITabBarDelegate {
     selected = value
     let index = items.firstIndex { $0.value == value }
     bar.selectedItem = index.flatMap { bar.items?[$0] }
+    // Minimised, the capsule shows the tab that's now selected.
+    if minimized { shrink(animated: false) }
   }
 
   /// Back to the tab the app gave, after a tap the app didn't take. UIKit moves the selection
@@ -315,6 +404,7 @@ final class TabBarView: ControlView, UITabBarDelegate {
     // React Native gives it the size it asked for, and squeezes the labels to fit. Setting the
     // items again lays them out afresh.
     measureTabs()
+    if minimized { mini.frame = miniFrame() }
     guard bounds.size != laidOut, bounds.height > 0 else { return }
     laidOut = bounds.size
     setItems(items)

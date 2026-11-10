@@ -162,6 +162,13 @@ export interface TabBarProps extends Base {
   tint?: ColorValue;
   /** The labels' typeface. See `setFontFamily` to set one for every control. */
   fontFamily?: string;
+  /**
+   * Shrinks the bar to the selected tab's icon, as iOS 27 does when a page scrolls down. Set it
+   * as the page scrolls down and clear it as it scrolls back up, or when `onExpand` asks.
+   */
+  minimized?: boolean;
+  /** Called when the minimised bar is tapped, to ask for the whole bar back. */
+  onExpand?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
   /**
    * How much of the screen's foot the bar takes, in points, including the space below it down to

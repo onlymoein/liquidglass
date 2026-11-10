@@ -28,6 +28,8 @@ type NativeGlassProps = ViewProps & {
   open?: boolean;
   onFolded?: () => void;
   still?: boolean;
+  stays?: boolean;
+  selection?: boolean;
   onBackdropMissing?: () => void;
 };
 
@@ -44,7 +46,7 @@ const sayNoBackdrop = () => {
   );
 };
 /** Without the package's native code, a translucent pane where the glass would be. */
-function StandIn({ cornerRadius, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
+function StandIn({ cornerRadius, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, stays: _stays, selection: _selection, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
   sayMissing();
   const fill = lens ? 'transparent' : (tint ?? (dark ? 'rgba(40,40,44,0.72)' : 'rgba(255,255,255,0.72)'));
   return <View {...props} style={[{ backgroundColor: prominent ? (tint ?? fill) : fill, borderRadius: cornerRadius }, style]} />;
@@ -69,6 +71,11 @@ export interface Outermost {
   onFolded?: () => void;
   /** What's behind won't change while it's up: it bends a picture of it, taken once. */
   still?: boolean;
+  /**
+   * Starts as `open` says rather than growing, and stays in sight folded into `growFrom`, as a
+   * tab bar shrinks to one tab and back.
+   */
+  stays?: boolean;
 }
 const at = (touch: Held['touch']) => (touch ? [touch.x, touch.y] : undefined);
 const NativeBackdrop: ComponentType<ViewProps> = native ? requireNativeView('LiquidGlass', 'BackdropView') : View;
@@ -132,6 +139,26 @@ export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
       zoom={zoom}
       split={split}
       dark={system === 'dark'}
+    />
+  );
+}
+
+/**
+ * A tab bar's selection at rest: the bar's glass under it, a little darker and richer, as iOS 27
+ * deepens the colour behind the selected tab rather than greying it.
+ */
+export function SelectionGlass({ style, ...props }: ViewProps) {
+  const system = useColorScheme();
+  const radius = StyleSheet.flatten(style)?.borderRadius;
+  return (
+    <NativeGlass
+      onBackdropMissing={sayNoBackdrop}
+      {...props}
+      style={style}
+      cornerRadius={typeof radius === 'number' ? radius : 0}
+      clear={false}
+      dark={system === 'dark'}
+      selection
     />
   );
 }

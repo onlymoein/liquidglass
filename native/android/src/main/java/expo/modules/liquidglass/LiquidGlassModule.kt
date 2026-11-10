@@ -86,6 +86,8 @@ class LiquidGlassModule : Module() {
       }
       Prop("open") { view: GlassView, open: Boolean? -> view.open = open ?: true }
       Prop("still") { view: GlassView, still: Boolean? -> view.still = still ?: false }
+      Prop("stays") { view: GlassView, stays: Boolean? -> view.stays = stays ?: false }
+      Prop("selection") { view: GlassView, selection: Boolean? -> view.selection = selection ?: false }
     }
 
     View(IconView::class) {

@@ -13,7 +13,7 @@ import {
   Text,
   isLiquidGlassAvailable,
 } from '@onlymoein/liquidglass-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -53,6 +53,10 @@ function Screen() {
   const [count, setCount] = useState(2);
   const [view, setView] = useState('day');
   const [sort, setSort] = useState('name');
+  // The tab bar shrinks to its current tab as the page scrolls down, and comes back as it scrolls
+  // up, as iOS 27's does.
+  const [minimized, setMinimized] = useState(false);
+  const lastY = useRef(0);
 
   return (
     <View style={[styles.fill, { backgroundColor: page }]}>
@@ -60,6 +64,15 @@ function Screen() {
           whole screen, and the cards show the circles. On iOS a Backdrop is a plain view. */}
       <Backdrop style={[styles.fill, { backgroundColor: page }]}>
         <ScrollView
+          scrollEventThrottle={16}
+          onScroll={(event) => {
+            const y = event.nativeEvent.contentOffset.y;
+            const moved = y - lastY.current;
+            if (Math.abs(moved) > 8) {
+              setMinimized(moved > 0 && y > 40);
+              lastY.current = y;
+            }
+          }}
           contentContainerStyle={{
             paddingTop: insets.top + 16,
             paddingBottom: insets.bottom + 120,
@@ -196,6 +209,8 @@ function Screen() {
           ]}
           value={tab}
           onValueChange={setTab}
+          minimized={minimized}
+          onExpand={() => setMinimized(false)}
         />
       </View>
     </View>

@@ -45,12 +45,13 @@ public class LiquidGlassModule: Module {
     }
 
     View(TabBarView.self) {
-      Events("onSize", "onValueChange", "onTabLayout")
+      Events("onSize", "onValueChange", "onTabLayout", "onExpand")
       Prop("items") { (view: TabBarView, items: [TabItem]) in view.setItems(items) }
       Prop("selected") { (view: TabBarView, selected: String?) in view.setSelected(selected) }
-      Prop("tint") { (view: TabBarView, tint: UIColor?) in view.bar.tintColor = tint }
+      Prop("tint") { (view: TabBarView, tint: UIColor?) in view.tint = tint }
       Prop("fontFamily") { (view: TabBarView, family: String?) in view.fontFamily = family }
       Prop("resync") { (view: TabBarView, _: Int?) in view.resync() }
+      Prop("minimized") { (view: TabBarView, minimized: Bool?) in view.minimized = minimized ?? false }
     }
 
     View(ButtonView.self) {

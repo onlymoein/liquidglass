@@ -88,9 +88,12 @@ export function usePress(enabled = true, onLayout?: (event: LayoutChangeEvent) =
           // Where the glass is on the page, for where on it the finger is: the touch may land on
           // its label, so it's measured rather than taken from the touch.
           origin.current = { x: pageX - locationX, y: pageY - locationY };
-          ref.current?.measure((_x: number, _y: number, _w: number, _h: number, left: number, top: number) => {
-            origin.current = { x: left, y: top };
-          });
+          // An Expo view's ref has no measure of its own, so only a plain view is asked.
+          if (typeof ref.current?.measure === 'function') {
+            ref.current.measure((_x: number, _y: number, _w: number, _h: number, left: number, top: number) => {
+              origin.current = { x: left, y: top };
+            });
+          }
           setHeld(true);
           track(pageX, pageY);
         },

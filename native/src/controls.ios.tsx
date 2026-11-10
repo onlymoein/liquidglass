@@ -246,6 +246,8 @@ export function TabBar({
   defaultValue = null,
   onValueChange,
   fontFamily,
+  minimized = false,
+  onExpand,
   onLayout,
   onHeight,
   onTabLayout,
@@ -267,6 +269,8 @@ export function TabBar({
         defaultValue={defaultValue}
         onValueChange={onValueChange}
         fontFamily={fontFamily}
+        minimized={minimized}
+        onExpand={onExpand}
         onLayout={onLayout}
         onHeight={onHeight}
         onTabLayout={onTabLayout}
@@ -300,6 +304,8 @@ export function TabBar({
       selected={current}
       fontFamily={fontFamilyFor(fontFamily) ?? null}
       resync={sync.resync}
+      minimized={minimized}
+      onExpand={() => onExpand?.()}
       onValueChange={(event: Value<string>) => {
         setCurrent(event.nativeEvent.value);
         sync.asked(event.nativeEvent.value);

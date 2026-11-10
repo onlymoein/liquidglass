@@ -61,6 +61,12 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   /** Where the finger is, in points from the top left, for the glow under it; null for none. */
   var touch: Pair<Float, Float>? = null
     set(value) { field = value; changed() }
+  /**
+   * A tab bar's selection at rest: the bar's glass under it, a little darker and richer, as iOS
+   * 27 deepens the colour behind the selected tab rather than greying it. No rim, no bend.
+   */
+  var selection = false
+    set(value) { field = value; changed() }
   /** How much a lens enlarges what's under it: 1 for glass that doesn't. */
   var zoom = 1f
     set(value) { field = value; changed() }
@@ -82,6 +88,11 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
    * drawn at its full size, stretched with it, and comes into focus as it gets there.
    */
   var growFrom: RectF? = null
+  /**
+   * Whether it starts as it's asked to be, open or folded, rather than growing when it's first
+   * laid out, and stays in sight folded: a tab bar that shrinks to one tab and back.
+   */
+  var stays = false
   /** Whether it's grown out, or folded back into where it came from. */
   var open = true
     set(value) {
@@ -117,6 +128,9 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   private val onBackdropMissing by EventDispatcher()
   private var missing = false
   private val node: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-glass") else null
+  /** What's behind, blurred at a quarter of the size: a blur that wide looks the same, for a sixteenth of the work. */
+  private val small: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-blur") else null
+  private val shrink: Int get() = if (blur >= 4f) 4 else 1
   private var effectFor = ""
   /** The shader, kept as Any so the class still loads before Android 13. */
   private var compiled: Any? = null
@@ -210,9 +224,14 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     if (growFrom == null) return
     if (!grown) {
       grown = true
-      morph = 0f
       speed = 0f
-      morphTo(if (open) 1f else 0f)
+      if (stays) {
+        morph = if (open) 1f else 0f
+        target = morph
+      } else {
+        morph = 0f
+        morphTo(if (open) 1f else 0f)
+      }
     }
     shape()
   }
@@ -298,7 +317,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     if (Build.VERSION.SDK_INT >= 29) setLeftTopRightBottom(l, top, l + Math.round(w), top + Math.round(h))
     else { left = l; this.top = top; right = l + Math.round(w); bottom = top + Math.round(h) }
     // At the very end of folding back, what it came from takes over.
-    alpha = if (target == 0f) (t / 0.12f).coerceIn(0f, 1f) else 1f
+    alpha = if (target == 0f && !stays) (t / 0.12f).coerceIn(0f, 1f) else 1f
     effectFor = ""
     invalidate()
     (parent as? android.view.View)?.invalidate()
@@ -307,7 +326,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   override fun dispatchDraw(canvas: Canvas) {
     if (width > 0 && height > 0) {
       Shapes.outline(shape, width.toFloat(), height.toFloat(), radiusPx)
-      if (!lens && tint == null && (parent as? GlassGroupView)?.drawsShadows != true) {
+      if (!lens && !selection && tint == null && (parent as? GlassGroupView)?.drawsShadows != true) {
         Shapes.drawShadow(canvas, shape, width.toFloat(), height.toFloat(), radiusPx, short, density, dark)
       }
       if (!grouped) drawGlass(canvas)
@@ -339,11 +358,20 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       return
     }
 
-    val margin = marginPx()
+    val q = shrink
+    val blurNode = small
+    val apart = q > 1 && blurNode != null
+    // The blur gathers from further out than the rim reaches. Blurred apart, at a quarter of the
+    // size, only the rim's reach is drawn round the glass at full size.
+    val blurMargin = marginPx()
+    val margin = if (apart) rimMarginPx() else blurMargin
     glass.setPosition(0, 0, width + margin * 2, height + margin * 2)
     updateEffect(glass, margin)
-    val recording = glass.beginRecording()
-    recording.translate(margin.toFloat(), margin.toFloat())
+    val target = if (apart) blurNode!! else glass
+    if (apart) target.setPosition(0, 0, (width + blurMargin * 2 + q - 1) / q, (height + blurMargin * 2 + q - 1) / q)
+    val recording = target.beginRecording()
+    if (apart) recording.scale(1f / q, 1f / q)
+    recording.translate(blurMargin.toFloat(), blurMargin.toFloat())
     if (still != null) {
       getLocationInWindow(window)
       recording.drawBitmap(still, (pictureAt.left - window[0]).toFloat(), (pictureAt.top - window[1]).toFloat(), null)
@@ -351,7 +379,14 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       recording.concat(fromBackdrop)
       recording.drawRenderNode(source!!)
     }
-    glass.endRecording()
+    target.endRecording()
+    if (apart) {
+      val up = glass.beginRecording()
+      up.translate((margin - blurMargin).toFloat(), (margin - blurMargin).toFloat())
+      up.scale(q.toFloat(), q.toFloat())
+      up.drawRenderNode(target)
+      glass.endRecording()
+    }
 
     canvas.save()
     // From Android 13 the shader draws the edge, and the hairline just outside it. Before, the
@@ -365,7 +400,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   // The values below follow the web version's styles.css and refraction.ts, in points.
 
   internal val short: Float get() = min(width, height) / density
-  private val bezel: Float get() = if (lens) (short * 0.12f).coerceIn(4f, 10f) else (2.4f + short * 0.059f).coerceIn(3f, 12f)
+  private val bezel: Float get() = if (selection) 0f else if (lens) (short * 0.12f).coerceIn(4f, 10f) else (2.4f + short * 0.059f).coerceIn(3f, 12f)
   private val reach: Float get() = if (lens) (short * 0.2f).coerceIn(8f, 24f) else min(short * 0.33f, 48f)
   /** How much of the size curve applies: none at 60 points tall or less, all of it at 120. */
   private val size: Float get() = ((short - 60f) / 60f).coerceIn(0f, 1f)
@@ -375,29 +410,40 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   // Room round the glass for the rim to reach into and the blur to gather from. Two deviations
   // hold all but a sliver of a blur's weight.
   private fun marginPx(): Int = ((reach + blur * 2f) * density).toInt() + 2
+  /** Room for the rim alone: how far its bend reaches, and the hairline just outside. */
+  private fun rimMarginPx(): Int = (reach * density).toInt() + 4
 
   private fun updateEffect(glass: RenderNode, margin: Int) {
-    val key = "$width-$height-$margin-$cornerRadius-$radiusPx-$clear-$dark-$tint-$zoom-$split-$lens-$prominent-$held-$touch-${if (lens) 0 else Tilt.version}"
+    val key = "$width-$height-$margin-$cornerRadius-$radiusPx-$clear-$dark-$tint-$zoom-$split-$lens-$selection-$prominent-$held-$touch-${if (lens || selection) 0 else Tilt.version}"
     if (key == effectFor) return
     effectFor = key
     if (Build.VERSION.SDK_INT < 31) return
 
     // RenderEffect takes a radius and turns it into a deviation as radius * 0.57735 + 0.5.
-    val radius = max(0f, (blur * density - 0.5f) / 0.57735f)
+    val q = shrink
+    val radius = max(0f, (blur * density / q - 0.5f) / 0.57735f)
     val blurred = if (radius > 0f) RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP) else null
+    // Blurred small, in its own node, or here at full size.
+    small?.setRenderEffect(if (q > 1) blurred else null)
+    val here = if (q > 1) null else blurred
     if (Build.VERSION.SDK_INT < 33) {
-      glass.setRenderEffect(blurred)
+      glass.setRenderEffect(here)
       return
     }
 
     val light = !dark
     fun lerp(a: Float, b: Float) = a + (b - a) * size
-    val (contrast, brightness, saturation) = when {
+    val (contrast, glassBrightness, glassSaturation) = when {
       lens -> Triple(1f, 1f, 1f)
       clear -> Triple(0.793f, 1.205f, 1.117f)
       light -> Triple(lerp(0.314f, 0.307f), lerp(1.511f, 1.554f), lerp(2f, 2.081f))
       else -> Triple(lerp(0.68f, 0.66f), lerp(0.98f, 0.83f), lerp(1.6f, 1.7f))
     }
+    // The selection's darker, richer tone after the glass's own, as the web version measured on
+    // iOS: brightness 0.89 and saturation 1.39 in light mode, 0.75 and 1.7 in dark. Brightness and
+    // saturation each pass through the other, so they fold into the glass's.
+    val brightness = glassBrightness * if (!selection) 1f else if (dark) 0.75f else 0.89f
+    val saturation = glassSaturation * if (!selection) 1f else if (dark) 1.7f else 1.39f
     // Made once: making one compiles the shader, which takes longer than a frame on a phone.
     val shader = (compiled as RuntimeShader?) ?: RuntimeShader(GLASS_SHADER).also { compiled = it }
     shader.setFloatUniform("size", width.toFloat(), height.toFloat())
@@ -409,7 +455,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("contrast", contrast)
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
-    shader.setFloatUniform("shine", if (lens) 0.6f else 1f)
+    shader.setFloatUniform("shine", if (selection) 0f else if (lens) 0.6f else 1f)
     shader.setFloatUniform("clear", if ((clear || held) && !lens) 1f else 0f)
     val finger = touch
     if (finger != null) {
@@ -430,6 +476,6 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       shader.setFloatUniform("tint", 0f, 0f, 0f, 0f)
     }
     val bent = RenderEffect.createRuntimeShaderEffect(shader, "content")
-    glass.setRenderEffect(if (blurred != null) RenderEffect.createChainEffect(bent, blurred) else bent)
+    glass.setRenderEffect(if (here != null) RenderEffect.createChainEffect(bent, here) else bent)
   }
 }
