@@ -36,7 +36,7 @@ Install it:
 npm install @onlymoein/liquidglass
 ```
 
-Then use the components anywhere. Their styles come with them.
+Then use the components anywhere. Each brings its own styles the first time it's drawn, so a page with one button gets the button's rules and not the menu's or the sheet's. To load the whole stylesheet yourself instead, import `@onlymoein/liquidglass/styles.css`.
 
 ```tsx
 import { Button, Switch } from "@onlymoein/liquidglass";
@@ -224,6 +224,18 @@ Colours are CSS variables, so you can change them in your own CSS. The ones you'
 | `--lg-fill` | The accent colour of filled buttons and sliders. |
 | `--lg-on` | A switch that's on. |
 | `--lg-shine` | How strong the rim's lines are. `1`, the default, matches iOS 27. |
+
+## Performance
+
+The glass's lens maps and rims are worked out a pixel at a time, which on a phone is slow enough to hold up a page. So they're worked out in a Web Worker, off the page's thread, and each is made once and kept. Glass is frosted from the start and takes up its lens a moment later, when the map arrives. A page whose security policy doesn't allow a worker gets the same glass, worked out on the page instead.
+
+Measured on the demo with Lighthouse's mobile settings, before and after this: performance 70 to 99, time the page is blocked 1.6 seconds to none, and scrolling without a dropped frame.
+
+Each pull request checks this:
+
+- `npm run size`: how much using one `Button`, one `Glass` or everything adds to a site, against `.size-limit.json`.
+- `npm run perf:lighthouse`: the demo's Lighthouse score, time blocked and layout shift, against `lighthouserc.json`.
+- `npm run perf:frames`: scrolls the demo and fails if anything holds up the page.
 
 ## Refraction in Safari and Firefox
 

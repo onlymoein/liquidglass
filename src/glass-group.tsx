@@ -11,6 +11,8 @@ import {
 
 import { outline, type RoundedRect } from "./internal/contour";
 import { cx } from "./internal/cx";
+import { useStyles } from "./internal/styles";
+import glassGroupCss from "./styles/glass-group.css?inline";
 
 export interface GlassGroupProps extends HTMLAttributes<HTMLDivElement> {
   /** Glass closer together than this flows into one shape, in points. */
@@ -28,6 +30,7 @@ export const GlassGroup: ForwardRefExoticComponent<GlassGroupProps & RefAttribut
   HTMLDivElement,
   GlassGroupProps
 >(function GlassGroup({ spacing = 20, className, children, ...props }, forwardedRef) {
+  useStyles(["glass-group", glassGroupCss]);
   const ref = useRef<HTMLDivElement>(null);
   const rimRef = useRef<SVGSVGElement>(null);
   const shadowRef = useRef<SVGSVGElement>(null);

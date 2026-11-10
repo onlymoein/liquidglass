@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["test/setup.ts"],
-    css: { include: [/styles\.css/] },
+    css: { include: [/styles\/[a-z-]+\.css/] },
   },
 });

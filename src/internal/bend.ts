@@ -12,6 +12,8 @@
 // filter on HTML in bounding-box units, so every filter here is in them, and
 // each direction gets its own pass with its own scale.
 
+import { painted } from "./painting";
+
 const SVG = "http://www.w3.org/2000/svg";
 
 /** How far in, in px, the rim reaches for what it shows at its very edge. */
@@ -44,57 +46,6 @@ function container(): SVGDefsElement {
   return defs;
 }
 
-/** The maps for a capsule: how far each point reaches in, across and down, and where it bends at all. */
-function maps(width: number, height: number): [string, string, string] | null {
-  const density = Math.min(devicePixelRatio || 1, 2);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.ceil(width * density));
-  canvas.height = Math.max(1, Math.ceil(height * density));
-  const context = canvas.getContext("2d");
-  // Without a canvas there's nothing to bend by, and the labels stay as they are.
-  if (!context) return null;
-  const across = context.createImageData(canvas.width, canvas.height);
-  const down = context.createImageData(canvas.width, canvas.height);
-  const rim = context.createImageData(canvas.width, canvas.height);
-  const radius = Math.min(width, height) / 2;
-
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const px = ((x + 0.5) * width) / canvas.width - width / 2;
-      const py = ((y + 0.5) * height) / canvas.height - height / 2;
-      const qx = Math.abs(px) - (width / 2 - radius);
-      const qy = Math.abs(py) - (height / 2 - radius);
-      const ox = Math.max(qx, 0);
-      const oy = Math.max(qy, 0);
-      const length = Math.hypot(ox, oy);
-      const distance = radius - (length + Math.min(Math.max(qx, qy), 0));
-      const nx = length > 0 ? (ox / length) * Math.sign(px) : qx > qy ? Math.sign(px) : 0;
-      const ny = length > 0 ? (oy / length) * Math.sign(py) : qx > qy ? 0 : Math.sign(py);
-      // Steepest at the rim and easing to nothing at the band's inner edge.
-      const t = clamp01(1 - Math.max(distance, 0) / BEND_BAND);
-      const reach = t * t;
-      const i = (y * canvas.width + x) * 4;
-      // Each point draws from further in, so the map points inward.
-      const gx = Math.round(127.5 - nx * reach * 127.5);
-      const gy = Math.round(127.5 - ny * reach * 127.5);
-      across.data.fill(gx, i, i + 3);
-      across.data[i + 3] = 255;
-      down.data.fill(gy, i, i + 3);
-      down.data[i + 3] = 255;
-      rim.data[i + 3] = Math.round(t * 255);
-    }
-  }
-
-  context.putImageData(across, 0, 0);
-  const a = canvas.toDataURL();
-  context.putImageData(down, 0, 0);
-  const d = canvas.toDataURL();
-  context.putImageData(rim, 0, 0);
-  return [a, d, canvas.toDataURL()];
-}
-
-const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
-
 /** WebKit draws an SVG filter on HTML only in bounding-box units. */
 const boxUnits = (): boolean => /AppleWebKit\//.test(navigator.userAgent) && !/Chrom(?:e|ium)\//.test(navigator.userAgent);
 
@@ -102,16 +53,19 @@ const boxUnits = (): boolean => /AppleWebKit\//.test(navigator.userAgent) && !/C
  * Filters that bend the rim of a capsule `width` by `height`, from barely to
  * fully, one for each step of the lift. Index 0 is the first step, not none.
  */
-export function bendFilters(width: number, height: number, dark: boolean): string[] {
+export function bendFilters(width: number, height: number, dark: boolean, ready?: (filters: string[]) => void): string[] {
   const w = Math.round(width * 2) / 2;
   const h = Math.round(height * 2) / 2;
   const key = `${w}x${h}${dark ? "-dark" : ""}`;
   const cached = filters.get(key);
   if (cached) return cached;
 
-  const drawn = maps(w, h);
+  // The maps are drawn off the page, and the filters follow them. Until then the labels under
+  // the lens don't bend.
+  const density = Math.min(devicePixelRatio || 1, 2);
+  const drawn = painted(`bend-${w}x${h}-${density}`, { kind: "bend", args: [w, h, density] }, () => ready?.(bendFilters(width, height, dark)));
   if (!drawn) return [];
-  const [across, down, band] = drawn;
+  const [across, down, band] = drawn.urls as [string, string, string];
   const result: string[] = [];
   const base = `liquidglass-bend-${filters.size}`;
   // On a light page labels are dark ink, which has no colour to part: it only blurs.

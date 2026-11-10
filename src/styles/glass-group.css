@@ -1,0 +1,64 @@
+/* Glass group */
+
+.lg-glass-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lg-glass-group-shape,
+.lg-glass-group-layer {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  pointer-events: none;
+}
+
+.lg-glass-group-shape {
+  box-shadow: none;
+}
+
+.lg-glass-group-layer {
+  overflow: visible;
+}
+
+/* No stacking tricks here: anything that isolates the group would cut its glass
+   off from the page. The layers come first, so the pieces paint over them. */
+.lg-glass-group > :not(.lg-glass-group-shape, .lg-glass-group-layer) {
+  position: relative;
+}
+
+.lg-glass-group-shadow path {
+  fill: var(--lg-drop);
+  transform: translateY(4px);
+  filter: blur(4px);
+}
+
+.lg-glass-group-hairline,
+.lg-glass-group-line {
+  fill: none;
+  stroke-width: 0.67px;
+}
+
+.lg-glass-group-hairline {
+  stroke: rgb(0 0 0 / 0.3);
+  stroke-width: 1px;
+}
+
+/* The pieces share the shape's glass and keep only what's on them. */
+.lg-glass-group > .lg-glass:not(.lg-glass-group-shape, [data-variant="filled"]) {
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.lg-glass-group > .lg-glass:not(.lg-glass-group-shape, [data-variant="filled"])::before {
+  display: none;
+}
+
+.lg-glass-group > .lg-glass-copy {
+  display: none;
+}

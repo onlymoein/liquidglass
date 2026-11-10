@@ -18,6 +18,9 @@ import { safeHref } from "./internal/href";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
 import { DRAG, REST } from "./internal/tab-motion";
+import { useStyles } from "./internal/styles";
+import buttonCss from "./styles/button.css?inline";
+import tabBarCss from "./styles/tab-bar.css?inline";
 
 export interface TabBarItem {
   value: string;
@@ -96,7 +99,11 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
     growY = parseFloat(style.getPropertyValue("--lg-lens-grow-y")) || 0;
     // The lens's copy of the labels bends at its rim. Made before the first lift, so it's ready.
     const dark = style.getPropertyValue("--lg-dark").trim() !== "" && style.getPropertyValue("--lg-dark").trim() !== "initial";
-    if (tint.offsetWidth && tint.offsetHeight) bends = bendFilters(tint.offsetWidth, tint.offsetHeight, dark);
+    if (tint.offsetWidth && tint.offsetHeight) {
+      bends = bendFilters(tint.offsetWidth, tint.offsetHeight, dark, (ready) => {
+        bends = ready;
+      });
+    }
   };
 
   // The selection shows its own copy of the tabs, so the ones under it are cut away along
@@ -391,6 +398,7 @@ export function TabBar({
   style,
   ...props
 }: TabBarProps): JSX.Element {
+  useStyles(["button", buttonCss], ["tab-bar", tabBarCss]);
   const barRef = useRef<HTMLDivElement>(null);
   const glassRef = useRef<HTMLSpanElement>(null);
   const lensRef = useRef<HTMLSpanElement>(null);

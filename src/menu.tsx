@@ -7,6 +7,9 @@ import { cx } from "./internal/cx";
 import { placeMenu, type Placement } from "./internal/placement";
 import { fitLens, rimAt } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
+import { useStyles } from "./internal/styles";
+import buttonCss from "./styles/button.css?inline";
+import menuCss from "./styles/menu.css?inline";
 
 export interface MenuItem {
   label: ReactNode;
@@ -232,6 +235,7 @@ export function Menu({
   className,
   style,
 }: MenuProps): JSX.Element {
+  useStyles(["button", buttonCss], ["menu", menuCss]);
   const [open, setOpen] = useControllable(openProp, defaultOpen, onOpenChange);
   const icon = iconProp ?? (label == null ? ellipsis : undefined);
   const face =

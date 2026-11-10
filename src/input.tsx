@@ -11,6 +11,8 @@ import {
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { useRefraction } from "./internal/refraction";
+import { useStyles } from "./internal/styles";
+import inputCss from "./styles/input.css?inline";
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "defaultValue" | "onChange"> {
   value?: string;
@@ -26,6 +28,7 @@ export const Input: ForwardRefExoticComponent<InputProps & RefAttributes<HTMLInp
   HTMLInputElement,
   InputProps
 >(function Input({ value: valueProp, defaultValue = "", onValueChange, icon, variant = "glass", className, style, ...props }, forwardedRef) {
+  useStyles(["input", inputCss]);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useControllable(valueProp, defaultValue, onValueChange);

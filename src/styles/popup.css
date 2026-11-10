@@ -1,0 +1,35 @@
+/* Growing out of a trigger, for popups an app positions itself. It follows the
+   menu's measured spring; set `transform-origin` to where the trigger is. Add it
+   with `data-open` and `data-closed`, as Base UI and Radix set them. */
+.lg-grow[data-open] {
+  animation: lg-grow 650ms ease-out;
+  animation-timing-function: linear(0, 0.191 4.2%, 0.559 8.3%, 0.873 12.5%, 1.048 16.7%, 1.113 20.8%, 1.101 25%, 1.063 29.2%, 1.023 33.3%, 0.998 37.5%, 0.988 41.7%, 0.987 45.8%, 0.992 50%, 1);
+}
+
+.lg-grow[data-closed] {
+  animation: lg-shrink 180ms ease-in forwards;
+}
+
+@keyframes lg-grow {
+  from {
+    opacity: 0.4;
+    scale: 0.4;
+  }
+}
+
+@keyframes lg-shrink {
+  to {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-grow[data-open] {
+    animation: lg-fade-in 100ms ease-out;
+  }
+
+  .lg-grow[data-closed] {
+    animation: none;
+  }
+}

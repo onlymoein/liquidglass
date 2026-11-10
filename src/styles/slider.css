@@ -1,0 +1,114 @@
+/* Slider */
+
+.lg-slider {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.lg-slider-track {
+  position: absolute;
+  inset: 17px 0 auto;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--lg-rail);
+  pointer-events: none;
+}
+
+.lg-slider-fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--lg-progress) * 100%);
+  border-radius: 3px;
+  background: var(--lg-fill);
+}
+
+.lg-slider-thumb {
+  top: 1.5px;
+  left: calc((100% - 37px) * var(--lg-progress) - 11px);
+  width: 59px;
+  height: 38.3px;
+  scale: 0.627;
+}
+
+.lg-slider input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Under a finger the slider follows the thumb itself: a tap on the track does nothing,
+   and a drag moves it by as much as the finger moves, as on iOS. */
+@media (pointer: coarse) {
+  .lg-slider {
+    touch-action: pan-y;
+  }
+
+  .lg-slider input {
+    pointer-events: none;
+  }
+}
+
+.lg-slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+
+/* The native thumb only takes the touch; the glass thumb is drawn beneath.
+   iOS shades the native one even without its appearance, so hide it. */
+.lg-slider input::-webkit-slider-thumb {
+  width: 37px;
+  height: 40px;
+  margin-top: -17px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+  /* A touch on the thumb drags it rather than scrolling the page; the rest of
+     the track still scrolls. Blocking touchmove instead would stop Safari's
+     own drag. */
+  touch-action: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.lg-slider input::-moz-range-track {
+  height: 6px;
+  background: transparent;
+}
+
+.lg-slider input::-moz-range-thumb {
+  width: 37px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+}
+
+.lg-slider:has(input:focus-visible) .lg-slider-thumb {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 3px;
+}
+
+.lg-slider:has(input:disabled) {
+  opacity: 0.35;
+}
+
+.lg-slider input:disabled {
+  cursor: default;
+}

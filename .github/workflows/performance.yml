@@ -1,0 +1,41 @@
+name: Performance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Reads the code and nothing else: it builds, measures, and fails when a budget is broken.
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # How much each way of using the package adds to a site, against .size-limit.json.
+      - run: npm run build
+      - run: npm run size
+      # Loading the demo, against lighthouserc.json: score, time blocked, layout shift.
+      - run: npm run demo:build
+      - run: npm run perf:lighthouse
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      # Scrolling the demo: nothing glass does may hold up the page.
+      - run: npm run perf:frames
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: lighthouse
+          path: .lighthouseci

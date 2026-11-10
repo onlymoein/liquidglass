@@ -12,6 +12,8 @@ import {
 import { cx } from "./internal/cx";
 import { usePress } from "./internal/press";
 import { useRefraction } from "./internal/refraction";
+import { useStyles } from "./internal/styles";
+import buttonCss from "./styles/button.css?inline";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Shown before the label. On its own, the button is a circle; give it an `aria-label`. */
@@ -33,6 +35,7 @@ export const Button: ForwardRefExoticComponent<ButtonProps & RefAttributes<HTMLB
   { icon, variant = "glass", size = "regular", destructive, tint, children, className, style, type = "button", ...props },
   forwardedRef,
 ) {
+  useStyles(["button", buttonCss]);
   const ref = useRef<HTMLButtonElement>(null);
   useImperativeHandle(forwardedRef, () => ref.current!);
   usePress(ref);

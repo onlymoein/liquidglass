@@ -1,5 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
+import { local, painted } from "./painting";
+
 // Refraction model: https://kube.io/blog/liquid-glass-css-svg/
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -34,226 +36,49 @@ function container(): SVGDefsElement {
   return defs;
 }
 
-function profile(bezel: number, thickness: number): { samples: Float32Array; maximum: number } {
-  const samples = new Float32Array(128);
-  let maximum = 0;
-  for (let i = 0; i < samples.length; i++) {
-    const t = Math.max(0.001, i / (samples.length - 1));
-    const surface = (1 - (1 - t) ** 4) ** 0.25;
-    const incident = Math.atan((1 - t) ** 3 / surface ** 3);
-    const refracted = Math.asin(Math.sin(incident) / 1.5);
-    samples[i] = Math.tan(incident - refracted) * (thickness + surface * bezel);
-    maximum = Math.max(maximum, samples[i]!);
-  }
-  return { samples, maximum };
-}
-
-// How far iOS 27 glass moves its backdrop inward: a third of its height at the
-// very edge, falling in a straight line to nothing across the bezel. Measured
-// on panels and pills in parity/.
-function rimProfile(reach: number): { samples: Float32Array; maximum: number } {
-  const samples = new Float32Array(128);
-  for (let i = 0; i < samples.length; i++) samples[i] = reach * (1 - i / (samples.length - 1));
-  return { samples, maximum: reach };
-}
-
-// How far past the shape the rim's image reaches, for the hairline iOS draws just outside it.
-const RIM_OUTSET = 1;
-
-// iOS's corners are continuous: the curve starts further along the edge than a circle's
-// would and passes through the same point at 45 degrees. This superellipse follows
-// alerts, sheets, menus and panels to about a quarter of a point. A corner this long
-// needs room, so anything nearly a capsule stays circular, as it does on iOS.
-const CORNER_REACH = 1.2;
-const CORNER_POWER = 2.5;
-const continuous = (width: number, height: number, radius: number) => radius > 0 && radius * CORNER_REACH <= Math.min(width, height) / 2;
+// The painter's own measures, shared with what it works out off the page.
+const { continuous, CORNER_REACH, CORNER_POWER, RIM_OUTSET, MASK_OUTSET } = local;
 // The same curve in CSS, where there's corner-shape. Safari gets a mask instead: on the Mac it
 // has corner-shape, but it doesn't clip the backdrop to it, and the frost shows square corners.
 const CORNER_SHAPE = `superellipse(${Math.log2(CORNER_POWER).toFixed(3)})`;
 const hasCornerShape = () => /Chrom(?:e|ium)\//.test(navigator.userAgent) && typeof CSS !== "undefined" && CSS.supports?.("corner-shape", CORNER_SHAPE);
 
-/** How far inside a rounded rectangle a point is, measured from its centre, and which way is out. */
-function toEdge(px: number, py: number, width: number, height: number, radius: number): { distance: number; nx: number; ny: number } {
-  if (continuous(width, height, radius)) {
-    const reach = radius * CORNER_REACH;
-    const a = Math.abs(px) - (width / 2 - reach);
-    const b = Math.abs(py) - (height / 2 - reach);
-    if (a > 0 && b > 0) {
-      const [u, v] = [a / reach, b / reach];
-      const g = (u ** CORNER_POWER + v ** CORNER_POWER) ** (1 / CORNER_POWER);
-      const gx = (u / g) ** (CORNER_POWER - 1);
-      const gy = (v / g) ** (CORNER_POWER - 1);
-      const norm = Math.hypot(gx, gy);
-      return { distance: ((1 - g) * reach) / norm, nx: (gx / norm) * Math.sign(px), ny: (gy / norm) * Math.sign(py) };
-    }
-    const dx = width / 2 - Math.abs(px);
-    const dy = height / 2 - Math.abs(py);
-    return dx < dy ? { distance: dx, nx: Math.sign(px), ny: 0 } : { distance: dy, nx: 0, ny: Math.sign(py) };
-  }
-  const qx = Math.abs(px) - (width / 2 - radius);
-  const qy = Math.abs(py) - (height / 2 - radius);
-  const ox = Math.max(qx, 0);
-  const oy = Math.max(qy, 0);
-  const length = Math.hypot(ox, oy);
-  return {
-    distance: radius - (length + Math.min(Math.max(qx, qy), 0)),
-    nx: length > 0 ? (ox / length) * Math.sign(px) : qx > qy ? Math.sign(px) : 0,
-    ny: length > 0 ? (oy / length) * Math.sign(py) : qx > qy ? 0 : Math.sign(py),
-  };
-}
-
-// How far outside the box the shape's mask reaches, to leave its shadow alone.
-const MASK_OUTSET = 44;
-
-// CSS only draws circular corners, and Safari has no corner-shape, but a mask keeps the
-// backdrop where a clip doesn't. It trims the circle down to the continuous curve, and
-// leaves everything outside the circle as it was: only the shadow is out there.
-function cornerMask(width: number, height: number, radius: number): string {
-  const density = Math.min(devicePixelRatio || 1, 3);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil((width + MASK_OUTSET * 2) * density);
-  canvas.height = Math.ceil((height + MASK_OUTSET * 2) * density);
-  const context = canvas.getContext("2d")!;
-  const image = context.createImageData(canvas.width, canvas.height);
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const px = (x + 0.5) / density - MASK_OUTSET - width / 2;
-      const py = (y + 0.5) / density - MASK_OUTSET - height / 2;
-      const qx = Math.abs(px) - (width / 2 - radius);
-      const qy = Math.abs(py) - (height / 2 - radius);
-      const outsideCircle = qx > 0 && qy > 0 ? Math.hypot(qx, qy) > radius : qx > radius || qy > radius;
-      // A point past the rim's hairline is cut; the hairline itself has to stay.
-      const alpha = outsideCircle ? 1 : clamp(toEdge(px, py, width, height, radius).distance + RIM_OUTSET + 0.5, 0, 1);
-      image.data[(y * canvas.width + x) * 4 + 3] = Math.round(alpha * 255);
-    }
-  }
-  context.putImageData(image, 0, 0);
-  return canvas.toDataURL();
-}
-
-// iOS 27 lights glass from straight above and below: a bright line along the top
-// and bottom, a dark hairline just outside the sides and more faintly round the
-// rest, and a faint shade inside everywhere but the bottom. Measured in parity/.
-function rimImage(width: number, height: number, radius: number, shine: number, clear: number): string {
-  const density = Math.min(devicePixelRatio || 1, 3);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil((width + RIM_OUTSET * 2) * density);
-  canvas.height = Math.ceil((height + RIM_OUTSET * 2) * density);
-  const context = canvas.getContext("2d")!;
-  const image = context.createImageData(canvas.width, canvas.height);
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const px = (x + 0.5) / density - RIM_OUTSET - width / 2;
-      const py = (y + 0.5) / density - RIM_OUTSET - height / 2;
-      const { distance, nx, ny } = toEdge(px, py, width, height, radius);
-      if (distance > 15) continue;
-      const side = nx * nx;
-      const end = ny * ny;
-
-      let light = 0;
-      let shade = 0;
-      if (distance >= 0) {
-        const line = Math.max(0, 0.39 - 0.29 * distance);
-        if (ny < 0) {
-          light = end * (line + (distance > 1 ? 0.05 * Math.max(0, 1 - (distance - 1) / 2.5) : 0));
-          shade = end * 0.02 * Math.max(0, 1 - Math.abs(distance - 9) / 5);
-        } else if (ny > 0) {
-          light = end * line;
-        }
-        shade += side * 0.02 * clamp((15 - distance) / 5, 0, 1);
-      } else {
-        const outside = clamp(1 + distance / 0.75, 0, 1);
-        shade = (side * 0.75 + end * 0.2) * outside;
-      }
-      // Clear glass has nothing lifting it, so its lit edge stands out more.
-      light = clamp(light * shine * (1 + clear * 1.1), 0, 1);
-      shade = clamp(shade * shine, 0, 1);
-      const alpha = light + shade - light * shade;
-      if (alpha <= 0) continue;
-      const i = (y * canvas.width + x) * 4;
-      const white = Math.round((255 * light) / (light + shade));
-      image.data[i] = image.data[i + 1] = image.data[i + 2] = white;
-      image.data[i + 3] = Math.round(alpha * 255);
-    }
-  }
-  context.putImageData(image, 0, 0);
-  return canvas.toDataURL();
-}
-
-function maps(width: number, height: number, radius: number, selection: boolean, shape: Shape) {
-  const density = Math.min(devicePixelRatio || 1, selection ? 3 : 2);
-  const short = Math.min(width, height);
-  const bezel = shape.bezel ?? (selection ? clamp(short * 0.12, 4, 10) : clamp(2.4 + short * 0.059, 3, 12));
-  const { samples, maximum } = selection
-    ? profile(bezel, shape.thickness ?? clamp(short * 0.2, 8, 24))
-    : rimProfile(shape.thickness ?? Math.min(short * 0.33, 48));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(width * density);
-  canvas.height = Math.ceil(height * density);
-  const context = canvas.getContext("2d")!;
-  const field = context.createImageData(canvas.width, canvas.height);
-  const magnify = shape.zoom > 1 ? context.createImageData(canvas.width, canvas.height) : undefined;
-  const reach = Math.max(width, height) / 2;
-  const direction = selection ? 1 : -1;
-
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const px = ((x + 0.5) * width) / canvas.width - width / 2;
-      const py = ((y + 0.5) * height) / canvas.height - height / 2;
-      const qx = Math.abs(px) - (width / 2 - radius);
-      const qy = Math.abs(py) - (height / 2 - radius);
-      const ox = Math.max(qx, 0);
-      const oy = Math.max(qy, 0);
-      const length = Math.hypot(ox, oy);
-      const distance = radius - (length + Math.min(Math.max(qx, qy), 0));
-      const nx = length > 0 ? (ox / length) * Math.sign(px) : qx > qy ? Math.sign(px) : 0;
-      const ny = length > 0 ? (oy / length) * Math.sign(py) : qx > qy ? 0 : Math.sign(py);
-
-      let shift = 0;
-      if (distance >= 0 && distance < bezel) {
-        const sample = (distance / bezel) * (samples.length - 1);
-        const lower = Math.floor(sample);
-        const a = samples[lower]!;
-        const b = samples[Math.min(lower + 1, samples.length - 1)]!;
-        shift = a + (b - a) * (sample - lower);
-      }
-
-      const i = (y * canvas.width + x) * 4;
-      field.data[i] = Math.round(127.5 + ((direction * nx * shift) / maximum) * 127.5);
-      field.data[i + 1] = Math.round(127.5 + ((direction * ny * shift) / maximum) * 127.5);
-      field.data[i + 2] = 128;
-      field.data[i + 3] = 255;
-
-      // A linear field: each point samples from closer to the centre, which
-      // enlarges the whole face evenly.
-      if (magnify) {
-        magnify.data[i] = Math.round(127.5 - (px / reach) * 127.5);
-        magnify.data[i + 1] = Math.round(127.5 - (py / reach) * 127.5);
-        magnify.data[i + 2] = 128;
-        magnify.data[i + 3] = 255;
-      }
-    }
-  }
-
-  context.putImageData(field, 0, 0);
-  const displacement = canvas.toDataURL();
-  let zoom: { map: string; scale: number } | undefined;
-  if (magnify) {
-    context.putImageData(magnify, 0, 0);
-    zoom = { map: canvas.toDataURL(), scale: 2 * reach * (1 - 1 / shape.zoom) };
-  }
-  return { displacement, zoom, scale: maximum * 2 * shape.level };
-}
+// Glass that's handed a map, rim or mask to come is fitted again when it arrives, if it's
+// still glass by then.
+const managed = new WeakMap<HTMLElement, number>();
+const manage = (element: HTMLElement) => managed.set(element, (managed.get(element) ?? 0) + 1);
+const release = (element: HTMLElement) => {
+  const count = (managed.get(element) ?? 1) - 1;
+  if (count > 0) managed.set(element, count);
+  else managed.delete(element);
+};
+const still = (element: HTMLElement) => element.isConnected && managed.has(element);
 
 // The filter only bends the rim. Blur and the rim highlight are applied in CSS,
 // which Chromium positions correctly when it repaints part of the glass.
-function lens(width: number, height: number, radius: number, selection: boolean, shape: Shape): string {
+function lens(width: number, height: number, radius: number, selection: boolean, shape: Shape, ready: () => void): string | undefined {
   const key = Object.values({ width, height, radius, selection, ...shape }).join("-");
   const cached = lenses.get(key);
-  if (cached) return cached;
+  if (cached !== undefined) return cached;
 
-  const { displacement, zoom, scale } = maps(width, height, radius, selection, shape);
+  // A pane's map is smooth, so one pixel to a point holds all of it. A lens bends steeply at its
+  // rim and enlarges, and keeps the screen's own detail, up to three pixels a point.
+  const density = selection ? Math.min(devicePixelRatio || 1, 3) : 1;
+  const maps = painted(
+    `lens-${key}-${density}`,
+    { kind: "displacement", args: [width, height, radius, selection, shape.bezel, shape.thickness, shape.zoom, density] },
+    ready,
+  );
+  if (maps === undefined) return undefined;
+  // Without a canvas there's nothing to bend by, and the glass stays as CSS draws it.
+  if (maps === null) {
+    lenses.set(key, "");
+    return "";
+  }
+  const displacement = maps.urls[0]!;
+  const zoomMap = maps.urls[1];
+  const scale = maps.maximum! * 2 * shape.level;
+  const zoom = zoomMap ? { map: zoomMap, scale: 2 * maps.reach! * (1 - 1 / shape.zoom) } : undefined;
   const id = `liquidglass-${lenses.size}`;
   const box = { x: 0, y: 0, width, height };
   const filter = svg("filter", {
@@ -391,38 +216,32 @@ function darkCurve(size: number): string {
   return `url("#${id}")`;
 }
 
-const rims = new Map<string, string>();
-
-function rimFor(width: number, height: number, radius: number, shine: number, clear = 0): string {
-  const key = `${width}-${height}-${radius}-${shine}-${clear}-${devicePixelRatio}`;
-  let rim = rims.get(key);
-  if (!rim) {
-    rim = `url("${rimImage(width, height, radius, shine, clear)}")`;
-    rims.set(key, rim);
-  }
-  return rim;
+/** The rim's picture as a CSS image, or undefined while it's still being drawn. */
+function rimFor(width: number, height: number, radius: number, shine: number, clear: number, ready: () => void): string | undefined {
+  const density = Math.min(devicePixelRatio || 1, 3);
+  const rim = painted(`rim-${width}-${height}-${radius}-${shine}-${clear}-${density}`, { kind: "rim", args: [width, height, radius, shine, clear, density] }, ready);
+  return rim ? `url("${rim.urls[0]}")` : rim === null ? "none" : undefined;
 }
 
 // The rim only changes within this distance of the edge, as far in as it draws, so
 // the corners and a sliver of each side are enough to build it at any size.
 const RIM_REACH = 16;
 
-function setRimPieces(element: HTMLElement, width: number, height: number, radius: number, shine: number, clear = 0): void {
+function setRimPieces(element: HTMLElement, width: number, height: number, radius: number, shine: number, clear: number, ready: () => void): void {
   const density = Math.min(devicePixelRatio || 1, 3);
   const smooth = continuous(width, height, radius);
   const half = (side: number) => Math.min(side / 2, Math.ceil(Math.max(smooth ? radius * CORNER_REACH : radius, RIM_REACH)) + 1);
   const fits = (side: number) => (half(side) * 2 >= side ? side : half(side) * 2 + 2);
   const [w, h] = [fits(width), fits(height)];
   const [x, y] = [half(width) + RIM_OUTSET, half(height) + RIM_OUTSET];
-  const rim = rimFor(w, h, radius, shine, clear);
+  const rim = rimFor(w, h, radius, shine, clear, ready);
+  // Until its picture is drawn the glass keeps whatever rim it had.
+  if (rim === undefined) return;
   // The sliver keeps its shape as long as the corner still has room in it.
   if (smooth && continuous(w, h, radius) && !hasCornerShape()) {
-    const key = `mask-${w}-${h}-${radius}-${devicePixelRatio}`;
-    let mask = rims.get(key);
-    if (!mask) {
-      mask = `url("${cornerMask(w, h, radius)}")`;
-      rims.set(key, mask);
-    }
+    const painting = painted(`mask-${w}-${h}-${radius}-${density}`, { kind: "mask", args: [w, h, radius, density] }, ready);
+    if (painting === undefined) return;
+    const mask = painting ? `url("${painting.urls[0]}")` : "none";
     const [mx, my] = [x - RIM_OUTSET + MASK_OUTSET, y - RIM_OUTSET + MASK_OUTSET];
     element.style.setProperty("--lg-mask", `${mask} ${Math.round(my * density)} ${Math.round(mx * density)} fill / ${my}px ${mx}px / ${MASK_OUTSET}px stretch`);
   } else element.style.removeProperty("--lg-mask");
@@ -442,7 +261,9 @@ export function lightRim(element: HTMLElement, on: boolean): void {
   const rim = drawn.get(element);
   if (!rim) return;
   const [width, height, radius, shine, clear] = rim;
-  setRimPieces(element, width, height, radius, shine, on ? 1 : clear);
+  setRimPieces(element, width, height, radius, shine, on ? 1 : clear, () => {
+    if (still(element)) lightRim(element, element.hasAttribute("data-pressed"));
+  });
 }
 
 function clearRim(element: HTMLElement): void {
@@ -487,12 +308,16 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
     zoom: Math.max(1, length("--lg-zoom") ?? 1),
     shine: Math.max(0, length("--lg-shine") ?? 1),
   };
+  // What's still being drawn is taken up when it arrives, if this is still glass then.
+  const again = () => requestAnimationFrame(() => {
+    if (still(element)) fit(element, selection, filtered);
+  });
   // The rim is all that's needed unless the lens can run, and costs far less to work out.
-  const filter = filtered ? lens(width, height, radius, selection, shape) : "";
+  const filter = filtered ? lens(width, height, radius, selection, shape, again) : "";
   // Small glass is brighter and throws less shadow than large glass.
   const size = clamp((Math.min(width, height) - 60) / 60, 0, 1);
   if (!selection && !element.hasAttribute("data-size-fixed")) element.style.setProperty("--lg-size", String(size));
-  if (filtered) {
+  if (filtered && filter !== undefined) {
     element.style.setProperty("--lg-filter", filter);
     if (!selection) element.style.setProperty("--lg-lens-blur", "0px");
     // The curve is regular glass's. Clearer glass stays on the tone.
@@ -501,11 +326,13 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
     } else element.style.removeProperty("--lg-size-curve");
   }
   // A selection's lens stretches as it lifts and draws its rim as a background.
-  if (selection) element.style.setProperty("--lg-rim", rimFor(width, height, radius, shape.shine, clear));
-  else {
+  if (selection) {
+    const rim = rimFor(width, height, radius, shape.shine, clear, again);
+    if (rim !== undefined) element.style.setProperty("--lg-rim", rim);
+  } else {
     drawn.set(element, [width, height, radius, shape.shine, clear]);
     // A rim refitted while the glass is held stays lit.
-    setRimPieces(element, width, height, radius, shape.shine, element.hasAttribute("data-pressed") ? 1 : clear);
+    setRimPieces(element, width, height, radius, shape.shine, element.hasAttribute("data-pressed") ? 1 : clear, again);
     if (!even) element.style.removeProperty("--lg-mask");
   }
 }
@@ -530,6 +357,7 @@ const filtersCopy = (): boolean => !/AppleWebKit\//.test(navigator.userAgent);
 // content they have no copy of.
 function refract(element: HTMLElement, selection: boolean, filtered: boolean, now = false): () => void {
   let cancel: (() => void) | undefined;
+  manage(element);
   // The rim is cheap, and applied part-way through an opening it costs frames.
   if (now) fit(element, selection, filtered);
   const observer = new ResizeObserver(() => {
@@ -540,6 +368,7 @@ function refract(element: HTMLElement, selection: boolean, filtered: boolean, no
   return () => {
     cancel?.();
     observer.disconnect();
+    release(element);
     element.style.removeProperty("--lg-filter");
     element.style.removeProperty("--lg-lens-blur");
     element.style.removeProperty("--lg-size-curve");
@@ -555,15 +384,24 @@ export const fitRim = (element: HTMLElement): (() => void) => refract(element, f
 export function rimAt(element: HTMLElement, width: number, height: number, radius: number): () => void {
   if (!width || !height) return () => {};
   const shine = parseFloat(getComputedStyle(element).getPropertyValue("--lg-shine")) || 1;
-  setRimPieces(element, width, height, radius, shine);
-  return () => clearRim(element);
+  manage(element);
+  const draw = () => setRimPieces(element, width, height, radius, shine, 0, () => {
+    if (still(element)) draw();
+  });
+  draw();
+  return () => {
+    release(element);
+    clearRim(element);
+  };
 }
 
 /** The lens for an element at its final size, where the browser can run it. Stop it before the size changes. */
 export function fitLens(element: HTMLElement): () => void {
   if (!refractsBackdrop()) return () => {};
+  manage(element);
   fit(element, false, true);
   return () => {
+    release(element);
     element.style.removeProperty("--lg-filter");
     element.style.removeProperty("--lg-lens-blur");
     element.style.removeProperty("--lg-size-curve");

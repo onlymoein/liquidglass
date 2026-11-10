@@ -1,8 +1,3 @@
-import { insertStyles } from "./internal/styles";
-import css from "./styles.css?inline";
-
-insertStyles(css);
-
 export { Alert, type AlertAction, type AlertProps } from "./alert";
 export { Button, type ButtonProps } from "./button";
 export { Glass, type GlassProps } from "./glass";

@@ -1,0 +1,36 @@
+/* Alerts and sheets sit in the top layer, over a scrim of their own: fading the
+   dialog itself would stop the glass inside seeing the page. */
+.lg-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: var(--lg-foreground);
+  background: none;
+}
+
+.lg-modal:not([open]) {
+  display: none;
+}
+
+.lg-modal:focus {
+  outline: none;
+}
+
+.lg-modal::backdrop {
+  background: none;
+}
+
+.lg-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--lg-scrim);
+}

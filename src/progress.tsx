@@ -7,6 +7,9 @@ import {
 } from "react";
 
 import { cx } from "./internal/cx";
+import { useStyles } from "./internal/styles";
+import menuCss from "./styles/menu.css?inline";
+import progressCss from "./styles/progress.css?inline";
 
 export interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
   /** How far along, from 0 to 1. */
@@ -18,6 +21,7 @@ export const Progress: ForwardRefExoticComponent<ProgressProps & RefAttributes<H
   HTMLDivElement,
   ProgressProps
 >(function Progress({ value, className, style, ...props }, ref) {
+  useStyles(["menu", menuCss], ["progress", progressCss]);
   const amount = Math.min(1, Math.max(0, value));
   return (
     <div
@@ -44,6 +48,7 @@ export const Spinner: ForwardRefExoticComponent<SpinnerProps & RefAttributes<HTM
   HTMLSpanElement,
   SpinnerProps
 >(function Spinner({ className, ...props }, ref) {
+  useStyles(["menu", menuCss], ["progress", progressCss]);
   return (
     <span ref={ref} role="status" aria-label="Loading" className={cx("lg-spinner", className)} {...props}>
       {BLADES.map((blade) => (

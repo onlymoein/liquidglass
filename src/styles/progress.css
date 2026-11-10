@@ -1,0 +1,50 @@
+/* Progress */
+
+.lg-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--lg-fill-subtle);
+}
+
+.lg-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lg-fill);
+  transform: scaleX(var(--lg-progress));
+  transform-origin: 0 0;
+  transition: transform 300ms var(--lg-ease);
+}
+
+.lg-spinner {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  color: var(--lg-muted);
+}
+
+.lg-spinner > i {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 1.25px);
+  width: 2.5px;
+  height: 6px;
+  border-radius: 1.25px;
+  background: currentColor;
+  transform-origin: 1.25px 10px;
+  transform: rotate(calc(var(--lg-blade) * 45deg));
+  animation: lg-spin 800ms linear infinite;
+  animation-delay: calc((var(--lg-blade) - 8) * 100ms);
+}
+
+@keyframes lg-spin {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.2;
+  }
+}

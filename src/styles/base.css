@@ -1,0 +1,259 @@
+:where(:root, [data-theme="light"]) {
+  --lg-foreground: rgb(0 0 0);
+  --lg-muted: rgb(60 60 67 / 0.6);
+  /* On glass, ink is black at an opacity, so it takes up the colour behind it as iOS's does. */
+  --lg-secondary: rgb(0 0 0 / 0.58);
+  --lg-grabber: rgb(0 0 0 / 0.33);
+  --lg-press-ink: rgb(0 0 0 / 0.77);
+  --lg-transparency: 0.5;
+  /* How strong the rim's lines are. */
+  --lg-shine: 1;
+  /* What regular glass does to its backdrop, fitted to iOS 27 (see parity/):
+     glass 120 points tall or more, and glass 60 or less. */
+  --lg-contrast: 0.307;
+  --lg-brightness: 1.554;
+  --lg-saturate: 2.081;
+  --lg-contrast-small: 0.314;
+  --lg-brightness-small: 1.511;
+  --lg-saturate-small: 2;
+  --lg-dark: initial;
+  --lg-drop-strength: 1;
+  --lg-tab-accent: #005fc9;
+  --lg-fill-subtle: rgb(118 118 128 / 0.12);
+  --lg-stepper: rgb(0 0 0 / 0.05);
+  --lg-thumb: #fff;
+  --lg-scrim: rgb(0 0 0 / 0.2);
+  --lg-action: rgb(0 0 0 / 0.15);
+  --lg-sheet-opaque: #fff;
+  --lg-fill-shade: 11%;
+  --lg-fill-alpha: 100%;
+  --lg-glass-tinted: rgb(247 247 249 / 0.96);
+  --lg-glass-active: rgb(255 255 255 / 0.34);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.03);
+  --lg-selection: transparent;
+  /* The selected tab keeps the colour of what's behind it: deeper, not greyer. */
+  --lg-selection-filter: saturate(1.39) brightness(0.89);
+  --lg-lens: transparent;
+  --lg-surface: rgb(250 250 252 / 0.86);
+  --lg-surface-edge: rgb(0 0 0 / 0.08);
+  --lg-shadow: rgb(25 25 35 / 0.12);
+  --lg-highlight: rgb(60 60 67 / 0.09);
+  --lg-separator: rgb(0 0 0 / 0.1);
+  --lg-fill-edge: 62%, #000;
+  --lg-destructive: #ff383c;
+  --lg-destructive-ink: #dc1e30;
+  --lg-menu-destructive: #dc1e30;
+  --lg-track: rgb(59 59 66 / 0.3);
+  --lg-rail: rgb(0 0 0 / 0.1);
+  --lg-on: #34c759;
+  --lg-fill: #0088ff;
+  --lg-ring: rgb(0 0 0 / 0.4);
+  --lg-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:where([data-theme="dark"]) {
+  --lg-foreground: rgb(255 255 255);
+  --lg-muted: rgb(235 235 245 / 0.6);
+  --lg-secondary: rgb(255 255 255 / 0.6);
+  --lg-grabber: rgb(255 255 255 / 0.3);
+  --lg-press-ink: rgb(255 255 255);
+  --lg-glass-tinted: rgb(30 30 32 / 0.95);
+  --lg-glass-active: rgb(255 255 255 / 0.3);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.05);
+  --lg-contrast: 0.66;
+  --lg-brightness: 0.83;
+  --lg-saturate: 1.7;
+  --lg-contrast-small: 0.68;
+  --lg-brightness-small: 0.98;
+  --lg-saturate-small: 1.6;
+  /* Chromium can run the real curve; everywhere else falls back to the tone. */
+  --lg-dark: opacity(1);
+  --lg-drop-strength: 1.6;
+  --lg-tab-accent: #62dcff;
+  --lg-fill-subtle: rgb(118 118 128 / 0.24);
+  --lg-stepper: rgb(255 255 255 / 0.1);
+  --lg-thumb: rgb(255 255 255 / 0.25);
+  --lg-scrim: rgb(0 0 0 / 0.48);
+  --lg-action: rgb(255 255 255 / 0.1);
+  --lg-sheet-opaque: #1c1c1e;
+  --lg-fill-shade: 0%;
+  --lg-fill-alpha: 95%;
+  --lg-selection: transparent;
+  --lg-selection-filter: brightness(0.75) saturate(1.7);
+  --lg-lens: rgb(255 255 255 / 0.055);
+  --lg-surface: rgb(28 28 31 / 0.86);
+  --lg-surface-edge: rgb(255 255 255 / 0.13);
+  --lg-shadow: rgb(0 0 0 / 0.38);
+  --lg-highlight: rgb(235 235 245 / 0.13);
+  --lg-separator: rgb(235 235 245 / 0.16);
+  --lg-destructive: #ff4245;
+  --lg-destructive-ink: #ff8498;
+  --lg-menu-destructive: #ff5254;
+  --lg-fill-edge: 70%, #fff;
+  --lg-track: rgb(235 235 245 / 0.3);
+  --lg-rail: rgb(255 255 255 / 0.1);
+  --lg-on: #30d158;
+  --lg-fill: #0091ff;
+  --lg-ring: rgb(255 255 255 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"])) {
+    --lg-foreground: rgb(255 255 255);
+    --lg-muted: rgb(235 235 245 / 0.6);
+    --lg-secondary: rgb(255 255 255 / 0.6);
+    --lg-grabber: rgb(255 255 255 / 0.3);
+    --lg-press-ink: rgb(255 255 255);
+      --lg-glass-tinted: rgb(30 30 32 / 0.95);
+    --lg-glass-active: rgb(255 255 255 / 0.3);
+    --lg-edge: transparent;
+    --lg-drop: rgb(0 0 0 / 0.05);
+    --lg-contrast: 0.66;
+    --lg-brightness: 0.83;
+    --lg-saturate: 1.7;
+    --lg-contrast-small: 0.68;
+    --lg-brightness-small: 0.98;
+    --lg-saturate-small: 1.6;
+    /* Chromium can run the real curve; everywhere else falls back to the tone. */
+    --lg-dark: opacity(1);
+    --lg-drop-strength: 1.6;
+  /* Chromium can run the real curve; everywhere else falls back to the tone. */
+  --lg-curve: var(--lg-svg-dark);
+    --lg-tab-accent: #62dcff;
+    --lg-fill-subtle: rgb(118 118 128 / 0.24);
+    --lg-stepper: rgb(255 255 255 / 0.1);
+  --lg-stepper: rgb(255 255 255 / 0.1);
+    --lg-thumb: rgb(255 255 255 / 0.25);
+    --lg-scrim: rgb(0 0 0 / 0.48);
+    --lg-action: rgb(255 255 255 / 0.1);
+    --lg-sheet-opaque: #1c1c1e;
+  --lg-fill-subtle: rgb(118 118 128 / 0.24);
+  --lg-stepper: rgb(255 255 255 / 0.1);
+  --lg-thumb: rgb(255 255 255 / 0.25);
+  --lg-scrim: rgb(0 0 0 / 0.48);
+  --lg-action: rgb(255 255 255 / 0.1);
+  --lg-sheet-opaque: #1c1c1e;
+    --lg-fill-shade: 0%;
+    --lg-fill-alpha: 95%;
+    --lg-selection: transparent;
+    --lg-selection-filter: brightness(0.75) saturate(1.7);
+    --lg-lens: rgb(255 255 255 / 0.055);
+    --lg-surface: rgb(28 28 31 / 0.86);
+    --lg-surface-edge: rgb(255 255 255 / 0.13);
+    --lg-shadow: rgb(0 0 0 / 0.38);
+    --lg-highlight: rgb(235 235 245 / 0.13);
+    --lg-separator: rgb(235 235 245 / 0.16);
+    --lg-destructive: #ff4245;
+    --lg-destructive-ink: #ff8498;
+    --lg-menu-destructive: #ff5254;
+    --lg-fill-edge: 70%, #fff;
+    --lg-track: rgb(235 235 245 / 0.3);
+    --lg-rail: rgb(255 255 255 / 0.1);
+    --lg-on: #30d158;
+    --lg-fill: #0091ff;
+    --lg-ring: rgb(255 255 255 / 0.5);
+  }
+}
+
+/* Glass */
+
+/* `--lg-transparency` runs from 0, fully tinted, through 0.5, regular glass, to
+   1, clear glass, like the iOS 27 setting. It's worked out on each glass so it
+   can be set anywhere above.
+
+   iOS lifts the backdrop and then saturates it, so colours stay vivid. A tint
+   painted on top couldn't do that, so glass has no tint until it's asked to be
+   more opaque than regular. */
+.lg-glass {
+  --lg-clearness: clamp(0, (var(--lg-transparency) - 0.5) * 2, 1);
+  /* From 0 for glass 60 points tall or less to 1 for 120 or more. Set by the glass when it's measured. */
+  --lg-size: 1;
+  --lg-glass: color-mix(
+    in srgb,
+    var(--lg-glass-tinted) calc(clamp(0, (0.5 - var(--lg-transparency)) * 2, 1) * 100%),
+    transparent
+  );
+  --lg-blur: calc(15.3px - 14px * var(--lg-clearness));
+  --lg-regular-contrast: calc(var(--lg-contrast-small) + (var(--lg-contrast) - var(--lg-contrast-small)) * var(--lg-size));
+  --lg-regular-brightness: calc(var(--lg-brightness-small) + (var(--lg-brightness) - var(--lg-brightness-small)) * var(--lg-size));
+  --lg-regular-saturate: calc(var(--lg-saturate-small) + (var(--lg-saturate) - var(--lg-saturate-small)) * var(--lg-size));
+  --lg-tone:
+    contrast(calc(var(--lg-regular-contrast) + (0.793 - var(--lg-regular-contrast)) * var(--lg-clearness)))
+    brightness(calc(var(--lg-regular-brightness) + (1.205 - var(--lg-regular-brightness)) * var(--lg-clearness)))
+    saturate(calc(var(--lg-regular-saturate) + (1.117 - var(--lg-regular-saturate)) * var(--lg-clearness)));
+  /* The exact curve, in dark mode where the browser can run it. */
+  --lg-curve: var(--lg-dark) var(--lg-size-curve);
+  position: relative;
+  background-color: var(--lg-glass);
+  /* Trims the circular corners to continuous ones, once they're measured. */
+  -webkit-mask-box-image: var(--lg-mask, none);
+  mask-border: var(--lg-mask, none);
+  /* Where the lens runs, it does the blur too, so the two line up. */
+  -webkit-backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-curve, var(--lg-tone));
+  backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-curve, var(--lg-tone));
+  box-shadow:
+    inset 0 0 0 0.5px var(--lg-edge),
+    0 calc(4px + 4px * var(--lg-size)) calc(8px + 13px * var(--lg-size))
+      rgb(0 0 0 / calc((0.016 + 0.054 * var(--lg-size)) * var(--lg-drop-strength)));
+}
+
+/* The rim reaches just past the shape, for the hairline iOS draws outside it. */
+.lg-glass::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  box-sizing: border-box;
+  /* Nine pieces: the corners and a sliver of each edge. It costs almost nothing to
+     draw, and its corners keep their shape at any size. */
+  border: solid transparent;
+  border-width: var(--lg-rim-y, 0) var(--lg-rim-x, 0);
+  border-image: var(--lg-rim-image, none);
+  pointer-events: none;
+}
+
+.lg-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 240px at var(--lg-x, 50%) var(--lg-y, 50%),
+    rgb(255 255 255 / 0.035),
+    rgb(255 255 255 / 0.025) 50%,
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 220ms ease-in-out;
+}
+
+.lg-glass[data-pressed]::after {
+  opacity: 1;
+  transition-duration: 0s;
+}
+
+/* Glass refracting a copy of its backdrop, where the live one can't be filtered */
+
+.lg-glass[data-copy] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lg-glass-copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.lg-glass-copy > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}

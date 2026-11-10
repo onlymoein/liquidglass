@@ -1,0 +1,56 @@
+/* Switch */
+
+.lg-switch {
+  --lg-scale: 0.375;
+  position: relative;
+  flex: none;
+  width: calc(168px * var(--lg-scale));
+  height: calc(74.67px * var(--lg-scale));
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lg-track);
+  cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  /* A held control shouldn't bring up iOS's text magnifier or callout. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+
+.lg-switch::before {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc((74.67px * var(--lg-scale) - 44px) / 2)) -8px;
+}
+
+.lg-switch-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lg-on);
+  opacity: 0;
+}
+
+.lg-switch-thumb {
+  top: 50%;
+  left: -9px;
+  width: 59px;
+  height: 38.3px;
+  transform: translate(0, -50%) scale(0.627);
+}
+
+.lg-switch[aria-checked="true"] .lg-switch-fill {
+  opacity: 1;
+}
+
+.lg-switch[aria-checked="true"] .lg-switch-thumb {
+  transform: translate(22px, -50%) scale(0.627);
+}
+
+.lg-switch:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

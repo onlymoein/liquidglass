@@ -4,6 +4,11 @@ import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { reducedMotion, useModal } from "./internal/modal";
 import { fitRim } from "./internal/refraction";
+import { useStyles } from "./internal/styles";
+import menuCss from "./styles/menu.css?inline";
+import segmentedControlCss from "./styles/segmented-control.css?inline";
+import layerCss from "./styles/layer.css?inline";
+import alertCss from "./styles/alert.css?inline";
 
 export interface AlertAction {
   label: ReactNode;
@@ -26,6 +31,7 @@ const LEAVE_MS = 120;
 
 /** The iOS alert: a modal question with a row of pill buttons. Closes when an action is chosen. */
 export function Alert({ open: openProp, defaultOpen = false, onOpenChange, title, message, actions, className }: AlertProps): JSX.Element {
+  useStyles(["menu", menuCss], ["segmented-control", segmentedControlCss], ["layer", layerCss], ["alert", alertCss]);
   const [open, setOpen] = useControllable(openProp, defaultOpen, onOpenChange);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);

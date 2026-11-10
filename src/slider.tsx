@@ -14,6 +14,9 @@ import { cx } from "./internal/cx";
 import { createJelly, type Jelly } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring } from "./internal/spring";
+import { useStyles } from "./internal/styles";
+import thumbCss from "./styles/thumb.css?inline";
+import sliderCss from "./styles/slider.css?inline";
 
 export interface SliderProps
   extends Omit<
@@ -38,6 +41,7 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
   { value: valueProp, defaultValue, onValueChange, min = 0, max = 100, step = 1, className, style, ...props },
   forwardedRef,
 ) {
+  useStyles(["thumb", thumbCss], ["slider", sliderCss]);
   const inputRef = useRef<HTMLInputElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
   const faceRef = useRef<HTMLSpanElement>(null);

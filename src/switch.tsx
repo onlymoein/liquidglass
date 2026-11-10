@@ -14,6 +14,10 @@ import { held } from "./internal/hold";
 import { createJelly, FLAT } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
+import { useStyles } from "./internal/styles";
+import buttonCss from "./styles/button.css?inline";
+import thumbCss from "./styles/thumb.css?inline";
+import switchCss from "./styles/switch.css?inline";
 
 export interface SwitchProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value" | "defaultValue" | "defaultChecked" | "onChange"> {
@@ -35,6 +39,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
   { checked: checkedProp, defaultChecked = false, onCheckedChange, className, ...props },
   forwardedRef,
 ) {
+  useStyles(["button", buttonCss], ["thumb", thumbCss], ["switch", switchCss]);
   const ref = useRef<HTMLButtonElement>(null);
   const fillRef = useRef<HTMLSpanElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);

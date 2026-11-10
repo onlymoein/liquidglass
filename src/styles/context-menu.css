@@ -1,0 +1,29 @@
+/* Context menu */
+
+.lg-context-target {
+  -webkit-touch-callout: none;
+}
+
+.lg-context .lg-modal-scrim {
+  animation: lg-fade-in 200ms ease-out;
+  transition: opacity 160ms ease-out;
+}
+
+.lg-context[data-phase="leaving"] .lg-modal-scrim {
+  opacity: 0;
+}
+
+.lg-context-lift {
+  position: absolute;
+  pointer-events: none;
+}
+
+.lg-context-card {
+  position: absolute;
+  width: max-content;
+  min-width: 250px;
+  max-width: calc(100vw - 16px);
+  border-radius: 33px;
+  font-size: 17px;
+  box-shadow: 0 12px 40px var(--lg-shadow);
+}

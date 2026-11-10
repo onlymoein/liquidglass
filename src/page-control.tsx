@@ -8,6 +8,8 @@ import {
 import { Glass } from "./glass";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { useStyles } from "./internal/styles";
+import pageControlCss from "./styles/page-control.css?inline";
 
 export interface PageControlProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange"> {
   /** How many pages there are. */
@@ -25,6 +27,7 @@ export const PageControl: ForwardRefExoticComponent<PageControlProps & RefAttrib
   HTMLDivElement,
   PageControlProps
 >(function PageControl({ count, value: valueProp, defaultValue = 0, onValueChange, glass = true, className, ...props }, ref) {
+  useStyles(["page-control", pageControlCss]);
   const [value, setValue] = useControllable(valueProp, defaultValue, onValueChange);
   const pages = Math.max(0, Math.floor(count));
   const current = Math.min(Math.max(value, 0), Math.max(pages - 1, 0));

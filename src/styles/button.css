@@ -1,0 +1,155 @@
+/* Button */
+
+.lg-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 18px;
+  color: var(--lg-foreground);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+  /* A long press keeps pressing, as on iOS, rather than selecting the label. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.lg-button[data-size="small"] {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 15px;
+  font-size: 15px;
+}
+
+.lg-button[data-size="large"] {
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+}
+
+.lg-button[data-icon] {
+  padding-left: 10px;
+}
+
+/* Wider than it's tall: on iOS an icon sits lower in a glass capsule than a label does. */
+.lg-button[data-icon="only"] {
+  width: 43px;
+  height: 32px;
+  padding: 0;
+  border-radius: 16px;
+}
+
+.lg-button[data-icon="only"][data-size="small"] {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+}
+
+.lg-button[data-icon="only"][data-size="large"] {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+}
+
+.lg-button > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* Lights up at once when pressed, as on iOS, and fades on release. */
+.lg-button:is(:active, [data-pressed]) {
+  color: var(--lg-press-ink);
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
+}
+
+.lg-button:is([data-tint], [data-destructive]):is(:active, [data-pressed]) {
+  color: color-mix(in srgb, var(--lg-tint) 77%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-button:hover {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+.lg-button:disabled {
+  background-color: var(--lg-glass);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lg-button[data-destructive]:not([data-tint]) {
+  --lg-tint: var(--lg-destructive-ink);
+}
+
+.lg-button[data-variant="filled"][data-destructive]:not([data-tint]) {
+  --lg-tint: var(--lg-destructive);
+}
+
+.lg-button:is([data-tint], [data-destructive]) {
+  color: var(--lg-tint);
+}
+
+/* Opaque, with its own edge in its own colour rather than the glass's rim. */
+.lg-button[data-variant="filled"] {
+  --lg-button-fill: var(--lg-tint, var(--lg-fill));
+  --lg-tone: none;
+  --lg-curve: initial;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -1px 0 rgb(255 255 255 / 0.14),
+    0 0 0 0.67px color-mix(in srgb, var(--lg-button-fill) var(--lg-fill-edge));
+}
+
+.lg-button[data-variant="filled"]::before {
+  display: none;
+}
+
+.lg-button[data-variant="filled"]:is(:active, [data-pressed]) {
+  color: #fff;
+}
+
+.lg-button[data-variant="filled"],
+.lg-button[data-variant="filled"]:disabled {
+  background-color: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--lg-button-fill) calc(100% - var(--lg-fill-shade)), #000) var(--lg-fill-alpha),
+    transparent
+  );
+}
+
+/* It lights up under a finger. */
+.lg-button[data-variant="filled"]:is(:active, [data-pressed]) {
+  background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-button[data-variant="filled"]:hover {
+    background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+  }
+
+  .lg-button[data-variant="filled"]:hover:is(:active, [data-pressed]) {
+    background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+  }
+}
+
+.lg-button:focus-visible,
+.lg-tab:focus-visible,
+.lg-switch:focus-visible,
+.lg-menu-item:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 2px;
+}

@@ -16,6 +16,9 @@ import { cx } from "./internal/cx";
 import { createJelly, FLAT } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
+import { useStyles } from "./internal/styles";
+import thumbCss from "./styles/thumb.css?inline";
+import segmentedControlCss from "./styles/segmented-control.css?inline";
 
 export interface SegmentedItem {
   value: string;
@@ -48,6 +51,7 @@ export const SegmentedControl: ForwardRefExoticComponent<SegmentedControlProps &
     { items, value: valueProp, defaultValue, onValueChange, className, style, ...props },
     ref,
   ) {
+  useStyles(["thumb", thumbCss], ["segmented-control", segmentedControlCss]);
     const [value, setValue] = useControllable<string | undefined, string>(valueProp, defaultValue ?? items[0]?.value, onValueChange);
     const rootRef = useRef<HTMLDivElement>(null);
     const thumbRef = useRef<HTMLSpanElement>(null);

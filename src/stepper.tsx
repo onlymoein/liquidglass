@@ -7,6 +7,9 @@ import {
 
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { useStyles } from "./internal/styles";
+import segmentedControlCss from "./styles/segmented-control.css?inline";
+import stepperCss from "./styles/stepper.css?inline";
 
 export interface StepperProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange"> {
   value?: number;
@@ -32,6 +35,7 @@ export const Stepper: ForwardRefExoticComponent<StepperProps & RefAttributes<HTM
   { value: valueProp, defaultValue = 0, onValueChange, min = -Infinity, max = Infinity, step = 1, disabled, className, ...props },
   ref,
 ) {
+  useStyles(["segmented-control", segmentedControlCss], ["stepper", stepperCss]);
   const [value, setValue] = useControllable(valueProp, defaultValue, onValueChange);
   const change = (direction: number) => setValue(Math.min(max, Math.max(min, value + direction * step)));
   return (

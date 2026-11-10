@@ -1,0 +1,50 @@
+/* Stepper */
+
+.lg-stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--lg-stepper);
+  color: var(--lg-foreground);
+}
+
+.lg-stepper-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease;
+}
+
+.lg-stepper-button:active:not(:disabled) {
+  background: var(--lg-stepper);
+  transition-duration: 0s;
+}
+
+.lg-stepper-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lg-stepper-button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.lg-stepper-divider {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 -0.5px;
+  background: var(--lg-separator);
+}

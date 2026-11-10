@@ -15,6 +15,11 @@ import { placeMenu } from "./internal/placement";
 import { fitRim } from "./internal/refraction";
 import { createSpring } from "./internal/spring";
 import type { MenuEntry } from "./menu";
+import { useStyles } from "./internal/styles";
+import buttonCss from "./styles/button.css?inline";
+import menuCss from "./styles/menu.css?inline";
+import layerCss from "./styles/layer.css?inline";
+import contextMenuCss from "./styles/context-menu.css?inline";
 
 export interface ContextMenuProps {
   items: MenuEntry[];
@@ -36,6 +41,7 @@ const SLOP = 8;
  * page and opens a menu beside it.
  */
 export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpenChange, children, className, "aria-label": label }: ContextMenuProps): JSX.Element {
+  useStyles(["button", buttonCss], ["menu", menuCss], ["layer", layerCss], ["context-menu", contextMenuCss]);
   const [open, setOpen] = useControllable(openProp, defaultOpen, onOpenChange);
   const targetRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);

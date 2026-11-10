@@ -1,0 +1,42 @@
+/* Switch and slider thumbs */
+
+/* Under a finger a thumb is a clear lens: sharp, neither blurred nor lifted, with a
+   dark outline. At rest its white face covers that, and the rim and shadow go. */
+.lg-switch-thumb,
+.lg-slider-thumb {
+  --lg-transparency: 1;
+  --lg-blur: 0px;
+  /* Not `none`: in a list of filters that would throw away the whole list, lens and all. */
+  --lg-tone: saturate(1);
+  --lg-shine: 0.6;
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
+}
+
+/* Held, a thumb is a lens, as the tab bar's is: its rim bends what's behind it, and its edge
+   is drawn as one picture over that. */
+.lg-switch-thumb::before,
+.lg-slider-thumb::before,
+.lg-segmented-lens::before {
+  inset: -1px;
+  border: 0;
+  background: var(--lg-rim, none) 0 0 / 100% 100%;
+  opacity: var(--lg-lift, 0);
+}
+
+.lg-slider-thumb {
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / 0.14);
+}
+
+.lg-thumb-face {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+}

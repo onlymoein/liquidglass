@@ -1,0 +1,94 @@
+/* Input */
+
+.lg-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 360px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  transition: background-color 200ms ease;
+}
+
+.lg-input:focus-within {
+  background-color: var(--lg-glass-active);
+}
+
+/* A plain fill, as iOS gives a search field under a large title. */
+.lg-input[data-variant="fill"] {
+  background: var(--lg-fill-subtle);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.lg-input[data-variant="fill"]::before {
+  display: none;
+}
+
+.lg-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+}
+
+.lg-input input::placeholder {
+  color: var(--lg-muted);
+}
+
+.lg-input input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.lg-input-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--lg-muted);
+}
+
+.lg-input-icon {
+  display: grid;
+  place-items: center;
+}
+
+.lg-input-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lg-input-clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--lg-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.lg-input-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lg-input:has(input:disabled) {
+  opacity: 0.35;
+}

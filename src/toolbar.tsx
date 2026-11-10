@@ -12,6 +12,8 @@ import {
 import { cx } from "./internal/cx";
 import { useRefraction } from "./internal/refraction";
 import { scroller } from "./internal/scroller";
+import { useStyles } from "./internal/styles";
+import toolbarCss from "./styles/toolbar.css?inline";
 
 export interface ToolbarProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -36,6 +38,7 @@ export const Toolbar: ForwardRefExoticComponent<ToolbarProps & RefAttributes<HTM
   HTMLDivElement,
   ToolbarProps
 >(function Toolbar({ edge = "uniform", className, onKeyDown, ...props }, forwardedRef) {
+  useStyles(["toolbar", toolbarCss]);
   const ref = useRef<HTMLDivElement>(null);
   useImperativeHandle(forwardedRef, () => ref.current!);
 
@@ -81,6 +84,7 @@ export const Toolbar: ForwardRefExoticComponent<ToolbarProps & RefAttributes<HTM
 /** Actions that share one piece of glass in a `Toolbar`. */
 export const ToolbarGroup: ForwardRefExoticComponent<ToolbarGroupProps & RefAttributes<HTMLDivElement>> =
   /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarGroupProps>(function ToolbarGroup({ className, ...props }, forwardedRef) {
+  useStyles(["toolbar", toolbarCss]);
     const ref = useRef<HTMLDivElement>(null);
     useImperativeHandle(forwardedRef, () => ref.current!);
     useRefraction(ref);

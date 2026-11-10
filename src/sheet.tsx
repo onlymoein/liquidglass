@@ -6,6 +6,9 @@ import { reducedMotion, useModal } from "./internal/modal";
 import { fitLens, fitRim } from "./internal/refraction";
 import { ownsDrag, scrollers, SLOP, split, whose } from "./internal/sheet-drag";
 import { afterGlassShows, createSpring, type Spring } from "./internal/spring";
+import { useStyles } from "./internal/styles";
+import layerCss from "./styles/layer.css?inline";
+import sheetCss from "./styles/sheet.css?inline";
 
 export type SheetDetent = "medium" | "large";
 
@@ -52,6 +55,7 @@ interface Drag {
 
 /** The iOS sheet: rises from the bottom, drags between its detents, and drags away. */
 export function Sheet({ open: openProp, defaultOpen = false, onOpenChange, detents = ["medium", "large"], children, className, "aria-label": label }: SheetProps): JSX.Element {
+  useStyles(["layer", layerCss], ["sheet", sheetCss]);
   const [open, setOpen] = useControllable(openProp, defaultOpen, onOpenChange);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);

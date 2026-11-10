@@ -1,0 +1,108 @@
+/* Toolbar */
+
+.lg-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+/* The band behind the bar shows once content has scrolled under it. */
+.lg-toolbar[data-edge]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -24px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms var(--lg-ease);
+}
+
+.lg-toolbar[data-scrolled]::before {
+  opacity: 1;
+}
+
+.lg-toolbar[data-edge="uniform"]::before {
+  background: color-mix(in srgb, var(--lg-glass-tinted) 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 24px), transparent);
+}
+
+.lg-toolbar[data-edge="soft"]::before {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(#000 40%, transparent);
+  mask-image: linear-gradient(#000 40%, transparent);
+}
+
+/* 44 points tall on iOS: a lone icon is a circle, and icons in a group are 50 wide. */
+.lg-toolbar-group {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: 22px;
+}
+
+.lg-toolbar-group > .lg-button {
+  height: 44px;
+  border-radius: 22px;
+}
+
+.lg-toolbar-group > .lg-button[data-icon="only"] {
+  width: 50px;
+}
+
+.lg-toolbar-group > .lg-button[data-icon="only"]:only-child {
+  width: 44px;
+}
+
+.lg-toolbar-group > .lg-button > svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* Buttons in a group share its glass instead of each having their own. */
+.lg-toolbar-group > .lg-button:not([data-variant="filled"])::before {
+  display: none;
+}
+
+.lg-toolbar-group > .lg-button:not([data-variant="filled"]) {
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lg-toolbar-group > .lg-button:not([data-variant="filled"]) {
+  background-color: transparent;
+}
+
+/* Only a mouse lights a button under it: a touch browser keeps hover on whatever was tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .lg-toolbar-group > .lg-button:not([data-variant="filled"]):hover {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+/* A press lights and grows the whole group, not just the button under the finger. */
+.lg-toolbar-group > .lg-button:not([data-variant="filled"])::after {
+  display: none;
+}
+
+.lg-toolbar-group {
+  transition: background-color 200ms ease;
+}
+
+.lg-toolbar-group[data-pressed] {
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
+}
+
+.lg-toolbar-group > .lg-glass-copy {
+  display: none;
+}

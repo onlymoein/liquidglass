@@ -1,6 +1,7 @@
 import { forwardRef, type ForwardRefExoticComponent, type RefAttributes } from "react";
 
 import { Input, type InputProps } from "./input";
+import { useStyles } from "./internal/styles";
 
 export type SearchFieldProps = Omit<InputProps, "type">;
 
@@ -16,5 +17,6 @@ export const SearchField: ForwardRefExoticComponent<SearchFieldProps & RefAttrib
   HTMLInputElement,
   SearchFieldProps
 >(function SearchField({ icon = magnifier, placeholder = "Search", ...props }, ref) {
+  useStyles();
   return <Input ref={ref} type="search" icon={icon} placeholder={placeholder} {...props} />;
 });

@@ -9,6 +9,7 @@ import {
 
 import { cx } from "./internal/cx";
 import { useRefraction } from "./internal/refraction";
+import { useStyles } from "./internal/styles";
 
 export type GlassProps = HTMLAttributes<HTMLDivElement>;
 
@@ -16,6 +17,7 @@ export const Glass: ForwardRefExoticComponent<GlassProps & RefAttributes<HTMLDiv
   HTMLDivElement,
   GlassProps
 >(function Glass({ className, ...props }, forwardedRef) {
+  useStyles();
   const ref = useRef<HTMLDivElement>(null);
   useImperativeHandle(forwardedRef, () => ref.current!);
   useRefraction(ref);

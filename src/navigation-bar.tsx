@@ -12,6 +12,8 @@ import { Button } from "./button";
 import { cx } from "./internal/cx";
 import { scroller } from "./internal/scroller";
 import { Toolbar, ToolbarGroup, type ToolbarProps } from "./toolbar";
+import { useStyles } from "./internal/styles";
+import navigationBarCss from "./styles/navigation-bar.css?inline";
 
 export interface NavigationBarProps extends Omit<ToolbarProps, "title" | "children"> {
   /** The screen's name. Large under the bar, then in the bar once it has scrolled under. */
@@ -61,6 +63,7 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
     },
     forwardedRef,
   ) {
+  useStyles(["navigation-bar", navigationBarCss]);
     const ref = useRef<HTMLDivElement>(null);
     const heading = useRef<HTMLDivElement>(null);
     useImperativeHandle(forwardedRef, () => ref.current!);

@@ -1,0 +1,52 @@
+/* Sheet */
+
+.lg-sheet {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.18);
+}
+
+/* As it nears full height the glass fills in. */
+.lg-sheet::after {
+  background: var(--lg-sheet-opaque);
+  border-radius: inherit;
+  opacity: var(--lg-sheet-full, 0);
+  transition: none;
+}
+
+/* A drag that starts anywhere in the sheet moves it, so it mustn't also select text. */
+.lg-sheet[data-dragging] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.lg-sheet-handle {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  height: 30px;
+  padding-top: 5.67px;
+  box-sizing: border-box;
+  touch-action: none;
+  cursor: grab;
+}
+
+.lg-sheet-grabber {
+  flex: none;
+  width: 57px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--lg-grabber);
+}
+
+.lg-sheet-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}

@@ -1,0 +1,14 @@
+/* Reduce Transparency and Increase Contrast win over any transparency the app
+   sets, as they do on iOS. */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-glass {
+    --lg-transparency: 0;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lg-glass {
+    --lg-transparency: 0;
+    --lg-edge: color-mix(in srgb, var(--lg-foreground) 45%, transparent);
+  }
+}
