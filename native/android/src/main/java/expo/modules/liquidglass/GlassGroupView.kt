@@ -181,9 +181,7 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
     s.setFloatUniform("rects", placedRects)
     s.setFloatUniform("radii", radii)
     s.setFloatUniform("count", count.toFloat())
-    // The blend closes a gap up to half its width, so it runs over twice the spacing for pieces
-    // closer than the spacing to meet, as they do on iOS.
-    s.setFloatUniform("spacing", spacing * 2f * density)
+    s.setFloatUniform("spacing", spacing * density)
     s.setFloatUniform("bezel", bezel * density)
     s.setFloatUniform("reach", reach * density)
     s.setFloatUniform("density", density)
