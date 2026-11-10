@@ -298,6 +298,18 @@ final class ButtonView: ControlView {
       if let colour { configuration.baseBackgroundColor = colour }
     } else if let colour {
       configuration.baseForegroundColor = colour
+      // iOS 26's glass button keeps its symbol and title in the label colour whatever the base
+      // foreground says, so a destructive button would come out black. A symbol drawn in its own
+      // colour, and a title given one, win over that.
+      configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in colour }
+      if let image = configuration.image {
+        configuration.image = image.withTintColor(colour, renderingMode: .alwaysOriginal)
+      }
+      configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
+        var attributes = attributes
+        attributes.foregroundColor = colour
+        return attributes
+      }
     }
     // Just an icon makes a circle, as it does in iOS.
     if label?.isEmpty ?? true, icon != nil {
