@@ -1,5 +1,5 @@
 import { GlassContainer, GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
-import { useColorScheme, View, type ViewProps } from 'react-native';
+import { useColorScheme, View, type ColorValue, type ViewProps } from 'react-native';
 
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
@@ -44,6 +44,11 @@ export type LensProps = ViewProps & { zoom?: number; split?: number };
 /** The clear lens of a held thumb. Here it's clear glass; on Android it also bends and enlarges. */
 export function Lens({ zoom: _zoom, split: _split, ...props }: LensProps) {
   return <Glass variant="clear" {...props} />;
+}
+
+/** A filled button's face. iOS draws its own filled buttons; elsewhere it's the plain colour. */
+export function FilledGlass({ colour, style, ...props }: ViewProps & { colour: ColorValue }) {
+  return <View style={[{ backgroundColor: colour }, style]} {...props} />;
 }
 
 /** Holds glass that flows together, as iOS 26 glass does when two shapes come close. */

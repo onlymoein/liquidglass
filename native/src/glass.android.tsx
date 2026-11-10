@@ -15,6 +15,7 @@ type NativeGlassProps = ViewProps & {
   dark: boolean;
   tint?: ColorValue;
   lens?: boolean;
+  prominent?: boolean;
   zoom?: number;
   split?: number;
 };
@@ -55,6 +56,22 @@ export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
       zoom={zoom}
       split={split}
       dark={system === 'dark'}
+    />
+  );
+}
+
+/** A filled button's glass: its colour, darkened a little by what's behind, as on iOS. */
+export function FilledGlass({ colour, style, ...props }: ViewProps & { colour: ColorValue }) {
+  const radius = StyleSheet.flatten(style)?.borderRadius;
+  return (
+    <NativeGlass
+      {...props}
+      style={style}
+      cornerRadius={typeof radius === 'number' ? radius : 0}
+      clear={false}
+      dark={false}
+      tint={colour}
+      prominent
     />
   );
 }

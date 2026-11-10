@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { useControllable } from './controllable';
-import { Backdrop, Glass, Lens } from './glass';
+import { Backdrop, FilledGlass, Glass, Lens } from './glass';
 import { Icon, bottomInset, hasIcon } from './icon';
 import { Text } from './text';
 import type {
@@ -176,12 +176,12 @@ export function Button({
           gap: 6,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: filled ? colour : 'transparent',
           opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
         },
         style,
       ]}>
       {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
+      {filled && <FilledGlass colour={colour} style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
       {symbol && <Icon name={symbol} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
       {(text || fallback) && (
         <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>{text ?? fallback}</Text>

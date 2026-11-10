@@ -121,6 +121,7 @@ uniform float clear;
 uniform float zoom;
 uniform float split;
 uniform float lens;
+uniform float prominent;
 uniform half3 base;
 uniform half4 tint;
 uniform float2 light;
@@ -157,8 +158,15 @@ half4 main(float2 coord) {
   }
   // Where nothing was drawn, the window shows through.
   half3 rgb = seen.rgb + base * (1.0 - seen.a);
-  rgb = tone(rgb, contrast, brightness, saturation);
-  rgb = mix(rgb, tint.rgb, tint.a);
+  if (prominent > 0.5) {
+    // A filled button is its colour, darkened a little by what's behind: over white it's 98% of
+    // its colour and over a deep blue 85%, measured on the iPhone simulator.
+    half behind = dot(rgb, half3(0.2126, 0.7152, 0.0722));
+    rgb = tint.rgb * (0.8 + 0.2 * behind);
+  } else {
+    rgb = tone(rgb, contrast, brightness, saturation);
+    rgb = mix(rgb, tint.rgb, tint.a);
+  }
   return over + half4(rgb, 1.0) * cover * (1.0 - over.a);
 }
 """
