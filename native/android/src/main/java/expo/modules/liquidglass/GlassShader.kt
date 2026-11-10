@@ -122,6 +122,7 @@ uniform float zoom;
 uniform float split;
 uniform float lens;
 uniform float prominent;
+uniform float3 glow;
 uniform half3 base;
 uniform half4 tint;
 uniform float2 light;
@@ -166,6 +167,12 @@ half4 main(float2 coord) {
   } else {
     rgb = tone(rgb, contrast, brightness, saturation);
     rgb = mix(rgb, tint.rgb, tint.a);
+  }
+  // Under a finger, a faint light where it's touching, as a wide soft circle.
+  if (glow.z > 0.0) {
+    float r = length(coord - margin - glow.xy) / (240.0 * density);
+    float g = r < 0.5 ? mix(0.035, 0.025, r / 0.5) : mix(0.025, 0.0, clamp((r - 0.5) / 0.5, 0.0, 1.0));
+    rgb += (1.0 - rgb) * half(g * glow.z);
   }
   return over + half4(rgb, 1.0) * cover * (1.0 - over.a);
 }

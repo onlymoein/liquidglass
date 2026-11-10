@@ -45,6 +45,12 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   /** A filled button's glass: its tint, darkened a little by what's behind, rather than mixed in. */
   var prominent = false
     set(value) { field = value; changed() }
+  /** Whether a finger is on it: iOS lights the rim of glass that's held, as clear glass's is. */
+  var held = false
+    set(value) { field = value; changed() }
+  /** Where the finger is, in points from the top left, for the glow under it; null for none. */
+  var touch: Pair<Float, Float>? = null
+    set(value) { field = value; changed() }
   /** How much a lens enlarges what's under it: 1 for glass that doesn't. */
   var zoom = 1f
     set(value) { field = value; changed() }
@@ -174,7 +180,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   private fun marginPx(): Int = ((reach + blur * 3f) * density).toInt() + 2
 
   private fun updateEffect(glass: RenderNode, margin: Int) {
-    val key = "$width-$height-$margin-$cornerRadius-$clear-$dark-$tint-$zoom-$split-$lens-$prominent-${if (lens) 0 else Tilt.version}"
+    val key = "$width-$height-$margin-$cornerRadius-$clear-$dark-$tint-$zoom-$split-$lens-$prominent-$held-$touch-${if (lens) 0 else Tilt.version}"
     if (key == effectFor) return
     effectFor = key
     if (Build.VERSION.SDK_INT < 31) return
@@ -206,7 +212,13 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
     shader.setFloatUniform("shine", if (lens) 0.6f else 1f)
-    shader.setFloatUniform("clear", if (clear && !lens) 1f else 0f)
+    shader.setFloatUniform("clear", if ((clear || held) && !lens) 1f else 0f)
+    val finger = touch
+    if (finger != null) {
+      shader.setFloatUniform("glow", finger.first * density, finger.second * density, 1f)
+    } else {
+      shader.setFloatUniform("glow", 0f, 0f, 0f)
+    }
     shader.setFloatUniform("lens", if (lens) 1f else 0f)
     shader.setFloatUniform("prominent", if (prominent && tint != null) 1f else 0f)
     shader.setFloatUniform("zoom", zoom)

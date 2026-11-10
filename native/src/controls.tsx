@@ -14,6 +14,7 @@ import {
 import { useControllable } from './controllable';
 import { Backdrop, FilledGlass, Glass, Lens } from './glass';
 import { Icon, bottomInset, hasIcon } from './icon';
+import { usePress } from './press';
 import { Text } from './text';
 import type {
   ButtonProps,
@@ -160,14 +161,20 @@ export function Button({
   const lone = !text;
   const height = lone ? circles[size] : heights[size];
   const fallback = lone && !symbol ? (props.accessibilityLabel ?? '').slice(0, 1) : undefined;
+  // Under a finger the whole button grows and follows it, label and all, as on iOS, rather than
+  // dimming.
+  const press = usePress(!disabled);
   return (
-    <Pressable
-      {...props}
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        {
+    <Animated.View
+      ref={press.ref}
+      {...press.handlers}
+      style={[{ alignSelf: 'flex-start', opacity: disabled ? 0.4 : 1, transform: press.transform }, style]}>
+      <Pressable
+        {...props}
+        accessibilityRole="button"
+        disabled={disabled}
+        onPress={onPress}
+        style={{
           height,
           minWidth: height,
           paddingHorizontal: lone ? 0 : paddings[size],
@@ -176,17 +183,24 @@ export function Button({
           gap: 6,
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
-        },
-        style,
-      ]}>
-      {!filled && <Glass interactive style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
-      {filled && <FilledGlass colour={colour} style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />}
-      {symbol && <Icon name={symbol} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
-      {(text || fallback) && (
-        <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>{text ?? fallback}</Text>
-      )}
-    </Pressable>
+        }}>
+        {!filled && (
+          <Glass held={press.held} touch={press.touch} style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />
+        )}
+        {filled && (
+          <FilledGlass
+            colour={colour}
+            held={press.held}
+            touch={press.touch}
+            style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]}
+          />
+        )}
+        {symbol && <Icon name={symbol} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
+        {(text || fallback) && (
+          <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500' }}>{text ?? fallback}</Text>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 

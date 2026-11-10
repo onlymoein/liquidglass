@@ -50,6 +50,10 @@ class LiquidGlassModule : Module() {
       Prop("tint") { view: GlassView, tint: Color? -> view.tint = tint?.toArgb() }
       Prop("lens") { view: GlassView, lens: Boolean? -> view.lens = lens ?: false }
       Prop("prominent") { view: GlassView, prominent: Boolean? -> view.prominent = prominent ?: false }
+      Prop("held") { view: GlassView, held: Boolean? -> view.held = held ?: false }
+      Prop("touch") { view: GlassView, touch: List<Float>? ->
+        view.touch = if (touch != null && touch.size == 2) touch[0] to touch[1] else null
+      }
       Prop("zoom") { view: GlassView, zoom: Float? -> view.zoom = zoom ?: 1f }
       Prop("split") { view: GlassView, split: Float? -> view.split = split ?: 0f }
     }

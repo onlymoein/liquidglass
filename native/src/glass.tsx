@@ -9,7 +9,7 @@ const available = isLiquidGlassAvailable();
  * A pane of Liquid Glass. On iOS 26 and later it's the system's own glass, which bends and lights
  * what's behind it. Elsewhere it's a translucent pane, so the layout is the same.
  */
-export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'auto', style, ...props }: GlassProps) {
+export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'auto', style, held: _held, touch: _touch, ...props }: GlassProps & Held) {
   const system = useColorScheme();
   if (available) {
     return (
@@ -47,7 +47,12 @@ export function Lens({ zoom: _zoom, split: _split, ...props }: LensProps) {
 }
 
 /** A filled button's face. iOS draws its own filled buttons; elsewhere it's the plain colour. */
-export function FilledGlass({ colour, style, ...props }: ViewProps & { colour: ColorValue }) {
+export interface Held {
+  held?: boolean;
+  touch?: { x: number; y: number } | null;
+}
+
+export function FilledGlass({ colour, style, held: _held, touch: _touch, ...props }: ViewProps & Held & { colour: ColorValue }) {
   return <View style={[{ backgroundColor: colour }, style]} {...props} />;
 }
 

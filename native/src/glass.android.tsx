@@ -1,7 +1,8 @@
 import { requireNativeView } from 'expo';
 import type { ComponentType } from 'react';
-import { StyleSheet, useColorScheme, type ColorValue, type ViewProps } from 'react-native';
+import { Animated, StyleSheet, useColorScheme, type ColorValue, type ViewProps } from 'react-native';
 
+import { usePress } from './press';
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
 export type LensProps = ViewProps & { zoom?: number; split?: number };
@@ -16,27 +17,58 @@ type NativeGlassProps = ViewProps & {
   tint?: ColorValue;
   lens?: boolean;
   prominent?: boolean;
+  held?: boolean;
+  touch?: number[];
   zoom?: number;
   split?: number;
 };
 const NativeGlass: ComponentType<NativeGlassProps> = requireNativeView('LiquidGlass', 'GlassView');
+const PressableGlass = Animated.createAnimatedComponent(NativeGlass);
+
+/** For a control that handles the press itself and lights its glass while it's held. */
+export interface Held {
+  held?: boolean;
+  touch?: { x: number; y: number } | null;
+}
+const at = (touch: Held['touch']) => (touch ? [touch.x, touch.y] : undefined);
 const NativeBackdrop: ComponentType<ViewProps> = requireNativeView('LiquidGlass', 'BackdropView');
 const NativeGroup: ComponentType<ViewProps & { spacing: number }> = requireNativeView('LiquidGlass', 'GlassGroupView');
 
-export function Glass({ variant = 'regular', tint, interactive: _interactive, colorScheme = 'auto', style, ...props }: GlassProps) {
+export function Glass({
+  variant = 'regular',
+  tint,
+  interactive = false,
+  colorScheme = 'auto',
+  style,
+  held,
+  touch,
+  ...props
+}: GlassProps & Held) {
   const system = useColorScheme();
   const dark = colorScheme === 'auto' ? system === 'dark' : colorScheme === 'dark';
   const radius = StyleSheet.flatten(style)?.borderRadius;
-  return (
-    <NativeGlass
-      {...props}
-      style={style}
-      cornerRadius={typeof radius === 'number' ? radius : 0}
-      clear={variant === 'clear'}
-      dark={dark}
-      tint={tint}
-    />
-  );
+  const press = usePress(interactive, props.onLayout);
+  const common = {
+    cornerRadius: typeof radius === 'number' ? radius : 0,
+    clear: variant === 'clear',
+    dark,
+    tint,
+  };
+  // Interactive glass answers a finger as iOS's does: it grows, follows it and lights up.
+  if (interactive) {
+    return (
+      <PressableGlass
+        {...props}
+        {...press.handlers}
+        ref={press.ref as never}
+        style={[style, { transform: press.transform }]}
+        {...common}
+        held={press.held}
+        touch={at(press.touch)}
+      />
+    );
+  }
+  return <NativeGlass {...props} style={style} {...common} held={held} touch={at(touch)} />;
 }
 
 /**
@@ -61,11 +93,13 @@ export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
 }
 
 /** A filled button's glass: its colour, darkened a little by what's behind, as on iOS. */
-export function FilledGlass({ colour, style, ...props }: ViewProps & { colour: ColorValue }) {
+export function FilledGlass({ colour, style, held, touch, ...props }: ViewProps & Held & { colour: ColorValue }) {
   const radius = StyleSheet.flatten(style)?.borderRadius;
   return (
     <NativeGlass
       {...props}
+      held={held}
+      touch={at(touch)}
       style={style}
       cornerRadius={typeof radius === 'number' ? radius : 0}
       clear={false}
