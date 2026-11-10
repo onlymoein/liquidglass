@@ -10,6 +10,14 @@
   animation: lg-shrink 180ms ease-in forwards;
 }
 
+/* The fade that scrims, reduced-motion popups and the alert and action sheet use.
+   It lives here because this part is on every page that has any glass. */
+@keyframes lg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes lg-grow {
   from {
     opacity: 0.4;

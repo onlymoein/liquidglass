@@ -27,3 +27,13 @@ test("adds each part once, first in the head, in the stylesheet's order whicheve
   expect(names.at(-1)).toBe("access");
   expect(document.head.firstElementChild!.getAttribute("data-liquidglass")).toBe("base");
 });
+
+test("an action sheet brings its own part and the shared fade, and not the alert's or the menu's", () => {
+  render(<ActionSheet defaultOpen actions={[{ label: "Done" }]} aria-label="Choices" />);
+  expect(parts()).toContain("action-sheet");
+  expect(parts()).toContain("layer");
+  expect(parts()).not.toContain("alert");
+  expect(parts()).not.toContain("menu");
+  // Its scrim and reduced-motion rules use lg-fade-in, so that must be in a part every page has.
+  expect(document.querySelector('style[data-liquidglass="popup"]')!.textContent).toContain("@keyframes lg-fade-in");
+});
