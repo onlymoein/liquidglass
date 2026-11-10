@@ -16,7 +16,7 @@ internal object Backdrops {
    * of one of its ancestors or inside one, that covers the view's middle. A switch's thumb finds
    * its track that way, and the card the switch sits on passes over that track for the page.
    */
-  fun behind(view: View): BackdropView? {
+  fun behind(view: View, outermost: Boolean = false): BackdropView? {
     view.getLocationInWindow(here)
     val x = here[0] + view.width / 2
     val y = here[1] + view.height / 2
@@ -25,7 +25,7 @@ internal object Backdrops {
     while (parent is ViewGroup) {
       val index = parent.indexOfChild(child)
       for (i in index - 1 downTo 0) {
-        search(parent.getChildAt(i), x, y)?.let { return it }
+        search(parent.getChildAt(i), x, y, outermost)?.let { return it }
       }
       child = parent
       parent = parent.parent
@@ -34,14 +34,19 @@ internal object Backdrops {
   }
 
   // Glass drawn earlier can hold a backdrop of its own, as the tab bar holds its tabs for its lens.
-  private fun search(view: View, x: Int, y: Int): BackdropView? {
+  // Or, for `outermost`, the backdrop that holds all the others.
+  private fun search(view: View, x: Int, y: Int, outermost: Boolean): BackdropView? {
     if (view.visibility != View.VISIBLE || view !is ViewGroup) return null
-    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i), x, y)?.let { return it }
-    if (view is BackdropView && view.width > 0 && view.height > 0) {
-      view.getLocationInWindow(there)
-      if (x >= there[0] && x <= there[0] + view.width && y >= there[1] && y <= there[1] + view.height) return view
-    }
+    if (outermost && covers(view, x, y)) return view as BackdropView
+    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i), x, y, outermost)?.let { return it }
+    if (covers(view, x, y)) return view as BackdropView
     return null
+  }
+
+  private fun covers(view: View, x: Int, y: Int): Boolean {
+    if (view !is BackdropView || view.width <= 0 || view.height <= 0) return false
+    view.getLocationInWindow(there)
+    return x >= there[0] && x <= there[0] + view.width && y >= there[1] && y <= there[1] + view.height
   }
 
   /**

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+### Changed
+
+- **Android's menu opens as iOS 27's does.** It was a white list that pushed the page down. Now the button melts into a drop of glass that swells into the menu, which covers the button and floats over the page, and shows the page through its glass, other glass included. It opens toward the side of the screen with more room, and folds back into the button when it closes. It opens as the finger comes down, so a finger can slide on to an item and lift there to choose it, with a capsule under the item and a tick as it moves from one to the next. A touch off the menu or the Back button closes it. Its sizes are measured from iOS: items 42 points tall, 250 points wide or more, corners of 34 points, checkmarks and icons on the leading side. The drop is drawn on the UI thread, a frame at a time, and bends a picture of the page taken when it opens, so it doesn't redraw the glass under it each frame.
+- **Android controls follow the finger on the UI thread.** A switch's or slider's thumb, and the lens of a segmented control or tab bar, move in the same frame as the finger, however busy the app's JavaScript is.
+- **A slider tells the app its value at most once a frame**, on iOS and Android, so a screen slow to draw doesn't fall behind the finger.
+- **Android's tab bar hides its selection while its lens is up**, as iOS's does, rather than leaving a grey pill behind.
+- **Buttons, steppers and menus line up in a row as iOS's do.** On Android they stayed at the top of a row their parent asked to centre, so buttons of different heights didn't line up. They still keep their own width in a column, as before.
+- **Android glass that changes size compiles its shader once**, not each time it changes.
+
+
 ## 0.2.0
 
 ### Fixed

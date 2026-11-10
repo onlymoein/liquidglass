@@ -13,6 +13,8 @@ import {
   type ColorValue,
   type GestureResponderEvent,
   type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
 import { useControllable } from './controllable';
@@ -27,7 +29,6 @@ import { Text } from './text';
 import type {
   ButtonProps,
   IconSource,
-  MenuProps,
   SegmentedControlProps,
   SliderProps,
   StepperProps,
@@ -43,7 +44,7 @@ import type {
 const BLUE = '#0a84ff';
 const RED = '#ff3b30';
 
-function useInk() {
+export function useInk() {
   const dark = useColorScheme() === 'dark';
   return {
     dark,
@@ -62,6 +63,11 @@ function useInk() {
     segments: dark ? 'rgba(118,118,128,0.24)' : 'rgba(118,118,128,0.12)',
     stepper: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
     separator: dark ? 'rgba(235,235,245,0.16)' : 'rgba(0,0,0,0.1)',
+    /** Under a menu item while a finger is on it. */
+    highlight: dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+    /** A disabled menu item's text. */
+    disabled: dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)',
+    red: dark ? '#ff453a' : RED,
   };
 }
 
@@ -136,7 +142,7 @@ type Following = {
 // On Android a native view follows the finger, and the control's thumb or lens is tied to it
 // through the native animation driver, so it moves in the frame the finger does, however busy the
 // app's JavaScript is. Elsewhere, and without the native code, JavaScript follows it.
-const NativeTrack: ComponentType<Record<string, unknown>> | null =
+export const NativeTrack: ComponentType<Record<string, unknown>> | null =
   native && Platform.OS === 'android' ? Animated.createAnimatedComponent(requireNativeView('LiquidGlass', 'TrackView')) : null;
 
 /**
@@ -228,11 +234,23 @@ function Thumb({ lift, radius, shadow }: { lift: Animated.Value; radius: number;
   );
 }
 
+/**
+ * Whether a control's style asks it to fill its parent's width. Otherwise it keeps its own size,
+ * as iOS's controls do, inside a row of its own: a row keeps it from being stretched by a column,
+ * and, unlike pinning it with `alignSelf`, still lets a row it's in centre it, as iOS lines up a
+ * row of buttons of different heights.
+ */
+export function fills(style: StyleProp<ViewStyle>): boolean {
+  const flat = StyleSheet.flatten(style) ?? {};
+  return flat.width != null || flat.minWidth != null || (flat.flex ?? 0) > 0 || (flat.flexGrow ?? 0) > 0 || flat.alignSelf === 'stretch';
+}
+const HUG: ViewStyle = { flexDirection: 'row' };
+
 /** Whether there's something to show for this icon: one of the package's drawings, or an image. */
-const hasGlyph = (icon: IconSource | undefined): icon is IconSource => icon != null && (typeof icon !== 'string' || hasIcon(icon));
+export const hasGlyph = (icon: IconSource | undefined): icon is IconSource => icon != null && (typeof icon !== 'string' || hasIcon(icon));
 
 /** An icon in `color`: the package's drawing for an SF Symbol's name, or the app's own image. */
-function Glyph({ icon, color, size, weight }: { icon: IconSource | undefined; color: ColorValue; size: number; weight?: number }) {
+export function Glyph({ icon, color, size, weight }: { icon: IconSource | undefined; color: ColorValue; size: number; weight?: number }) {
   if (icon == null) return null;
   if (typeof icon !== 'string') {
     return <Image source={icon} resizeMode="contain" style={{ width: size, height: size, tintColor: color }} />;
@@ -272,83 +290,44 @@ export function Button({
   // dimming.
   const press = usePress(!disabled);
   return (
-    <Animated.View
-      ref={press.ref}
-      {...press.handlers}
-      style={[{ alignSelf: 'flex-start', opacity: disabled ? 0.4 : 1, transform: press.transform }, style]}>
-      <Pressable
-        {...props}
-        accessibilityRole="button"
-        disabled={disabled}
-        onPress={onPress}
-        style={{
-          height,
-          minWidth: height,
-          paddingHorizontal: lone ? 0 : paddings[size],
-          borderRadius: height / 2,
-          flexDirection: 'row',
-          gap: 6,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        {!filled && (
-          <Glass held={press.held} touch={press.touch} style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />
-        )}
-        {filled && (
-          <FilledGlass
-            colour={colour}
-            held={press.held}
-            touch={press.touch}
-            style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]}
-          />
-        )}
-        {shows && <Glyph icon={icon} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
-        {(text || fallback) && (
-          <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500', fontFamily: family }}>{text ?? fallback}</Text>
-        )}
-      </Pressable>
+    <Animated.View style={[HUG, style]}>
+      <Animated.View
+        ref={press.ref}
+        {...press.handlers}
+        style={{ flexGrow: fills(style) ? 1 : 0, opacity: disabled ? 0.4 : 1, transform: press.transform }}>
+        <Pressable
+          {...props}
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={onPress}
+          style={{
+            height,
+            minWidth: height,
+            paddingHorizontal: lone ? 0 : paddings[size],
+            borderRadius: height / 2,
+            flexDirection: 'row',
+            gap: 6,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          {!filled && (
+            <Glass held={press.held} touch={press.touch} style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]} />
+          )}
+          {filled && (
+            <FilledGlass
+              colour={colour}
+              held={press.held}
+              touch={press.touch}
+              style={[StyleSheet.absoluteFill, { borderRadius: height / 2 }]}
+            />
+          )}
+          {shows && <Glyph icon={icon} color={ink2} size={Math.round(heights[size] * ICON_SCALE)} weight={ICON_WEIGHT} />}
+          {(text || fallback) && (
+            <Text style={{ color: ink2, fontSize: size === 'small' ? 15 : 17, fontWeight: '500', fontFamily: family }}>{text ?? fallback}</Text>
+          )}
+        </Pressable>
+      </Animated.View>
     </Animated.View>
-  );
-}
-
-/** Opens a list under the button. iOS shows its own menu instead. */
-export function Menu({ items, onSelect, style, ...props }: MenuProps) {
-  const ink = useInk();
-  const [open, setOpen] = useState(false);
-  return (
-    <View style={[{ alignSelf: 'flex-start' }, style]}>
-      <Button {...props} onPress={() => setOpen(!open)} />
-      {open && (
-        <View style={{ marginTop: 6, borderRadius: 14, backgroundColor: ink.raised, paddingVertical: 4, elevation: 6 }}>
-          {items.map((item) => (
-            <Pressable
-              key={item.value}
-              disabled={item.disabled}
-              onPress={() => {
-                setOpen(false);
-                onSelect?.(item.value);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                paddingVertical: 11,
-                paddingHorizontal: 14,
-                opacity: item.disabled ? 0.4 : 1,
-              }}>
-              <View style={{ width: 18, alignItems: 'center' }}>
-                {item.checked && <Icon name="checkmark" color={ink.text} size={16} />}
-              </View>
-              {hasIcon(item.icon) && <Icon name={item.icon} color={item.destructive ? RED : ink.text} size={20} />}
-              <Text style={{ color: item.destructive ? RED : ink.text, fontSize: 17, fontFamily: fontFamilyFor(props.fontFamily) }}>
-                {!hasIcon('checkmark') && item.checked ? '✓ ' : ''}
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </View>
   );
 }
 
@@ -604,12 +583,14 @@ export function Stepper({ value, defaultValue, onValueChange, min = 0, max = 100
     );
   };
   return (
-    <View
-      {...props}
-      style={[{ flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: 16, backgroundColor: ink.stepper, alignSelf: 'flex-start' }, style]}>
-      {half(-1)}
-      <View style={{ width: 1, height: 16, marginHorizontal: -0.5, backgroundColor: ink.separator }} />
-      {half(1)}
+    <View style={[HUG, style]}>
+      <View
+        {...props}
+        style={{ flexDirection: 'row', flexGrow: fills(style) ? 1 : 0, alignItems: 'center', height: 32, borderRadius: 16, backgroundColor: ink.stepper }}>
+        {half(-1)}
+        <View style={{ width: 1, height: 16, marginHorizontal: -0.5, backgroundColor: ink.separator }} />
+        {half(1)}
+      </View>
     </View>
   );
 }

@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import { Animated, StyleSheet, useColorScheme, View, type ColorValue, type ViewProps } from 'react-native';
 
 import { native, sayMissing } from './native';
+import { OverlayHost } from './overlay';
 import { usePress } from './press';
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
@@ -22,6 +23,11 @@ type NativeGlassProps = ViewProps & {
   touch?: number[];
   zoom?: number;
   split?: number;
+  outermost?: boolean;
+  growFrom?: number[];
+  open?: boolean;
+  onFolded?: () => void;
+  still?: boolean;
   onBackdropMissing?: () => void;
 };
 
@@ -38,7 +44,7 @@ const sayNoBackdrop = () => {
   );
 };
 /** Without the package's native code, a translucent pane where the glass would be. */
-function StandIn({ cornerRadius, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
+function StandIn({ cornerRadius, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
   sayMissing();
   const fill = lens ? 'transparent' : (tint ?? (dark ? 'rgba(40,40,44,0.72)' : 'rgba(255,255,255,0.72)'));
   return <View {...props} style={[{ backgroundColor: prominent ? (tint ?? fill) : fill, borderRadius: cornerRadius }, style]} />;
@@ -51,6 +57,18 @@ const PressableGlass = Animated.createAnimatedComponent(NativeGlass);
 export interface Held {
   held?: boolean;
   touch?: { x: number; y: number } | null;
+}
+/** For a menu's glass, over the whole page. */
+export interface Outermost {
+  /** Shows the whole page behind it, not just what's nearest. */
+  outermost?: boolean;
+  /** Grows out of this, in points from where it's laid out: left, top, width, height. */
+  growFrom?: number[];
+  /** False to fold it back into where it grew from. */
+  open?: boolean;
+  onFolded?: () => void;
+  /** What's behind won't change while it's up: it bends a picture of it, taken once. */
+  still?: boolean;
 }
 const at = (touch: Held['touch']) => (touch ? [touch.x, touch.y] : undefined);
 const NativeBackdrop: ComponentType<ViewProps> = native ? requireNativeView('LiquidGlass', 'BackdropView') : View;
@@ -67,7 +85,7 @@ export function Glass({
   held,
   touch,
   ...props
-}: GlassProps & Held) {
+}: GlassProps & Held & Outermost) {
   const system = useColorScheme();
   const dark = colorScheme === 'auto' ? system === 'dark' : colorScheme === 'dark';
   const radius = StyleSheet.flatten(style)?.borderRadius;
@@ -137,9 +155,16 @@ export function FilledGlass({ colour, style, held, touch, ...props }: ViewProps 
   );
 }
 
-/** Glass shows what's inside a Backdrop. Put the Backdrop behind the glass, not around it. */
+/**
+ * Glass shows what's inside a Backdrop. Put the Backdrop behind the glass, not around it. The
+ * outermost one also holds the layer menus open on, over everything it holds.
+ */
 export function Backdrop(props: BackdropProps) {
-  return <NativeBackdrop collapsable={false} {...props} />;
+  return (
+    <OverlayHost>
+      <NativeBackdrop collapsable={false} {...props} />
+    </OverlayHost>
+  );
 }
 
 /**

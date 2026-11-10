@@ -1,6 +1,7 @@
 package expo.modules.liquidglass
 
 import android.graphics.Color
+import android.graphics.RectF
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.WindowInsets
@@ -60,12 +61,13 @@ class LiquidGlassModule : Module() {
     View(BounceView::class) {}
 
     View(TrackView::class) {
-      Events("onTrackStart", "onTrack", "onTrackEnd")
+      Events("onTrackStart", "onTrackClaim", "onTrack", "onTrackEnd")
       Prop("enabled") { view: TrackView, enabled: Boolean? -> view.follows = enabled ?: true }
+      Prop("patient") { view: TrackView, patient: Boolean? -> view.patient = patient ?: false }
     }
 
     View(GlassView::class) {
-      Events("onBackdropMissing")
+      Events("onBackdropMissing", "onFolded")
       Prop("cornerRadius") { view: GlassView, radius: Float? -> view.cornerRadius = radius ?: 0f }
       Prop("clear") { view: GlassView, clear: Boolean? -> view.clear = clear ?: false }
       Prop("dark") { view: GlassView, dark: Boolean? -> view.dark = dark ?: false }
@@ -78,6 +80,12 @@ class LiquidGlassModule : Module() {
       }
       Prop("zoom") { view: GlassView, zoom: Float? -> view.zoom = zoom ?: 1f }
       Prop("split") { view: GlassView, split: Float? -> view.split = split ?: 0f }
+      Prop("outermost") { view: GlassView, outermost: Boolean? -> view.outermost = outermost ?: false }
+      Prop("growFrom") { view: GlassView, from: List<Float>? ->
+        view.growFrom = if (from != null && from.size == 4) RectF(from[0], from[1], from[0] + from[2], from[1] + from[3]) else null
+      }
+      Prop("open") { view: GlassView, open: Boolean? -> view.open = open ?: true }
+      Prop("still") { view: GlassView, still: Boolean? -> view.still = still ?: false }
     }
 
     View(IconView::class) {

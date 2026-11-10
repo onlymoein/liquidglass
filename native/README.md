@@ -123,6 +123,8 @@ An Android view can't see what's drawn behind it, so glass there shows what's in
 
 Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or of one of its parents. Give the backdrop a background colour, which is what glass shows where nothing is drawn. On iOS and the web a `Backdrop` is a plain view, so the same code works everywhere. Glass on Android that finds no `Backdrop` behind it draws a plain pane, and in development says so in a warning.
 
+A `Menu` on Android opens over the whole screen, on a layer the outermost `Backdrop` adds just after itself, and its glass shows everything that Backdrop holds, other glass included. So put the outermost `Backdrop` round the whole screen, as above. With no `Backdrop` at all, a menu opens in a window of its own.
+
 - **Android 13 and later:** the full glass.
 - **Android 12:** blur and tone, without the bend.
 - **Android 11 and earlier:** a translucent pane.

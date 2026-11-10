@@ -1,6 +1,6 @@
 {
   "name": "@onlymoein/liquidglass-native",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Apple's iOS 27 Liquid Glass for React Native and Expo.",
   "main": "build/index.js",
   "types": "build/index.d.ts",

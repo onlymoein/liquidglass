@@ -4,6 +4,7 @@ import { Dimensions, type LayoutChangeEvent, type NativeSyntheticEvent, type Sty
 
 import { useControllable } from './controllable';
 import * as Drawn from './drawn';
+import { Menu as DrawnMenu } from './menu';
 import { fontFamilyFor } from './font';
 import { iconParts } from './icons';
 import { native, sayMissing } from './native';
@@ -349,9 +350,9 @@ export function Menu({ items, onSelect, label, children, icon, fontFamily, size 
   const measured = useNativeSize(false, guessButton(size, text, icon != null));
   if (!NativeButton) {
     return (
-      <Drawn.Menu items={items} onSelect={onSelect} label={label} icon={icon} fontFamily={fontFamily} size={size} style={style} {...props}>
+      <DrawnMenu items={items} onSelect={onSelect} label={label} icon={icon} fontFamily={fontFamily} size={size} style={style} {...props}>
         {children}
-      </Drawn.Menu>
+      </DrawnMenu>
     );
   }
   return (

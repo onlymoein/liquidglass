@@ -9,7 +9,7 @@ const available = isLiquidGlassAvailable();
  * A pane of Liquid Glass. On iOS 26 and later it's the system's own glass, which bends and lights
  * what's behind it. Elsewhere it's a translucent pane, so the layout is the same.
  */
-export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'auto', style, held: _held, touch: _touch, ...props }: GlassProps & Held) {
+export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'auto', style, held: _held, touch: _touch, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, ...props }: GlassProps & Held & Outermost) {
   const system = useColorScheme();
   if (available) {
     return (
@@ -44,6 +44,16 @@ export type LensProps = ViewProps & { zoom?: number; split?: number };
 /** The clear lens of a held thumb. Here it's clear glass; on Android it also bends and enlarges. */
 export function Lens({ zoom: _zoom, split: _split, ...props }: LensProps) {
   return <Glass variant="clear" {...props} />;
+}
+
+/** For a menu's glass. Only Android's grows and folds; here it's a pane. */
+export interface Outermost {
+  outermost?: boolean;
+  growFrom?: number[];
+  open?: boolean;
+  onFolded?: () => void;
+  /** What's behind won't change while it's up: it bends a picture of it, taken once. */
+  still?: boolean;
 }
 
 /** A filled button's face. iOS draws its own filled buttons; elsewhere it's the plain colour. */
