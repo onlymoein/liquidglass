@@ -121,15 +121,17 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) = Unit
 
   override fun dispatchDraw(canvas: Canvas) {
-    if (width > 0 && height > 0 && !grouped) drawGlass(canvas)
+    if (width > 0 && height > 0) {
+      Shapes.outline(shape, width.toFloat(), height.toFloat(), radiusPx)
+      if (!lens && tint == null && (parent as? GlassGroupView)?.drawsShadows != true) {
+        Shapes.drawShadow(canvas, shape, short, density, dark)
+      }
+      if (!grouped) drawGlass(canvas)
+    }
     super.dispatchDraw(canvas)
   }
 
   private fun drawGlass(canvas: Canvas) {
-    shape.reset()
-    val r = radiusPx
-    shape.addRoundRect(0f, 0f, width.toFloat(), height.toFloat(), r, r, Path.Direction.CW)
-
     val source = backdrop?.content
     val glass = node
     if (source == null || glass == null || !canvas.isHardwareAccelerated) {
@@ -148,7 +150,9 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     glass.endRecording()
 
     canvas.save()
-    canvas.clipPath(shape)
+    // From Android 13 the shader draws the edge, and the hairline just outside it. Before, the
+    // blur alone needs the shape cut out.
+    if (Build.VERSION.SDK_INT < 33) canvas.clipPath(shape)
     canvas.translate(-margin.toFloat(), -margin.toFloat())
     canvas.drawRenderNode(glass)
     canvas.restore()
@@ -156,7 +160,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
 
   // The values below follow the web version's styles.css and refraction.ts, in points.
 
-  private val short: Float get() = min(width, height) / density
+  internal val short: Float get() = min(width, height) / density
   private val bezel: Float get() = if (lens) (short * 0.12f).coerceIn(4f, 10f) else (2.4f + short * 0.059f).coerceIn(3f, 12f)
   private val reach: Float get() = if (lens) (short * 0.2f).coerceIn(8f, 24f) else min(short * 0.33f, 48f)
   /** How much of the size curve applies: none at 60 points tall or less, all of it at 120. */
@@ -198,7 +202,8 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("contrast", contrast)
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
-    shader.setFloatUniform("shine", if (lens) 0.6f else if (clear) 2.1f else 1f)
+    shader.setFloatUniform("shine", if (lens) 0.6f else 1f)
+    shader.setFloatUniform("clear", if (clear && !lens) 1f else 0f)
     shader.setFloatUniform("lens", if (lens) 1f else 0f)
     shader.setFloatUniform("zoom", zoom)
     shader.setFloatUniform("split", split)

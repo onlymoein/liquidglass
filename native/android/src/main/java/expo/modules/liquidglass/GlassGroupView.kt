@@ -79,6 +79,12 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
 
   override fun lightMoved() = invalidate()
 
+  /** Whether the group draws its pieces' shadows, under its surface, rather than each its own. */
+  internal val drawsShadows: Boolean
+    get() = active
+
+  private val outline = android.graphics.Path()
+
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     viewTreeObserver.addOnPreDrawListener(follow)
@@ -151,6 +157,16 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
     recording.drawRenderNode(source)
     surface.endRecording()
 
+    // The pieces' shadows go under the surface, so one piece's doesn't fall on its neighbour.
+    for (piece in pieces) {
+      Shapes.outline(outline, piece.width.toFloat(), piece.height.toFloat(), piece.radiusPx)
+      canvas.save()
+      canvas.translate(piece.left.toFloat(), piece.top.toFloat())
+      canvas.concat(piece.matrix)
+      Shapes.drawShadow(canvas, outline, piece.short, density, piece.dark)
+      canvas.restore()
+    }
+
     canvas.save()
     canvas.translate(-margin.toFloat(), -margin.toFloat())
     canvas.drawRenderNode(surface)
@@ -188,7 +204,8 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
     s.setFloatUniform("contrast", contrast)
     s.setFloatUniform("brightness", brightness)
     s.setFloatUniform("saturation", saturation)
-    s.setFloatUniform("shine", if (first.clear) 2.1f else 1f)
+    s.setFloatUniform("shine", 1f)
+    s.setFloatUniform("clear", if (first.clear) 1f else 0f)
     if (first.dark) s.setFloatUniform("base", 0f, 0f, 0f) else s.setFloatUniform("base", 1f, 1f, 1f)
     s.setFloatUniform("light", Tilt.x, Tilt.y)
 
