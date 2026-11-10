@@ -1,5 +1,5 @@
 import { requireNativeView } from 'expo';
-import { useCallback, useEffect, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { Dimensions, type LayoutChangeEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useControllable } from './controllable';
@@ -123,6 +123,16 @@ export function Slider({
   const [current, setCurrent] = useControllable(value, defaultValue ?? min, onValueChange);
   const size = useNativeSize(true, { width: 0, height: SLIDER });
   const sync = useResync(current);
+  // UIKit sends a value for every move of the finger. The app hears it at most once a frame, so a
+  // screen that's slow to draw again doesn't fall behind; the thumb is UIKit's and never waits.
+  const waiting = useRef<number | null>(null);
+  const frame = useRef<number | null>(null);
+  const report = () => {
+    frame.current = null;
+    const next = waiting.current;
+    waiting.current = null;
+    if (next != null) setCurrent(next);
+  };
   if (!NativeSlider) {
     return (
       <Drawn.Slider
@@ -144,8 +154,15 @@ export function Slider({
       max={max}
       value={current}
       resync={sync.resync}
-      onValueChange={(event: Value<number>) => setCurrent(event.nativeEvent.value)}
+      onValueChange={(event: Value<number>) => {
+        waiting.current = event.nativeEvent.value;
+        frame.current ??= requestAnimationFrame(report);
+      }}
       onSlidingComplete={(event: Value<number>) => {
+        // The last value first, then that the finger's lifted.
+        if (frame.current != null) cancelAnimationFrame(frame.current);
+        waiting.current = event.nativeEvent.value;
+        report();
         onSlidingComplete?.(event.nativeEvent.value);
         // Once it's let go, the thumb shows the app's value.
         sync.asked(event.nativeEvent.value);

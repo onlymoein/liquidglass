@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { requireNativeView } from 'expo';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import {
   Animated,
   Image,
+  Platform,
   PanResponder,
   Pressable,
   StyleSheet,
   View,
   useColorScheme,
+  type AccessibilityActionEvent,
   type ColorValue,
   type GestureResponderEvent,
   type LayoutChangeEvent,
@@ -17,6 +20,7 @@ import { Backdrop, FilledGlass, Glass, Lens } from './glass';
 import { fontFamilyFor } from './font';
 import { Icon, bottomInset, hasIcon } from './icon';
 import { sayNoDrawing } from './icons';
+import { native } from './native';
 import { haptic } from './haptics';
 import { usePress } from './press';
 import { Text } from './text';
@@ -120,6 +124,72 @@ function useLeftEdge() {
     });
   return { ref, left, measure };
 }
+
+/** Where a finger is on a control, in points from its left, and how far it's come. */
+type Point = { x: number; dx: number };
+type Following = {
+  onStart(point: Point): void;
+  onMove?(point: Point): void;
+  onEnd(point: Point, cancelled: boolean): void;
+};
+
+// On Android a native view follows the finger, and the control's thumb or lens is tied to it
+// through the native animation driver, so it moves in the frame the finger does, however busy the
+// app's JavaScript is. Elsewhere, and without the native code, JavaScript follows it.
+const NativeTrack: ComponentType<Record<string, unknown>> | null =
+  native && Platform.OS === 'android' ? Animated.createAnimatedComponent(requireNativeView('LiquidGlass', 'TrackView')) : null;
+
+/**
+ * Follows a finger on a control. `x` and `dx` hold where it is and how far it's come, for the
+ * control to draw from; `following` hears where it came down, moves and lifts.
+ */
+function useTrack(enabled: boolean, following: Following) {
+  const x = useRef(new Animated.Value(0)).current;
+  const dx = useRef(new Animated.Value(0)).current;
+  const edge = useLeftEdge();
+  const latest = useLatest({ following, enabled });
+  const handlers = useMemo(() => {
+    if (NativeTrack) {
+      type Event = { nativeEvent: Point & { cancelled?: boolean } };
+      return {
+        onTrackStart: (event: Event) => latest.current.following.onStart(event.nativeEvent),
+        onTrack: Animated.event([{ nativeEvent: { x, dx } }], {
+          useNativeDriver: true,
+          listener: (event: Event) => latest.current.following.onMove?.(event.nativeEvent),
+        }),
+        onTrackEnd: (event: Event) => latest.current.following.onEnd(event.nativeEvent, !!event.nativeEvent.cancelled),
+      };
+    }
+    let start = 0;
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => latest.current.enabled,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (event: GestureResponderEvent) => {
+        start = event.nativeEvent.pageX - edge.left.current;
+        edge.measure();
+        x.setValue(start);
+        dx.setValue(0);
+        latest.current.following.onStart({ x: start, dx: 0 });
+      },
+      onPanResponderMove: (_, gesture) => {
+        x.setValue(start + gesture.dx);
+        dx.setValue(gesture.dx);
+        latest.current.following.onMove?.({ x: start + gesture.dx, dx: gesture.dx });
+      },
+      onPanResponderRelease: (_, gesture) => latest.current.following.onEnd({ x: start + gesture.dx, dx: gesture.dx }, false),
+      onPanResponderTerminate: (_, gesture) => latest.current.following.onEnd({ x: start + gesture.dx, dx: gesture.dx }, true),
+    }).panHandlers;
+  }, []);
+  // Natively, a layer over the control takes the finger, and the control's own view keeps its
+  // layout, ref and accessibility; in JavaScript, the control's view takes it.
+  const Catcher = NativeTrack;
+  const catcher = Catcher ? <Catcher {...handlers} enabled={enabled} style={StyleSheet.absoluteFill} /> : null;
+  return { x, dx, edge, handlers: Catcher ? {} : handlers, catcher };
+}
+
+/** `value` held between `low` and `high`, worked out by the native driver. */
+const held = (value: Animated.AnimatedInterpolation<number> | Animated.AnimatedAddition, low: number, high: number) =>
+  high > low ? value.interpolate({ inputRange: [low, high], outputRange: [low, high], extrapolate: 'clamp' }) : value;
 
 function useLatest<T>(value: T) {
   const ref = useRef(value);
@@ -305,41 +375,36 @@ export function Switch({ checked, defaultChecked = false, onCheckedChange, disab
   };
   useEffect(() => settle(value), [value]);
 
-  const responder = useMemo(() => {
-    let from = 0;
-    let moved = false;
-    const at = (dx: number) => clamp(from + dx / SWITCH_TRAVEL, 0, 1);
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => !latest.current.disabled,
-      onPanResponderTerminationRequest: () => !moved,
-      onPanResponderGrant: () => {
-        from = latest.current.value ? 1 : 0;
-        moved = false;
-        raise();
-      },
-      onPanResponderMove: (_, gesture) => {
-        if (!moved && Math.abs(gesture.dx) < 4) return;
-        moved = true;
-        position.setValue(at(gesture.dx));
-      },
-      onPanResponderRelease: (_, gesture) => {
-        lower();
-        const next = moved ? at(gesture.dx) > 0.5 : !latest.current.value;
-        if (next !== latest.current.value) latest.current.setValue(next);
-        // Wherever the app leaves it: on the new side if it took the change, back if it didn't.
-        requestAnimationFrame(() => settle(latest.current.value));
-      },
-      onPanResponderTerminate: () => {
-        lower();
-        settle(latest.current.value);
-      },
-    });
-  }, []);
+  const from = useRef(0);
+  const track = useTrack(!disabled, {
+    onStart: () => {
+      from.current = latest.current.value ? 1 : 0;
+      position.stopAnimation();
+      position.setValue(from.current);
+      raise();
+    },
+    onEnd: ({ dx }, cancelled) => {
+      lower();
+      const moved = Math.abs(dx) >= 4;
+      const at = clamp(from.current + dx / SWITCH_TRAVEL, 0, 1);
+      // The spring takes over from the finger where the finger left it.
+      position.setValue(moved ? at : from.current);
+      track.dx.setValue(0);
+      if (cancelled) return settle(latest.current.value);
+      const next = moved ? at > 0.5 : !latest.current.value;
+      if (next !== latest.current.value) latest.current.setValue(next);
+      // Wherever the app leaves it: on the new side if it took the change, back if it didn't.
+      requestAnimationFrame(() => settle(latest.current.value));
+    },
+  });
+  // Made once: rebuilt, the native driver would start again from JavaScript's copy of where the
+  // finger is, which JavaScript never sees move.
+  const shown = useMemo(() => held(Animated.add(position, Animated.multiply(track.dx, 1 / SWITCH_TRAVEL)), 0, 1), []);
 
   return (
     <View
       {...props}
-      {...responder.panHandlers}
+      {...track.handlers}
       accessible
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled }}
@@ -358,12 +423,13 @@ export function Switch({ checked, defaultChecked = false, onCheckedChange, disab
           width: 37,
           height: 24,
           transform: [
-            { translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, SWITCH_TRAVEL] }) },
+            { translateX: shown.interpolate({ inputRange: [0, 1], outputRange: [0, SWITCH_TRAVEL] }) },
             { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, THUMB_SWELL] }) },
           ],
         }}>
         <Thumb lift={lift} radius={12} />
       </Animated.View>
+      {track.catcher}
     </View>
   );
 }
@@ -408,51 +474,62 @@ export function Slider({
       spring(progress, clamp((current - min) / (max - min || 1), 0, 1), 1000, 80).start();
     });
 
-  const responder = useMemo(() => {
-    let from = 0;
-    const valueAt = (dx: number) => {
-      const { span, min, max, step } = latest.current;
-      const raw = min + clamp(from + dx / span, 0, 1) * (max - min);
-      return step > 0 ? Math.min(max, min + Math.round((raw - min) / step) * step) : raw;
-    };
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => !latest.current.disabled,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => {
-        const { current, min, max } = latest.current;
-        from = (current - min) / (max - min || 1);
-        dragging.current = true;
-        raise();
-      },
-      onPanResponderMove: (_, gesture) => {
-        const { min, max } = latest.current;
-        const next = valueAt(gesture.dx);
-        progress.setValue((next - min) / (max - min || 1));
-        if (next !== latest.current.current) latest.current.setCurrent(next);
-      },
-      onPanResponderRelease: (_, gesture) => {
-        dragging.current = false;
-        lower();
-        latest.current.onSlidingComplete?.(valueAt(gesture.dx));
-        backToApp();
-      },
-      onPanResponderTerminate: () => {
-        dragging.current = false;
-        lower();
-        backToApp();
-      },
-    });
-  }, []);
+  const from = useRef(0);
+  const valueAt = (dx: number) => {
+    const { span, min, max, step } = latest.current;
+    const raw = min + clamp(from.current + dx / span, 0, 1) * (max - min);
+    return step > 0 ? Math.min(max, min + Math.round((raw - min) / step) * step) : raw;
+  };
+  // The app hears the value at most once a frame, however often the finger moves, so a screen
+  // that's slow to draw again doesn't fall behind the finger.
+  const waiting = useRef<number | null>(null);
+  const frame = useRef<number | null>(null);
+  const report = () => {
+    frame.current = null;
+    const next = waiting.current;
+    waiting.current = null;
+    if (next != null && next !== latest.current.current) latest.current.setCurrent(next);
+  };
+  const across = useRef(new Animated.Value(1 / span)).current;
+  useEffect(() => across.setValue(1 / span), [span]);
+  const track = useTrack(!disabled, {
+    onStart: () => {
+      const { current, min, max } = latest.current;
+      from.current = (current - min) / (max - min || 1);
+      progress.stopAnimation();
+      progress.setValue(from.current);
+      dragging.current = true;
+      raise();
+    },
+    onMove: ({ dx }) => {
+      waiting.current = valueAt(dx);
+      frame.current ??= requestAnimationFrame(report);
+    },
+    onEnd: ({ dx }) => {
+      dragging.current = false;
+      lower();
+      const final = valueAt(dx);
+      if (frame.current != null) cancelAnimationFrame(frame.current);
+      waiting.current = final;
+      report();
+      const { min, max } = latest.current;
+      progress.setValue((final - min) / (max - min || 1));
+      track.dx.setValue(0);
+      latest.current.onSlidingComplete?.(final);
+      backToApp();
+    },
+  });
+  const shown = useMemo(() => held(Animated.add(progress, Animated.multiply(track.dx, across)), 0, 1), []);
 
   return (
     <View
       {...props}
-      {...responder.panHandlers}
+      {...track.handlers}
       accessible
       accessibilityRole="adjustable"
       accessibilityValue={{ min, max, now: current }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      onAccessibilityAction={(event) => {
+      onAccessibilityAction={(event: AccessibilityActionEvent) => {
         const by = (step || (max - min) / 10) * (event.nativeEvent.actionName === 'increment' ? 1 : -1);
         setCurrent(clamp(current + by, min, max));
       }}
@@ -471,7 +548,7 @@ export function Slider({
             width,
             borderRadius: 3,
             backgroundColor: tint ?? ink.progress,
-            transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [18.5 - width, span + 18.5 - width] }) }],
+            transform: [{ translateX: shown.interpolate({ inputRange: [0, 1], outputRange: [18.5 - width, span + 18.5 - width] }) }],
           }}
         />
       </Backdrop>
@@ -484,12 +561,13 @@ export function Slider({
           width: 37,
           height: 24,
           transform: [
-            { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, span] }) },
+            { translateX: shown.interpolate({ inputRange: [0, 1], outputRange: [0, span] }) },
             { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, THUMB_SWELL] }) },
           ],
         }}>
         <Thumb lift={lift} radius={12} shadow />
       </Animated.View>
+      {track.catcher}
     </View>
   );
 }
@@ -558,40 +636,33 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
 
   useEffect(() => spring(thumb, index, 500, 40).start(), [index]);
 
-  const edge = useLeftEdge();
-  const responder = useMemo(() => {
-    let start = 0;
-    const to = (x: number) => {
-      const { segment, width } = latest.current;
-      return clamp(x, segment / 2, width - segment / 2);
-    };
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => !latest.current.disabled,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: (event: GestureResponderEvent) => {
-        start = event.nativeEvent.pageX - edge.left.current;
-        edge.measure();
-        lens.setValue(to(start));
-        raise();
-      },
-      onPanResponderMove: (_, gesture) => lens.setValue(to(start + gesture.dx)),
-      onPanResponderRelease: (_, gesture) => {
-        const { items, segment, setCurrent } = latest.current;
-        const at = clamp(Math.floor((start + gesture.dx) / (segment || 1)), 0, items.length - 1);
-        const item = items[at];
-        spring(lens, (at + 0.5) * segment, 500, 40).start();
-        lower();
-        if (item && !item.disabled) setCurrent(item.value);
-      },
-      onPanResponderTerminate: () => lower(),
-    });
-  }, []);
+  const track = useTrack(!disabled, {
+    onStart: () => {
+      // The finger carries the lens; the spring takes it back on release.
+      lens.stopAnimation();
+      lens.setValue(0);
+      raise();
+    },
+    onEnd: ({ x }, cancelled) => {
+      const { items, segment, width, setCurrent } = latest.current;
+      lens.setValue(clamp(x, segment / 2, width - segment / 2));
+      track.x.setValue(0);
+      lower();
+      if (cancelled) return;
+      const at = clamp(Math.floor(x / (segment || 1)), 0, items.length - 1);
+      spring(lens, (at + 0.5) * segment, 500, 40).start();
+      const item = items[at];
+      if (item && !item.disabled) setCurrent(item.value);
+    },
+  });
+  const edge = track.edge;
+  const shownLens = useMemo(() => held(Animated.add(lens, track.x), segment / 2, width - segment / 2), [segment, width]);
 
   const lensWidth = segment + 21;
   return (
     <View
       {...props}
-      {...responder.panHandlers}
+      {...track.handlers}
       ref={edge.ref}
       accessibilityRole="tablist"
       collapsable={false}
@@ -653,7 +724,7 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
             height: 44,
             opacity: lift,
             transform: [
-              { translateX: Animated.subtract(lens, lensWidth / 2) },
+              { translateX: Animated.subtract(shownLens, lensWidth / 2) },
               { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) },
             ],
           }}>
@@ -661,6 +732,7 @@ export function SegmentedControl({ items, value, defaultValue, onValueChange, di
           <View style={[StyleSheet.absoluteFill, { borderRadius: 22, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.25)' }]} />
         </Animated.View>
       )}
+      {track.catcher}
     </View>
   );
 }
@@ -707,40 +779,32 @@ export function TabBar({
     if (index >= 0) spring(pill, index, 500, 40).start();
   }, [index]);
 
-  const edge = useLeftEdge();
-  const responder = useMemo(() => {
-    let start = 0;
-    const centre = (x: number) => {
-      const { tab, items } = latest.current;
-      return clamp(x - 4, tab / 2, tab * items.length - tab / 2);
-    };
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: (event: GestureResponderEvent) => {
-        start = event.nativeEvent.pageX - edge.left.current;
-        edge.measure();
-        lens.setValue(centre(start));
-        raise();
-      },
-      onPanResponderMove: (_, gesture) => lens.setValue(centre(start + gesture.dx)),
-      onPanResponderRelease: (_, gesture) => {
-        const { tab, items, setCurrent } = latest.current;
-        const at = clamp(Math.floor((start + gesture.dx - 4) / (tab || 1)), 0, items.length - 1);
-        spring(lens, (at + 0.5) * tab, 500, 40).start();
-        lower();
-        const item = items[at];
-        if (item) setCurrent(item.value);
-      },
-      onPanResponderTerminate: () => lower(),
-    });
-  }, []);
+  const track = useTrack(true, {
+    onStart: () => {
+      lens.stopAnimation();
+      lens.setValue(0);
+      raise();
+    },
+    onEnd: ({ x }, cancelled) => {
+      const { tab, items, setCurrent } = latest.current;
+      lens.setValue(clamp(x - 4, tab / 2, tab * items.length - tab / 2));
+      track.x.setValue(0);
+      lower();
+      if (cancelled) return;
+      const at = clamp(Math.floor((x - 4) / (tab || 1)), 0, items.length - 1);
+      spring(lens, (at + 0.5) * tab, 500, 40).start();
+      const item = items[at];
+      if (item) setCurrent(item.value);
+    },
+  });
+  const edge = track.edge;
+  const shownLens = useMemo(() => held(Animated.add(lens, Animated.add(track.x, -4)), tab / 2, tab * count - tab / 2), [tab, count]);
 
   const lensWidth = tab + 24;
   return (
     <View
       {...props}
-      {...responder.panHandlers}
+      {...track.handlers}
       ref={edge.ref}
       accessibilityRole="tablist"
       collapsable={false}
@@ -772,6 +836,9 @@ export function TabBar({
                 height: 54,
                 borderRadius: 27,
                 backgroundColor: ink.pill,
+                // Held, the lens is the selection, as on iOS: the pill makes way for it, and comes
+                // back under the chosen tab as the lens settles.
+                opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
                 transform: [{ translateX: Animated.multiply(pill, tab) }],
               }}
             />
@@ -833,7 +900,7 @@ export function TabBar({
             height: 72,
             opacity: lift,
             transform: [
-              { translateX: Animated.subtract(lens, lensWidth / 2) },
+              { translateX: Animated.subtract(shownLens, lensWidth / 2) },
               { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
             ],
           }}>
@@ -841,6 +908,7 @@ export function TabBar({
           <View style={[StyleSheet.absoluteFill, { borderRadius: 36, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.18)' }]} />
         </Animated.View>
       )}
+      {track.catcher}
     </View>
   );
 }

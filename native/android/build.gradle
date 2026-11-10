@@ -16,3 +16,8 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // For React Native's touch helpers, so a control that takes a finger tells JavaScript it has.
+  implementation 'com.facebook.react:react-android'
+}

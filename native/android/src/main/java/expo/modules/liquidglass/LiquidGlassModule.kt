@@ -59,6 +59,11 @@ class LiquidGlassModule : Module() {
 
     View(BounceView::class) {}
 
+    View(TrackView::class) {
+      Events("onTrackStart", "onTrack", "onTrackEnd")
+      Prop("enabled") { view: TrackView, enabled: Boolean? -> view.follows = enabled ?: true }
+    }
+
     View(GlassView::class) {
       Events("onBackdropMissing")
       Prop("cornerRadius") { view: GlassView, radius: Float? -> view.cornerRadius = radius ?: 0f }
