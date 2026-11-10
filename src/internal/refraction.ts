@@ -431,6 +431,20 @@ function setRimPieces(element: HTMLElement, width: number, height: number, radiu
   element.style.setProperty("--lg-rim-image", `${rim} ${Math.round(y * density)} ${Math.round(x * density)} fill / ${y}px ${x}px / 0 stretch`);
 }
 
+// What each piece of glass last drew its rim from, so it can be drawn again lit.
+const drawn = new WeakMap<HTMLElement, [number, number, number, number, number]>();
+
+/**
+ * Lights the edge of glass that's being held, as clear glass's is: iOS shows its rim
+ * brightest when a finger is on it. `on` false puts back the rim it was drawn with.
+ */
+export function lightRim(element: HTMLElement, on: boolean): void {
+  const rim = drawn.get(element);
+  if (!rim) return;
+  const [width, height, radius, shine, clear] = rim;
+  setRimPieces(element, width, height, radius, shine, on ? 1 : clear);
+}
+
 function clearRim(element: HTMLElement): void {
   for (const name of ["--lg-rim", "--lg-rim-x", "--lg-rim-y", "--lg-rim-image", "--lg-mask"]) element.style.removeProperty(name);
 }
@@ -487,9 +501,11 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
     } else element.style.removeProperty("--lg-size-curve");
   }
   // A selection's lens stretches as it lifts and draws its rim as a background.
-  if (selection) element.style.setProperty("--lg-rim", rimFor(width, height, radius, shape.shine));
+  if (selection) element.style.setProperty("--lg-rim", rimFor(width, height, radius, shape.shine, clear));
   else {
-    setRimPieces(element, width, height, radius, shape.shine, clear);
+    drawn.set(element, [width, height, radius, shape.shine, clear]);
+    // A rim refitted while the glass is held stays lit.
+    setRimPieces(element, width, height, radius, shape.shine, element.hasAttribute("data-pressed") ? 1 : clear);
     if (!even) element.style.removeProperty("--lg-mask");
   }
 }

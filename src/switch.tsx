@@ -11,6 +11,7 @@ import {
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
 import { held } from "./internal/hold";
+import { createJelly, FLAT } from "./internal/jelly";
 import { useRefraction } from "./internal/refraction";
 import { createSpring, type Spring } from "./internal/spring";
 
@@ -38,7 +39,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
   const fillRef = useRef<HTMLSpanElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
   const faceRef = useRef<HTMLSpanElement>(null);
-  useRefraction(thumbRef);
+  useRefraction(thumbRef, true);
   const [checked, setChecked] = useControllable(checkedProp, defaultChecked, onCheckedChange);
   const latest = useRef({ checked, setChecked });
   const springs = useRef<{ position: Spring; color: Spring } | null>(null);
@@ -57,13 +58,23 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
     const face = faceRef.current!;
     let x = 0;
     let scale = 0.627;
+    let squashed = FLAT;
     const paint = () => {
-      thumb.style.transform = `translate(${x}px, -50%) scale(${scale})`;
+      // The thumb stretches along its way across, by how far it trails the place it's going.
+      thumb.style.transform = `translate(${x}px, -50%) scale(${scale * squashed.x}, ${scale * squashed.y})`;
     };
+    const jelly = createJelly(
+      () => thumb.offsetWidth,
+      (shape) => {
+        squashed = shape;
+        paint();
+      },
+    );
 
     const initial = latest.current.checked ? 1 : 0;
     const position = createSpring(initial, 1000, 80, (value) => {
       x = value * TRAVEL;
+      jelly.follow(x);
       paint();
     });
     // The colour outlasts the thumb's trip.
@@ -180,7 +191,7 @@ export const Switch: ForwardRefExoticComponent<SwitchProps & RefAttributes<HTMLB
     return () => {
       springs.current = null;
       clearTimeout(linger);
-      [position, color, lift].forEach((spring) => spring.stop());
+      [position, color, lift, jelly].forEach((spring) => spring.stop());
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);

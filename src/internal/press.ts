@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
+import { lightRim } from "./refraction";
 import { createSpring } from "./spring";
 
 interface Feel {
@@ -92,6 +93,7 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
       pointer = null;
       delete el.dataset.pressed;
       if (glass !== el) delete glass.dataset.pressed;
+      lightRim(glass, false);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
@@ -116,6 +118,7 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
       };
       el.dataset.pressed = "";
       glass.dataset.pressed = "";
+      lightRim(glass, true);
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
