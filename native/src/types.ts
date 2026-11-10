@@ -1,10 +1,16 @@
-import type { ColorValue, StyleProp, ViewProps, ViewStyle } from 'react-native';
+import type { ColorValue, ImageSourcePropType, LayoutChangeEvent, StyleProp, ViewProps, ViewStyle } from 'react-native';
 
 /**
  * Icons are SF Symbols, named as in Apple's SF Symbols app, such as `"house.fill"`. On iOS they're
  * the system's own; elsewhere they aren't drawn, so give every control a label as well.
  */
 export type SymbolName = string;
+
+/**
+ * An SF Symbol's name, or an image of the app's own, such as `require("./home.png")`. An image is
+ * drawn in the control's colour, as a symbol is, so give it a transparent background.
+ */
+export type IconSource = SymbolName | ImageSourcePropType;
 
 interface Base {
   style?: StyleProp<ViewStyle>;
@@ -40,7 +46,9 @@ export interface ButtonProps extends Base {
   label?: string;
   children?: string;
   /** Shown before the label. On its own, the button is a circle; give it an `accessibilityLabel`. */
-  icon?: SymbolName;
+  icon?: IconSource;
+  /** The label's typeface. See `setFontFamily` to set one for every control. */
+  fontFamily?: string;
   /** `glass` is clear; `filled` fills it with the accent colour, for the primary action. */
   variant?: 'glass' | 'filled';
   /** The iOS control sizes. */
@@ -117,16 +125,31 @@ export interface SegmentedControlProps extends Base {
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   disabled?: boolean;
+  /** The labels' typeface. See `setFontFamily` to set one for every control. */
+  fontFamily?: string;
 }
 
 export interface TabBarItem {
   value: string;
   label: string;
-  icon?: SymbolName;
+  icon?: IconSource;
   /** Shown instead of `icon` while the tab is selected, such as the `.fill` version. */
-  selectedIcon?: SymbolName;
+  selectedIcon?: IconSource;
   /** A red badge, such as an unread count. */
   badge?: string;
+  /** Finds this tab in tests. */
+  testID?: string;
+  /** What a screen reader says for the tab, if not its label. */
+  accessibilityLabel?: string;
+}
+
+/** Where a tab is on the screen, in points from the window's top left. */
+export interface TabLayout {
+  value: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface TabBarProps extends Base {
@@ -137,4 +160,14 @@ export interface TabBarProps extends Base {
   onValueChange?: (value: string) => void;
   /** The colour of the selected tab. */
   tint?: ColorValue;
+  /** The labels' typeface. See `setFontFamily` to set one for every control. */
+  fontFamily?: string;
+  onLayout?: (event: LayoutChangeEvent) => void;
+  /**
+   * How much of the screen's foot the bar takes, in points, including the space below it down to
+   * the screen's edge: leave this much room under content, and float buttons this far up.
+   */
+  onHeight?: (height: number) => void;
+  /** Where each tab is on the screen, whenever that changes, for pointing one out. */
+  onTabLayout?: (tabs: TabLayout[]) => void;
 }

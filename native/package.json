@@ -1,6 +1,6 @@
 {
   "name": "@onlymoein/liquidglass-native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Apple's iOS 27 Liquid Glass for React Native and Expo.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -61,10 +61,10 @@
     ]
   },
   "peerDependencies": {
-    "expo": "*",
-    "expo-glass-effect": "*",
-    "react": "*",
-    "react-native": "*"
+    "expo": ">=54.0.0",
+    "expo-glass-effect": ">=0.1.0",
+    "react": ">=19.1.0",
+    "react-native": ">=0.81.0"
   },
   "contributors": [
     "Kelvin Zhang <me@kelvinzhang.ca> (https://github.com/0kzh)"
@@ -77,7 +77,8 @@
     "android/src",
     "expo-module.config.json",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "publishConfig": {
     "access": "public"

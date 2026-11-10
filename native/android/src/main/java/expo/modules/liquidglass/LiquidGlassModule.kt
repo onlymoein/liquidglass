@@ -60,6 +60,7 @@ class LiquidGlassModule : Module() {
     View(BounceView::class) {}
 
     View(GlassView::class) {
+      Events("onBackdropMissing")
       Prop("cornerRadius") { view: GlassView, radius: Float? -> view.cornerRadius = radius ?: 0f }
       Prop("clear") { view: GlassView, clear: Boolean? -> view.clear = clear ?: false }
       Prop("dark") { view: GlassView, dark: Boolean? -> view.dark = dark ?: false }

@@ -1,7 +1,8 @@
 import { requireNativeView } from 'expo';
 import type { ComponentType } from 'react';
-import { Animated, StyleSheet, useColorScheme, type ColorValue, type ViewProps } from 'react-native';
+import { Animated, StyleSheet, useColorScheme, View, type ColorValue, type ViewProps } from 'react-native';
 
+import { native, sayMissing } from './native';
 import { usePress } from './press';
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
@@ -21,8 +22,29 @@ type NativeGlassProps = ViewProps & {
   touch?: number[];
   zoom?: number;
   split?: number;
+  onBackdropMissing?: () => void;
 };
-const NativeGlass: ComponentType<NativeGlassProps> = requireNativeView('LiquidGlass', 'GlassView');
+
+let toldBackdrop = false;
+/** Says once, in development, that glass has nothing behind it to show. */
+const sayNoBackdrop = () => {
+  if (!__DEV__ || toldBackdrop) return;
+  toldBackdrop = true;
+  console.warn(
+    '@onlymoein/liquidglass-native: glass on Android found no Backdrop behind it, so it shows a ' +
+      "plain pane. An Android view can't see what's drawn behind it: wrap what the glass should " +
+      'show in a <Backdrop>, and keep the glass itself outside that Backdrop, as a later sibling ' +
+      'of it or of one of its parents.'
+  );
+};
+/** Without the package's native code, a translucent pane where the glass would be. */
+function StandIn({ cornerRadius, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
+  sayMissing();
+  const fill = lens ? 'transparent' : (tint ?? (dark ? 'rgba(40,40,44,0.72)' : 'rgba(255,255,255,0.72)'));
+  return <View {...props} style={[{ backgroundColor: prominent ? (tint ?? fill) : fill, borderRadius: cornerRadius }, style]} />;
+}
+
+const NativeGlass: ComponentType<NativeGlassProps> = native ? requireNativeView('LiquidGlass', 'GlassView') : StandIn;
 const PressableGlass = Animated.createAnimatedComponent(NativeGlass);
 
 /** For a control that handles the press itself and lights its glass while it's held. */
@@ -31,8 +53,10 @@ export interface Held {
   touch?: { x: number; y: number } | null;
 }
 const at = (touch: Held['touch']) => (touch ? [touch.x, touch.y] : undefined);
-const NativeBackdrop: ComponentType<ViewProps> = requireNativeView('LiquidGlass', 'BackdropView');
-const NativeGroup: ComponentType<ViewProps & { spacing: number }> = requireNativeView('LiquidGlass', 'GlassGroupView');
+const NativeBackdrop: ComponentType<ViewProps> = native ? requireNativeView('LiquidGlass', 'BackdropView') : View;
+const NativeGroup: ComponentType<ViewProps & { spacing: number }> = native
+  ? requireNativeView('LiquidGlass', 'GlassGroupView')
+  : ({ spacing: _spacing, ...props }: ViewProps & { spacing: number }) => <View {...props} />;
 
 export function Glass({
   variant = 'regular',
@@ -58,6 +82,7 @@ export function Glass({
   if (interactive) {
     return (
       <PressableGlass
+        onBackdropMissing={sayNoBackdrop}
         {...props}
         {...press.handlers}
         ref={press.ref as never}
@@ -68,7 +93,7 @@ export function Glass({
       />
     );
   }
-  return <NativeGlass {...props} style={style} {...common} held={held} touch={at(touch)} />;
+  return <NativeGlass onBackdropMissing={sayNoBackdrop} {...props} style={style} {...common} held={held} touch={at(touch)} />;
 }
 
 /**
@@ -80,6 +105,7 @@ export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
   const radius = StyleSheet.flatten(style)?.borderRadius;
   return (
     <NativeGlass
+      onBackdropMissing={sayNoBackdrop}
       {...props}
       style={style}
       cornerRadius={typeof radius === 'number' ? radius : 0}
@@ -97,6 +123,7 @@ export function FilledGlass({ colour, style, held, touch, ...props }: ViewProps 
   const radius = StyleSheet.flatten(style)?.borderRadius;
   return (
     <NativeGlass
+      onBackdropMissing={sayNoBackdrop}
       {...props}
       held={held}
       touch={at(touch)}

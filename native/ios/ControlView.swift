@@ -76,8 +76,16 @@ final class SwitchView: ControlView {
     control.addTarget(self, action: #selector(changed), for: .valueChanged)
   }
 
+  private var given = false
+
   func setChecked(_ checked: Bool) {
+    given = checked
     if control.isOn != checked { control.setOn(checked, animated: window != nil) }
+  }
+
+  /// Back to the value the app gave, after a change the app didn't take.
+  func resync() {
+    if control.isOn != given { control.setOn(given, animated: true) }
   }
 
   @objc private func changed() {
@@ -105,9 +113,19 @@ final class SliderView: ControlView {
     control.addTarget(self, action: #selector(ended), for: [.touchUpInside, .touchUpOutside, .touchCancel])
   }
 
+  private var given: Double = 0
+
   func setValue(_ value: Double) {
+    given = value
     last = value
     if !control.isTracking { control.setValue(Float(value), animated: false) }
+  }
+
+  /// Back to the value the app gave, after a change the app didn't take. Not while it's held.
+  func resync() {
+    guard !control.isTracking else { return }
+    last = given
+    if control.value != Float(given) { control.setValue(Float(given), animated: true) }
   }
 
   func setRange(min: Double?, max: Double?) {
@@ -149,6 +167,18 @@ final class StepperView: ControlView {
     control.addTarget(self, action: #selector(changed), for: .valueChanged)
   }
 
+  private var given: Double = 0
+
+  func setValue(_ value: Double) {
+    given = value
+    control.value = value
+  }
+
+  /// Back to the value the app gave, after a change the app didn't take.
+  func resync() {
+    if control.value != given { control.value = given }
+  }
+
   @objc private func changed() {
     onValueChange(["value": control.value])
   }
@@ -167,6 +197,24 @@ final class SegmentedControlView: ControlView {
     super.init(appContext: appContext)
     attach()
     control.addTarget(self, action: #selector(changed), for: .valueChanged)
+  }
+
+  var fontFamily: String? {
+    didSet { applyFont() }
+  }
+
+  private func applyFont() {
+    // iOS 26 sets segments at 14 points, earlier versions at 13; the selected one a little heavier.
+    let size: CGFloat
+    if #available(iOS 26.0, *) { size = 14 } else { size = 13 }
+    if let regular = Fonts.named(fontFamily, size: size, weight: .regular) {
+      control.setTitleTextAttributes([.font: regular], for: .normal)
+      control.setTitleTextAttributes([.font: Fonts.named(fontFamily, size: size, weight: .medium) ?? regular], for: .selected)
+    } else {
+      control.setTitleTextAttributes(nil, for: .normal)
+      control.setTitleTextAttributes(nil, for: .selected)
+    }
+    setNeedsLayout()
   }
 
   func setItems(_ items: [SegmentItem]) {
@@ -189,13 +237,15 @@ final class SegmentedControlView: ControlView {
     control.selectedSegmentIndex = items.firstIndex { $0.value == value } ?? UISegmentedControl.noSegment
   }
 
+  /// Back to the segment the app gave, after a change the app didn't take.
+  func resync() {
+    setSelected(selected)
+  }
+
   @objc private func changed() {
     let index = control.selectedSegmentIndex
     guard items.indices.contains(index) else { return }
-    let value = items[index].value
-    // Held to the value React gives it, so a parent that doesn't take the change keeps the old one.
-    setSelected(selected)
-    onValueChange(["value": value])
+    onValueChange(["value": items[index].value])
   }
 }
 
@@ -204,9 +254,15 @@ final class TabBarView: ControlView, UITabBarDelegate {
   override var sizeEvent: EventDispatcher { onSize }
   let bar = UITabBar()
   let onValueChange = EventDispatcher()
+  /// Where each tab is on the screen, for anything that points one out, such as an intro tour.
+  let onTabLayout = EventDispatcher()
   private var items: [TabItem] = []
   private var selected: String?
   override var hosted: UIView { bar }
+
+  var fontFamily: String? {
+    didSet { setItems(items) }
+  }
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -216,25 +272,39 @@ final class TabBarView: ControlView, UITabBarDelegate {
 
   func setItems(_ items: [TabItem]) {
     self.items = items
+    let regular = Fonts.named(fontFamily, size: 10, weight: .medium)
     bar.setItems(
       items.enumerated().map { index, item in
-        let image = item.icon.flatMap { UIImage(systemName: $0) }
-        let chosen = (item.selectedIcon ?? item.icon).flatMap { UIImage(systemName: $0) }
+        let image = Images.icon(uri: item.iconUri, symbol: item.icon, size: 25)
+        let chosen = Images.icon(uri: item.selectedIconUri ?? item.iconUri, symbol: item.selectedIcon ?? item.icon, size: 25)
         let tab = UITabBarItem(title: item.label, image: image, selectedImage: chosen)
         tab.tag = index
         tab.badgeValue = item.badge
+        tab.accessibilityIdentifier = item.testID
+        if let label = item.accessibilityLabel { tab.accessibilityLabel = label }
+        if let regular {
+          tab.setTitleTextAttributes([.font: regular], for: .normal)
+          tab.setTitleTextAttributes([.font: regular], for: .selected)
+        }
         return tab
       },
       animated: false
     )
     setSelected(selected)
     if laidOut != bounds.size { setNeedsLayout() }
+    measureTabs()
   }
 
   func setSelected(_ value: String?) {
     selected = value
     let index = items.firstIndex { $0.value == value }
     bar.selectedItem = index.flatMap { bar.items?[$0] }
+  }
+
+  /// Back to the tab the app gave, after a tap the app didn't take. UIKit moves the selection
+  /// itself on a tap, before the app has had a say.
+  func resync() {
+    setSelected(selected)
   }
 
   private var laidOut: CGSize = .zero
@@ -244,9 +314,51 @@ final class TabBarView: ControlView, UITabBarDelegate {
     // UIKit lays the tabs out for the size the bar first has, which here is a placeholder until
     // React Native gives it the size it asked for, and squeezes the labels to fit. Setting the
     // items again lays them out afresh.
+    measureTabs()
     guard bounds.size != laidOut, bounds.height > 0 else { return }
     laidOut = bounds.size
     setItems(items)
+  }
+
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    measureTabs()
+  }
+
+  private var measured: [[String: Any]] = []
+
+  /// Finds where UIKit drew each tab, once it has laid them out. The tabs' own views are
+  /// UIKit's private ones, so each is found the way VoiceOver finds it, by what it's called;
+  /// failing that, the bar is shared out evenly.
+  private func measureTabs() {
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.window != nil, !self.items.isEmpty else { return }
+      var spoken: [UIView] = []
+      func look(_ view: UIView) {
+        if view.isAccessibilityElement { spoken.append(view) }
+        view.subviews.forEach(look)
+      }
+      look(self.bar)
+      let tabs: [[String: Any]] = self.items.enumerated().map { index, item in
+        let match = spoken.first { view in
+          if let id = item.testID, view.accessibilityIdentifier == id { return true }
+          let said = view.accessibilityLabel ?? ""
+          return said == (item.accessibilityLabel ?? item.label) || said.hasPrefix(item.label)
+        }
+        let frame: CGRect
+        if let match {
+          frame = match.convert(match.bounds, to: nil)
+        } else {
+          let whole = self.bar.convert(self.bar.bounds, to: nil)
+          let each = whole.width / CGFloat(self.items.count)
+          frame = CGRect(x: whole.minX + each * CGFloat(index), y: whole.minY, width: each, height: min(whole.height, 49))
+        }
+        return ["value": item.value, "x": frame.minX, "y": frame.minY, "width": frame.width, "height": frame.height]
+      }
+      guard !NSArray(array: tabs).isEqual(to: self.measured) else { return }
+      self.measured = tabs
+      self.onTabLayout(["tabs": tabs])
+    }
   }
 
   func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
@@ -263,6 +375,8 @@ final class ButtonView: ControlView {
   let onMenuSelect = EventDispatcher()
   var label: String?
   var icon: String?
+  var iconUri: String?
+  var fontFamily: String?
   var filled = false
   var size = "regular"
   var tint: UIColor?
@@ -286,7 +400,7 @@ final class ButtonView: ControlView {
       configuration.cornerStyle = .capsule
     }
     configuration.title = label
-    if let icon { configuration.image = UIImage(systemName: icon) }
+    configuration.image = Images.icon(uri: iconUri, symbol: icon, size: size == "small" ? 17 : size == "large" ? 26 : 21)
     configuration.imagePadding = 6
     switch size {
     case "small": configuration.buttonSize = .small
@@ -305,14 +419,24 @@ final class ButtonView: ControlView {
       if let image = configuration.image {
         configuration.image = image.withTintColor(colour, renderingMode: .alwaysOriginal)
       }
+    }
+    // The title in the app's own typeface, if it gave one, at the size and weight UIKit chose, and
+    // in the button's colour where iOS would otherwise keep it in the label colour.
+    let family = fontFamily
+    let titleColour = filled ? nil : colour
+    if family != nil || titleColour != nil {
       configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
         var attributes = attributes
-        attributes.foregroundColor = colour
+        if let titleColour { attributes.foregroundColor = titleColour }
+        if let family {
+          let current = attributes.font ?? UIFont.preferredFont(forTextStyle: .body)
+          if let font = Fonts.named(family, size: current.pointSize, weight: Fonts.weight(of: current)) { attributes.font = font }
+        }
         return attributes
       }
     }
     // Just an icon makes a circle, as it does in iOS.
-    if label?.isEmpty ?? true, icon != nil {
+    if label?.isEmpty ?? true, icon != nil || iconUri != nil {
       let inset: CGFloat = size == "small" ? 6 : size == "large" ? 14 : 10
       configuration.contentInsets = NSDirectionalEdgeInsets(top: inset, leading: inset, bottom: inset, trailing: inset)
     }
@@ -346,5 +470,82 @@ final class ButtonView: ControlView {
 
   @objc private func pressed() {
     onTrigger()
+  }
+}
+
+/// The app's own typefaces, found by the name it uses for them.
+enum Fonts {
+  /// A face of `family` at this size, as near this weight as the family has, or nil if there's no
+  /// such family. `family` can be a face's own name, such as "Poppins-Medium", or a family's, such
+  /// as "Poppins".
+  static func named(_ family: String?, size: CGFloat, weight: UIFont.Weight) -> UIFont? {
+    guard let family, !family.isEmpty else { return nil }
+    if let font = UIFont(name: family, size: size) { return font }
+    let key = simple(family)
+    guard let found = UIFont.familyNames.first(where: { simple($0) == key }) else {
+      NSLog("[liquidglass] No font named \"%@\" is loaded; the system font is used instead.", family)
+      return nil
+    }
+    let faces = UIFont.fontNames(forFamilyName: found)
+    let wanted = words(for: weight)
+    let face = faces.first { face in wanted.contains { simple(face).hasSuffix($0) } }
+      ?? faces.first { simple($0).hasSuffix("regular") }
+      ?? faces.first
+    return face.flatMap { UIFont(name: $0, size: size) }
+  }
+
+  static func weight(of font: UIFont) -> UIFont.Weight {
+    let traits = font.fontDescriptor.object(forKey: .traits) as? [UIFontDescriptor.TraitKey: Any]
+    return UIFont.Weight(rawValue: traits?[.weight] as? CGFloat ?? 0)
+  }
+
+  private static func simple(_ name: String) -> String {
+    name.lowercased().filter { $0.isLetter || $0.isNumber }
+  }
+
+  private static func words(for weight: UIFont.Weight) -> [String] {
+    switch weight.rawValue {
+    case ..<(-0.3): return ["light"]
+    case ..<0.1: return ["regular", "book", "normal"]
+    case ..<0.27: return ["medium"]
+    case ..<0.35: return ["semibold", "demibold"]
+    default: return ["bold"]
+    }
+  }
+}
+
+/// Icons: an SF Symbol by name, or the app's own image, sized to sit where a symbol would.
+enum Images {
+  static func icon(uri: String?, symbol: String?, size: CGFloat) -> UIImage? {
+    if let uri, !uri.isEmpty, let image = load(uri) { return fit(image, size) }
+    return symbol.flatMap { UIImage(systemName: $0) }
+  }
+
+  private static var cache: [String: UIImage] = [:]
+
+  private static func load(_ uri: String) -> UIImage? {
+    if let image = cache[uri] { return image }
+    var image: UIImage?
+    if let url = URL(string: uri), url.scheme != nil {
+      // A file from the app, or in development a file from Metro.
+      if url.isFileURL {
+        image = UIImage(contentsOfFile: url.path)
+      } else if let data = try? Data(contentsOf: url) {
+        image = UIImage(data: data, scale: UIScreen.main.scale)
+      }
+    } else {
+      image = UIImage(named: uri) ?? UIImage(contentsOfFile: uri)
+    }
+    if image == nil { NSLog("[liquidglass] Couldn't load the icon at %@.", uri) }
+    if let image { cache[uri] = image }
+    return image
+  }
+
+  /// Scaled to fit a square `size` points across, and drawn in the tint, as a symbol is.
+  private static func fit(_ image: UIImage, _ size: CGFloat) -> UIImage {
+    let ratio = min(size / max(image.size.width, 1), size / max(image.size.height, 1))
+    let target = CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
+    let fitted = UIGraphicsImageRenderer(size: target).image { _ in image.draw(in: CGRect(origin: .zero, size: target)) }
+    return fitted.withRenderingMode(.alwaysTemplate)
   }
 }

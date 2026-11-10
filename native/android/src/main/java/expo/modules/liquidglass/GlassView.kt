@@ -13,6 +13,7 @@ import android.graphics.Shader
 import android.os.Build
 import android.view.ViewTreeObserver
 import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import kotlin.math.max
 import kotlin.math.min
@@ -59,6 +60,9 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     set(value) { field = value; changed() }
 
   private var backdrop: BackdropView? = null
+  /** Tells the app, once, that this glass found no backdrop to show, so it can say why it's plain. */
+  private val onBackdropMissing by EventDispatcher()
+  private var missing = false
   private val node: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-glass") else null
   private var effectFor = ""
   private val shape = Path()
@@ -70,7 +74,13 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   private val follow = ViewTreeObserver.OnPreDrawListener {
     // Glass that moves, or grows, over its backdrop has to draw again to show what's now behind
     // it. Which backdrop is behind depends on where the glass is, so it's found once it's laid out.
-    if (backdrop == null && isLaidOut && width > 0) backdrop = Backdrops.behind(this)?.also { it.watch(this) }
+    if (backdrop == null && isLaidOut && width > 0) {
+      backdrop = Backdrops.behind(this)?.also { it.watch(this) }
+      if (backdrop == null && !missing) {
+        missing = true
+        onBackdropMissing(mapOf())
+      }
+    }
     val source = backdrop
     if (source != null && Backdrops.mapping(source, this, step) && step != fromBackdrop) {
       fromBackdrop.set(step)
@@ -133,7 +143,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     if (width > 0 && height > 0) {
       Shapes.outline(shape, width.toFloat(), height.toFloat(), radiusPx)
       if (!lens && tint == null && (parent as? GlassGroupView)?.drawsShadows != true) {
-        Shapes.drawShadow(canvas, shape, short, density, dark)
+        Shapes.drawShadow(canvas, shape, width.toFloat(), height.toFloat(), radiusPx, short, density, dark)
       }
       if (!grouped) drawGlass(canvas)
     }

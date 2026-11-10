@@ -163,7 +163,7 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
       canvas.save()
       canvas.translate(piece.left.toFloat(), piece.top.toFloat())
       canvas.concat(piece.matrix)
-      Shapes.drawShadow(canvas, outline, piece.short, density, piece.dark)
+      Shapes.drawShadow(canvas, outline, piece.width.toFloat(), piece.height.toFloat(), piece.radiusPx, piece.short, density, piece.dark)
       canvas.restore()
     }
 

@@ -24,6 +24,8 @@ final class Driver: XCTestCase {
           case "drag": at(n[0], n[1]).press(forDuration: n[4], thenDragTo: at(n[2], n[3]))
           // drag, then hold still at the end before letting go: x1 y1 x2 y2 pressSecs holdSecs
           case "hold": at(n[0], n[1]).press(forDuration: n[4], thenDragTo: at(n[2], n[3]), withVelocity: .slow, thenHoldForDuration: n[5])
+          // The app's element tree, for finding what's on screen.
+          case "tree": try? app.debugDescription.write(toFile: root + "/tree.txt", atomically: true, encoding: .utf8)
           case "stop": return
           default: break
           }

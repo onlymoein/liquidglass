@@ -16,14 +16,18 @@ On iOS 26 and later the components are UIKit's own controls and glass, so iOS dr
 
 ## Install
 
-In an Expo app (SDK 58 or later):
+In an Expo app:
 
 ```sh
 npx expo install @onlymoein/liquidglass-native expo-glass-effect
 npx expo run:ios
 ```
 
+It needs Expo SDK 54 or later (React Native 0.81 or later), and on iOS a deployment target of iOS 15.1 or later. It's built and tested against SDK 58. The glass and glass controls are iOS 26's; earlier iOS versions get UIKit's ordinary controls.
+
 The package includes native code, so it needs a development build (`npx expo run:ios`, or EAS Build). It doesn't run in Expo Go. In a bare React Native app, install [Expo Modules](https://docs.expo.dev/bare/installing-expo-modules/) first.
+
+If the native code isn't in the build, because the app wasn't rebuilt after installing or its iOS deployment target is too low, the package draws plain stand-ins instead of grey "Unimplemented component" boxes, and logs an error saying why.
 
 ## Use
 
@@ -57,11 +61,31 @@ export function Player() {
 }
 ```
 
-Icons are [SF Symbols](https://developer.apple.com/sf-symbols/) names, such as `"house.fill"`.
+Icons are [SF Symbols](https://developer.apple.com/sf-symbols/) names, such as `"house.fill"`, or images of your own, such as `require('./home.png')`, for buttons and tabs. An image is drawn in the control's colour, as a symbol is, so give it a transparent background.
 
-Controls size themselves the way UIKit sizes them. A slider, segmented control or tab bar fills the width it's given.
+Controls size themselves the way UIKit sizes them, starting from the size iOS gives each kind so nothing jumps into place. A slider, segmented control or tab bar fills the width it's given.
+
+Each control works controlled or uncontrolled. When the app controls the value and doesn't take a change, such as a tap it ignores, the control goes back to the app's value.
+
+### Fonts
+
+Labels are San Francisco on iOS. To use your app's typeface for every control's labels, set it once when the app starts, with the name the font was loaded under:
+
+```tsx
+import { setFontFamily } from '@onlymoein/liquidglass-native';
+
+setFontFamily('Poppins');
+```
+
+`fontFamily` on a `Button`, `Menu`, `SegmentedControl` or `TabBar` sets it for that one control.
+
+### The tab bar
 
 Put the tab bar at the very bottom of the screen, as above. It leaves room for the home indicator itself.
+
+- `onHeight` gives how much of the foot of the screen the bar takes, down to the screen's edge: leave that much room under content, and float buttons that far up.
+- `onTabLayout` gives where each tab is on the screen, for pointing one out, as an intro tour does.
+- Each item takes a `testID`, for finding that tab in tests, and an `accessibilityLabel`.
 
 ## Components
 
@@ -97,7 +121,7 @@ An Android view can't see what's drawn behind it, so glass there shows what's in
 <TabBar items={tabs} />{/* shows the page, as it's outside the Backdrop */}
 ```
 
-Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or of one of its parents. Give the backdrop a background colour, which is what glass shows where nothing is drawn. On iOS and the web a `Backdrop` is a plain view, so the same code works everywhere.
+Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or of one of its parents. Give the backdrop a background colour, which is what glass shows where nothing is drawn. On iOS and the web a `Backdrop` is a plain view, so the same code works everywhere. Glass on Android that finds no `Backdrop` behind it draws a plain pane, and in development says so in a warning.
 
 - **Android 13 and later:** the full glass.
 - **Android 12:** blur and tone, without the bend.
@@ -107,7 +131,7 @@ Buttons are iOS 27's sizes, and a filled button is tinted glass that darkens a l
 
 The tab bar and buttons on Android are laid out as iOS lays them out, on the glass: each tab's icon above its label, the selected tab on a pill, badges, and the bar above the gesture handle.
 
-Apple only allows SF Symbols on its own platforms, so Android gets the package's own icons, drawn for it, under the same names: `house`, `magnifyingglass`, `gearshape`, `bookmark`, `heart`, `star`, `person`, `bell`, `trash`, `calendar`, `square.and.arrow.up`, `slider.horizontal.3`, `circle.hexagongrid`, `ellipsis`, `plus`, `minus`, `xmark`, `checkmark`, the chevrons, and more. Most have a `.fill` version. A name without a drawing shows no icon, and an icon-only button then shows its `accessibilityLabel`'s first letter.
+Apple only allows SF Symbols on its own platforms, so Android gets the package's own icons, drawn for it, under the same names. A name without a drawing shows nothing and warns in development; pass an image of your own to show the same icon everywhere. The drawings: `house`, `magnifyingglass`, `gearshape`, `bookmark`, `heart`, `star`, `person`, `bell`, `trash`, `calendar`, `square.and.arrow.up`, `slider.horizontal.3`, `circle.hexagongrid`, `ellipsis`, `plus`, `minus`, `xmark`, `checkmark`, the chevrons, and more. Most have a `.fill` version. A name without a drawing shows no icon, and an icon-only button then shows its `accessibilityLabel`'s first letter.
 
 The switch, slider, stepper and segmented control on Android follow iOS 27's sizes, colours and springs. Under a finger, a switch or slider thumb swells into a clear lens over its track, the segmented control's lens slides across the labels, and holding the tab bar brings up a lens that enlarges the tabs under it and parts their colours at its rim. Glass directly inside a `GlassGroup` is drawn as one surface, so pieces closer than `spacing` flow together and part again as they move apart. Tinted glass in a group draws on its own.
 

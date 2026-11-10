@@ -2,7 +2,9 @@ import { requireNativeView } from 'expo';
 import { forwardRef, type ComponentType, type ElementRef } from 'react';
 import { ScrollView as Base, StyleSheet, type ScrollViewProps, type ViewProps, type ViewStyle } from 'react-native';
 
-const Bounce: ComponentType<ViewProps> = requireNativeView('LiquidGlass', 'BounceView');
+import { native } from './native';
+
+const Bounce: ComponentType<ViewProps> | null = native ? requireNativeView('LiquidGlass', 'BounceView') : null;
 
 // What places the scroll view among its neighbours goes on the view that bounces it; the rest,
 // such as its background and padding, stays on the scroll view.
@@ -23,7 +25,7 @@ export const ScrollView: typeof Base = forwardRef<ElementRef<typeof Base>, Scrol
   { style, horizontal, refreshControl, bounces = true, ...props },
   ref,
 ) {
-  if (horizontal || refreshControl || !bounces) {
+  if (horizontal || refreshControl || !bounces || !Bounce) {
     return <Base ref={ref} style={style} horizontal={horizontal} refreshControl={refreshControl} {...props} />;
   }
   const outside: Record<string, unknown> = { flexGrow: 1, flexShrink: 1 };
