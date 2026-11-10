@@ -52,6 +52,12 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
    */
   var lens = false
     set(value) { field = value; changed() }
+  /**
+   * A lens over frosted glass, as the tab bar's is: it shows what's behind frosted as the bar
+   * does, enlarged, and still bends and parts the colours at its rim.
+   */
+  var frosted = false
+    set(value) { field = value; changed() }
   /** A filled button's glass: its tint, darkened a little by what's behind, rather than mixed in. */
   var prominent = false
     set(value) { field = value; changed() }
@@ -405,7 +411,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   /** How much of the size curve applies: none at 60 points tall or less, all of it at 120. */
   private val size: Float get() = ((short - 60f) / 60f).coerceIn(0f, 1f)
   /** The blur's standard deviation, in points. */
-  private val blur: Float get() = if (lens) 0f else if (clear) 1.3f else 15.3f
+  private val blur: Float get() = if (lens && !frosted) 0f else if (clear) 1.3f else 15.3f
 
   // Room round the glass for the rim to reach into and the blur to gather from. Two deviations
   // hold all but a sliver of a blur's weight.
@@ -414,7 +420,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   private fun rimMarginPx(): Int = (reach * density).toInt() + 4
 
   private fun updateEffect(glass: RenderNode, margin: Int) {
-    val key = "$width-$height-$margin-$cornerRadius-$radiusPx-$clear-$dark-$tint-$zoom-$split-$lens-$selection-$prominent-$held-$touch-${if (lens || selection) 0 else Tilt.version}"
+    val key = "$width-$height-$margin-$cornerRadius-$radiusPx-$clear-$dark-$tint-$zoom-$split-$lens-$frosted-$selection-$prominent-$held-$touch-${if (lens || selection) 0 else Tilt.version}"
     if (key == effectFor) return
     effectFor = key
     if (Build.VERSION.SDK_INT < 31) return
@@ -434,7 +440,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     val light = !dark
     fun lerp(a: Float, b: Float) = a + (b - a) * size
     val (contrast, glassBrightness, glassSaturation) = when {
-      lens -> Triple(1f, 1f, 1f)
+      lens && !frosted -> Triple(1f, 1f, 1f)
       clear -> Triple(0.793f, 1.205f, 1.117f)
       light -> Triple(lerp(0.314f, 0.307f), lerp(1.511f, 1.554f), lerp(2f, 2.081f))
       else -> Triple(lerp(0.68f, 0.66f), lerp(0.98f, 0.83f), lerp(1.6f, 1.7f))
@@ -455,7 +461,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("contrast", contrast)
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
-    shader.setFloatUniform("shine", if (selection) 0f else if (lens) 0.6f else 1f)
+    shader.setFloatUniform("shine", if (selection) 0f else if (lens && !frosted) 0.6f else 1f)
     shader.setFloatUniform("clear", if ((clear || held) && !lens) 1f else 0f)
     val finger = touch
     if (finger != null) {

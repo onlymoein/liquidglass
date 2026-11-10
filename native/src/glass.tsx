@@ -39,11 +39,11 @@ export function Glass({ variant = 'regular', tint, interactive, colorScheme = 'a
   );
 }
 
-export type LensProps = ViewProps & { zoom?: number; split?: number };
+export type LensProps = ViewProps & { zoom?: number; split?: number; frosted?: boolean };
 
 /** The clear lens of a held thumb. Here it's clear glass; on Android it also bends and enlarges. */
-export function Lens({ zoom: _zoom, split: _split, ...props }: LensProps) {
-  return <Glass variant="clear" {...props} />;
+export function Lens({ zoom: _zoom, split: _split, frosted, ...props }: LensProps) {
+  return <Glass variant={frosted ? 'regular' : 'clear'} {...props} />;
 }
 
 /** For a menu's glass. Only Android's grows and folds; here it's a pane. */

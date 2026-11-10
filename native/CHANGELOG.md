@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0
+
+### Changed
+
+Android's tab bar now moves as iOS 27's does, fitted frame by frame to recordings of the system tab bar on the iPhone simulator, with the same taps and drags on both.
+
+- **The lens is a lens.** It was the bar's frosted glass, risen, with a white wash over it. Now it shows the bar's frost under it, enlarged, bends it at its rim and parts the colours there, with a bright ring just inside its edge, as iOS's does.
+- **It's iOS's size:** about 120 by 75 points held, the bar's swell included. It was about 130 by 78. The bar swells 4.3%, as measured, not 4.9%.
+- **A moving lens flattens**, down to about the bar's height when it's quick, and rounds out again more slowly once it slows. So a tap's lens never stands taller than the bar, as on iOS. Coming to a stop, it bulges a little. It used to keep its shape, only stretching slightly along a drag.
+- **A tap gets there as quickly as iOS's**, two tabs in about 180 ms rather than 300. A finger-driven move has a quicker spring of its own; a selection the app changes still swings a little past, as before. The lens no longer pauses for a tenth of a second at the tab in between.
+- **Let go of mid-drag, the lens stays up until it lands**, then sinks into a pill there, as iOS's does. A tapped lens sinks as it arrives. It used to drop the moment the finger lifted.
+
 ## 0.4.0
 
 ### Changed

@@ -73,6 +73,7 @@ class LiquidGlassModule : Module() {
       Prop("dark") { view: GlassView, dark: Boolean? -> view.dark = dark ?: false }
       Prop("tint") { view: GlassView, tint: Color? -> view.tint = tint?.toArgb() }
       Prop("lens") { view: GlassView, lens: Boolean? -> view.lens = lens ?: false }
+      Prop("frosted") { view: GlassView, frosted: Boolean? -> view.frosted = frosted ?: false }
       Prop("prominent") { view: GlassView, prominent: Boolean? -> view.prominent = prominent ?: false }
       Prop("held") { view: GlassView, held: Boolean? -> view.held = held ?: false }
       Prop("touch") { view: GlassView, touch: List<Float>? ->

@@ -7,7 +7,7 @@ import { OverlayHost } from './overlay';
 import { usePress } from './press';
 import type { BackdropProps, GlassGroupProps, GlassProps } from './types';
 
-export type LensProps = ViewProps & { zoom?: number; split?: number };
+export type LensProps = ViewProps & { zoom?: number; split?: number; frosted?: boolean };
 
 // Android has no Liquid Glass of its own, so this package draws it: a Backdrop records what's
 // behind, and Glass draws that again, bent at the rim, blurred and toned.
@@ -18,6 +18,7 @@ type NativeGlassProps = ViewProps & {
   dark: boolean;
   tint?: ColorValue;
   lens?: boolean;
+  frosted?: boolean;
   prominent?: boolean;
   held?: boolean;
   touch?: number[];
@@ -46,7 +47,7 @@ const sayNoBackdrop = () => {
   );
 };
 /** Without the package's native code, a translucent pane where the glass would be. */
-function StandIn({ cornerRadius, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, stays: _stays, selection: _selection, clear: _clear, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
+function StandIn({ cornerRadius, outermost: _outermost, growFrom: _growFrom, open: _open, onFolded: _onFolded, still: _still, stays: _stays, selection: _selection, clear: _clear, frosted: _frosted, dark, tint, lens, prominent, held: _held, touch: _touch, zoom: _zoom, split: _split, style, ...props }: NativeGlassProps) {
   sayMissing();
   const fill = lens ? 'transparent' : (tint ?? (dark ? 'rgba(40,40,44,0.72)' : 'rgba(255,255,255,0.72)'));
   return <View {...props} style={[{ backgroundColor: prominent ? (tint ?? fill) : fill, borderRadius: cornerRadius }, style]} />;
@@ -125,7 +126,7 @@ export function Glass({
  * A held thumb, or the tab bar's lens: perfectly clear glass that bends what's under it at its
  * rim, can enlarge it, and parts its colours there.
  */
-export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
+export function Lens({ zoom = 1, split = 0, frosted = false, style, ...props }: LensProps) {
   const system = useColorScheme();
   const radius = StyleSheet.flatten(style)?.borderRadius;
   return (
@@ -134,8 +135,9 @@ export function Lens({ zoom = 1, split = 0, style, ...props }: LensProps) {
       {...props}
       style={style}
       cornerRadius={typeof radius === 'number' ? radius : 0}
-      clear
+      clear={!frosted}
       lens
+      frosted={frosted}
       zoom={zoom}
       split={split}
       dark={system === 'dark'}

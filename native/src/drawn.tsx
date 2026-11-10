@@ -728,11 +728,14 @@ const TAB = {
   /** The selection is this much wider than its tab, so it runs close to the bar's ends. */
   wider: 8,
   pill: 54,
-  /** How much the selection grows under a finger: 94 by 54 points becomes about 117 by 73. */
-  growX: 21,
-  growY: 20,
+  /**
+   * How much the selection grows under a finger: 96 by 54 points becomes about 108 by 71, and
+   * with the bar's swell about 113 by 74, which measures the same as iOS 27's lens.
+   */
+  growX: 12,
+  growY: 17,
   /** Under a finger the whole bar swells. */
-  barGrow: 0.049,
+  barGrow: 0.043,
   /** The tabs in the lens are enlarged about their own middles, and drawn in towards the lens's. */
   zoom: 0.19,
   pull: 0.07,
@@ -742,30 +745,30 @@ const TAB = {
   miniWidth: 49,
   miniHeight: 39,
 } as const;
-// [stiffness, damping]: at rest the selection swings a little past the tab it's going to;
-// under a finger it keeps up. The lift has springs of its own.
+// [stiffness, damping]: moved by the app, the selection swings a little past the tab it's going
+// to. Carried by a finger, as a lens, it gets there quicker and without the swing: iOS 27 takes a
+// tap's lens two tabs in about 180 milliseconds. The lift has springs of its own.
 const SLIDE = [225, 21] as const;
+const CARRY = [400, 38] as const;
 const LIFT_UP = [576, 44.2] as const;
 const LIFT_DOWN = [676, 47.8] as const;
-// A dragged lens trails the finger, stretching along the drag and thinning across it by how far
-// behind it is, then swings back past its own shape and settles (src/internal/jelly.ts).
+// A moving lens flattens, as iOS 27's does: something trails it on a loose spring, and the further
+// behind that is, the flatter the lens, down to about the bar's own height when it's quick, as
+// when a tap carries it across. Coming to a stop the trailer swings past, and the lens bulges a
+// little before it settles. Measured from recordings of the iPhone simulator.
 const JELLY = [650, 24] as const;
-const STRETCH = 0.3;
-const REACH = 1.2;
-const THIN = 0.55;
-
-/** How far a lens trailing by `lag` stretches, as tanh does it, drawn by the native driver. */
-function stretchFor(lag: Animated.AnimatedNode, length: number) {
-  const steps = [0, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
-  const inputs = steps.map((t) => t * length * REACH);
-  const outputs = steps.map((t) => STRETCH * Math.tanh(t));
-  const out = (lag as Animated.Value).interpolate({
-    inputRange: [...inputs.slice(1).reverse().map((v) => -v), ...inputs],
-    outputRange: [...outputs.slice(1).reverse(), ...outputs],
-    extrapolate: 'clamp',
-  });
-  return out;
-}
+/** How far behind, as a share of the lens's length, makes it about three quarters as flat as it gets. */
+const REACH = 0.2;
+/** At its flattest a lens is this much less tall, and this much longer. */
+const FLATTEN = 0.16;
+const LENGTHEN = 0.06;
+/** Swinging past, it bulges by this much of how far it flattens. */
+const BULGE = 0.4;
+/** How quickly, in seconds, a lens flattens, and rounds out again. */
+const SHAPE_ON = 0.03;
+const SHAPE_OFF = 0.14;
+/** A lens let go of sinks once it's this close to where it's going, in points. */
+const ARRIVED = 3;
 
 /**
  * The floating tab bar, laid out as iOS 27 lays it out: each tab's icon above its label, the
@@ -810,11 +813,16 @@ export function TabBar({
   // Where the selection is, as a tab's distance from the first, and how far the finger's moved.
   const base = useRef(new Animated.Value(Math.max(0, index) * slot)).current;
   const lift = useRef(new Animated.Value(0)).current;
-  // What trails the lens, for its stretch. Only its shape comes from this, so it's worked out
-  // here rather than by the native driver, which restarts a spring that follows a moving value
-  // every frame, so that it doesn't move until the value stops. Where the lens is stays native.
-  const trail = useRef(new Animated.Value(0)).current;
-  const trailing = useRef({ at: 0, speed: 0, base: 0, dx: 0, frame: 0, last: 0 }).current;
+  // What trails the lens, for its shape. Only its shape comes from this, so it's worked out here
+  // rather than by the native driver, which restarts a spring that follows a moving value every
+  // frame, so that it doesn't move until the value stops. Where the lens is stays native.
+  const trailing = useRef({ at: 0, speed: 0, base: 0, dx: 0, frame: 0, last: 0, shape: 0 }).current;
+  // How flat the lens is from moving: above 0 flatter, below 0 bulging.
+  const squash = useRef(new Animated.Value(0)).current;
+  // Where a lens let go of is going: it stays up until it gets there, as on iOS.
+  const arriving = useRef<number | null>(null);
+  // The tab a finger last sent the selection to, so the app's echo of it doesn't send it again.
+  const carried = useRef<number | null>(null);
   const full = useRef(new Animated.Value(minimized ? 0 : 1)).current;
   const raisedAt = useRef(0);
   const holding = useRef(false);
@@ -824,6 +832,7 @@ export function TabBar({
 
   const raise = () => {
     clearTimeout(timer.current);
+    arriving.current = null;
     raisedAt.current = Date.now();
     spring(lift, 1, ...LIFT_UP).start();
   };
@@ -834,6 +843,10 @@ export function TabBar({
 
   useEffect(() => {
     if (holding.current || index < 0 || !slot) return;
+    // A tab chosen by touch is already on its way there.
+    const touched = carried.current === index;
+    carried.current = null;
+    if (touched) return;
     spring(base, index * slot, ...SLIDE).start();
   }, [index, slot]);
 
@@ -843,7 +856,8 @@ export function TabBar({
     Animated.timing(full, { toValue: minimized ? 0 : 1, duration: minimized ? 80 : 200, delay: minimized ? 0 : 120, useNativeDriver: true }).start();
   }, [minimized]);
 
-  const latest = useLatest({ items, slot, last, setCurrent, index });
+  const lensWidth = slot + TAB.wider;
+  const latest = useLatest({ items, slot, last, setCurrent, index, lensWidth });
   const track = useTrack(!minimized, {
     onStart: ({ x }) => {
       const { slot, items } = latest.current;
@@ -852,7 +866,8 @@ export function TabBar({
       anchor.current = at * slot;
       // The lens rises where the selection is and is carried to the tab under the finger.
       base.stopAnimation();
-      spring(base, anchor.current, ...SLIDE).start();
+      carried.current = null;
+      spring(base, anchor.current, ...CARRY).start();
       raise();
     },
     onEnd: ({ dx }, cancelled) => {
@@ -860,27 +875,44 @@ export function TabBar({
       holding.current = false;
       const moved = Math.abs(dx) > 6;
       const to = cancelled ? Math.max(0, index) : clamp(Math.round(clamp(anchor.current + dx, 0, last) / (slot || 1)), 0, items.length - 1);
-      // The finger's offset goes into where the selection is, so it settles from where it was let go.
-      base.stopAnimation((at) => {
-        base.setValue(clamp(at + dx, 0, last));
+      // A tap's lens is already on its way to the tab: stopping it to ask where it is would hold it
+      // still until the answer comes back.
+      if (!moved && to * slot === anchor.current) {
         track.dx.setValue(0);
-        spring(base, to * slot, ...SLIDE).start();
-      });
-      lower(moved ? 0 : TAB.liftMs - (Date.now() - raisedAt.current));
+        // It sinks into a pill as it gets there, as iOS's does, or after a moment if it's there.
+        if (Math.abs(trailing.base - to * slot) > ARRIVED) arriving.current = to * slot;
+        lower(TAB.liftMs - (Date.now() - raisedAt.current));
+      } else {
+        // The finger's offset goes into where the selection is, so it settles from where it was let go.
+        base.stopAnimation((at) => {
+          const from = clamp(at + dx, 0, last);
+          base.setValue(from);
+          track.dx.setValue(0);
+          spring(base, to * slot, ...CARRY).start();
+          // Dragged, the lens is carried the rest of the way up and sinks into a pill where it
+          // lands; tapped, it stays up a moment for the trip.
+          if (!moved) lower(TAB.liftMs - (Date.now() - raisedAt.current));
+          else if (Math.abs(from - to * slot) < ARRIVED) lower(0);
+          else {
+            arriving.current = to * slot;
+            lower(700);
+          }
+        });
+      }
       const item = items[to];
+      carried.current = to === index ? null : to;
       if (!cancelled && item) setCurrent(item.value);
     },
   });
   const edge = track.edge;
 
-  const lensWidth = slot + TAB.wider;
   const nodes = useMemo(() => {
     const x = held(Animated.add(base, track.dx), 0, last);
-    const lag = Animated.subtract(x, trail);
-    const stretch = stretchFor(lag, lensWidth || 1);
-    const along = Animated.add(1, stretch);
-    const across = Animated.subtract(1, Animated.multiply(stretch, THIN));
-    const sx = Animated.multiply(Animated.add(1, Animated.multiply(lift, TAB.growX / (slot || 1))), along);
+    // Only a lens changes shape as it goes; a pill slides as it is.
+    const moving = Animated.multiply(squash, lift);
+    const along = Animated.add(1, Animated.multiply(moving, LENGTHEN));
+    const across = Animated.subtract(1, Animated.multiply(moving, FLATTEN));
+    const sx = Animated.multiply(Animated.add(1, Animated.multiply(lift, TAB.growX / (lensWidth || 1))), along);
     const sy = Animated.multiply(Animated.add(1, Animated.multiply(lift, TAB.growY / TAB.pill)), across);
     const pull = lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1 - TAB.pull] });
     const steps = [0, 0.25, 0.5, 0.75, 1];
@@ -914,8 +946,18 @@ export function TabBar({
       }
       const settled = Math.abs(to - trailing.at) < 0.05 && Math.abs(trailing.speed) < 0.5;
       if (settled) trailing.at = to;
-      trail.setValue(trailing.at);
-      trailing.frame = settled && !holding.current && slot > 0 ? 0 : requestAnimationFrame(step);
+      // Behind and catching up, it flattens; swinging past, it bulges. It flattens at once and
+      // rounds out again more slowly, so a tap's lens, which stops as it sinks, never stands
+      // taller than the bar, as on iOS.
+      const lag = to - trailing.at;
+      const flat = Math.tanh(Math.abs(lag) / ((latest.current.lensWidth || 1) * REACH));
+      const shape = settled ? 0 : lag * trailing.speed >= 0 ? flat : -flat * BULGE;
+      const ease = Math.abs(shape) > Math.abs(trailing.shape) ? SHAPE_ON : SHAPE_OFF;
+      trailing.shape += (shape - trailing.shape) * (1 - Math.exp(-dt / ease));
+      const shaped = Math.abs(trailing.shape) < 0.002;
+      if (shaped) trailing.shape = 0;
+      squash.setValue(trailing.shape);
+      trailing.frame = settled && shaped && !holding.current && slot > 0 ? 0 : requestAnimationFrame(step);
     };
     trailing.frame = requestAnimationFrame(step);
   };
@@ -924,6 +966,10 @@ export function TabBar({
       base.addListener(({ value }) => {
         trailing.base = value;
         follow();
+        if (arriving.current != null && Math.abs(value - arriving.current) < ARRIVED) {
+          arriving.current = null;
+          lower(0);
+        }
       }),
       track.dx.addListener(({ value }) => {
         trailing.dx = value;
@@ -941,7 +987,8 @@ export function TabBar({
     // Laid out afresh, it's where the selection is, with nothing trailing.
     trailing.base = trailing.at = Math.max(0, index) * slot;
     trailing.speed = 0;
-    trail.setValue(trailing.at);
+    trailing.shape = 0;
+    squash.setValue(0);
   }, [slot]);
 
   const face = (item: (typeof items)[number], selected: boolean, colour: ColorValue, key?: string) => {
@@ -1020,14 +1067,27 @@ export function TabBar({
             }}>
             <SelectionGlass style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2 }]} />
             <Animated.View style={[StyleSheet.absoluteFill, { opacity: lift }]}>
-              {/* Lifted, it's the bar's own glass, risen: the same frosted look, with a rim of its own. */}
-              <Glass pointerEvents="none" held style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2 }]} />
+              {/* Lifted, it's a lens over the bar, as on iOS 27: the bar's frost under it, enlarged, bent at its rim, the colours parting there. */}
+              <Lens pointerEvents="none" frosted style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2 }]} zoom={1.08} split={0.08} />
               <View
                 style={[
                   StyleSheet.absoluteFill,
-                  // Held glass lightens towards white, as iOS's does under a finger.
-                  { borderRadius: TAB.pill / 2, backgroundColor: ink.dark ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.3)', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.12)' },
+                  // A little lighter than the bar, as iOS's is, with a dark hairline round it.
+                  { borderRadius: TAB.pill / 2, backgroundColor: ink.dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.3)', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.12)' },
                 ]}
+              />
+              {/* And a bright ring just inside its edge, where iOS's lens catches the light. */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0.5,
+                  left: 0.5,
+                  right: 0.5,
+                  bottom: 0.5,
+                  borderRadius: TAB.pill / 2 - 0.5,
+                  borderWidth: 1.5,
+                  borderColor: ink.dark ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.75)',
+                }}
               />
             </Animated.View>
             <View style={[StyleSheet.absoluteFill, { borderRadius: TAB.pill / 2, overflow: 'hidden' }]}>
