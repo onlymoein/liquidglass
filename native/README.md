@@ -4,6 +4,21 @@ Apple's iOS 27 Liquid Glass for React Native and Expo, with the same component n
 
 On iOS 26 and later the components are UIKit's own controls and glass, so iOS draws them itself. The glass bends what's behind it, the controls swell when pressed, and a held tab bar shows Apple's lens. It all matches Apple's apps because it is Apple's.
 
+On Android, which has no Liquid Glass of its own, the package draws the glass and controls itself, to iOS's measurements. See [Android](#android).
+
+<table>
+  <tr>
+    <td align="center" width="50%"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-ios.gif" width="300" alt="Recording of the example app on iOS 27: the Wi-Fi switch flipped, the volume slider dragged, the stepper and segmented control tapped, the Sort menu opened, a drag across the tab bar in its lens, and the page scrolled until the tab bar shrinks to one tab."></a></td>
+    <td align="center" width="50%"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-android.gif" width="300" alt="The same gestures on Android, where this package draws the glass and controls."></a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>iOS 27</b>: UIKit's own glass and controls<br><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4">Watch the video</a></td>
+    <td align="center"><b>Android 16</b>: this package's glass<br><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4">Watch the video</a></td>
+  </tr>
+</table>
+
+The same gestures on both, recorded from the [example app](example/) in a release build on the iPhone simulator and the Android emulator. Pauses between gestures are shortened.
+
 <table>
   <tr>
     <td align="center" width="50%"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/ios-light.png" width="300" alt="The example app on iOS 27 in light mode: glass cards with a switch, stepper and slider, a segmented control, glass buttons and a floating glass tab bar over coloured circles."></td>

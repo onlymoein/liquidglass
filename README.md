@@ -53,7 +53,18 @@ function Settings() {
 
 React 18 or later.
 
-For React Native and Expo there's [`@onlymoein/liquidglass-native`](native/), with the same component names. On iPhone it uses Apple's own glass and controls.
+For React Native and Expo there's [`@onlymoein/liquidglass-native`](native/), with the same component names. On iPhone it uses Apple's own glass and controls; on Android it draws its own, to iOS's measurements.
+
+<table>
+  <tr>
+    <td align="center" width="50%"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-ios.gif" width="260" alt="Recording of the React Native example app on iOS 27: switch, slider, stepper, segmented control, menu, the tab bar's lens, and the tab bar shrinking as the page scrolls."></a></td>
+    <td align="center" width="50%"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-android.gif" width="260" alt="The same gestures in the example app on Android, with this package's glass."></a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>iOS 27</b>, <a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4">video</a></td>
+    <td align="center"><b>Android</b>, <a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4">video</a></td>
+  </tr>
+</table>
 
 ## Components
 
