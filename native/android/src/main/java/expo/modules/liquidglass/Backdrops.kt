@@ -15,31 +15,37 @@ internal object Backdrops {
    * The backdrop behind this view: the nearest one drawn before it, as a sibling of the view or
    * of one of its ancestors or inside one, that covers the view's middle. A switch's thumb finds
    * its track that way, and the card the switch sits on passes over that track for the page.
+   * The `outermost` is the furthest out of those, the one that holds the others.
    */
   fun behind(view: View, outermost: Boolean = false): BackdropView? {
     view.getLocationInWindow(here)
     val x = here[0] + view.width / 2
     val y = here[1] + view.height / 2
+    var found: BackdropView? = null
     var child: View = view
     var parent = child.parent
     while (parent is ViewGroup) {
       val index = parent.indexOfChild(child)
       for (i in index - 1 downTo 0) {
-        search(parent.getChildAt(i), x, y, outermost)?.let { return it }
+        val backdrop = search(parent.getChildAt(i), x, y) ?: continue
+        if (!outermost) return backdrop
+        found = backdrop
+        break
       }
       child = parent
       parent = parent.parent
     }
-    return null
+    return found
   }
 
   // Glass drawn earlier can hold a backdrop of its own, as the tab bar holds its tabs for its lens.
-  // Or, for `outermost`, the backdrop that holds all the others.
-  private fun search(view: View, x: Int, y: Int, outermost: Boolean): BackdropView? {
+  // A backdrop that covers the glass is taken before any inside it: it draws them too, and all
+  // else that's in it. A page's background, put in a backdrop of its own for the page's glass,
+  // is then not all the tab bar over the page shows.
+  private fun search(view: View, x: Int, y: Int): BackdropView? {
     if (view.visibility != View.VISIBLE || view !is ViewGroup) return null
-    if (outermost && covers(view, x, y)) return view as BackdropView
-    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i), x, y, outermost)?.let { return it }
     if (covers(view, x, y)) return view as BackdropView
+    for (i in view.childCount - 1 downTo 0) search(view.getChildAt(i), x, y)?.let { return it }
     return null
   }
 

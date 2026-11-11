@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
@@ -31,8 +33,9 @@ import kotlin.math.pow
  * A pane of Liquid Glass. It finds the backdrop behind it and draws it again, bent at the rim,
  * blurred and toned, then draws its own children on top.
  *
- * Full glass needs Android 13, for the shader. Android 12 gets the blur and tone without the
- * bend, and anything older a translucent pane.
+ * Full glass needs Android 13, for the shader. Before that it's blurred, toned and lit at the
+ * rim without the bend: Android 12 blurs it as it draws it, and anything older blurs a small
+ * picture of the backdrop. Without a backdrop it's a translucent pane.
  */
 class GlassView(context: Context, appContext: AppContext) : ExpoView(context, appContext), Lit {
   private val density = resources.displayMetrics.density
@@ -133,15 +136,23 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
   /** Tells the app, once, that this glass found no backdrop to show, so it can say why it's plain. */
   private val onBackdropMissing by EventDispatcher()
   private var missing = false
-  private val node: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-glass") else null
+  /** Whether this Android can blur glass as it draws it: from 12. */
+  private val blurs = Build.VERSION.SDK_INT >= 31 && !Soft.forced(context)
+  private val node: RenderNode? = if (blurs) RenderNode("liquidglass-glass") else null
   /** What's behind, blurred at a quarter of the size: a blur that wide looks the same, for a sixteenth of the work. */
-  private val small: RenderNode? = if (Build.VERSION.SDK_INT >= 31) RenderNode("liquidglass-blur") else null
+  private val small: RenderNode? = if (blurs) RenderNode("liquidglass-blur") else null
   private val shrink: Int get() = if (blur >= 4f) 4 else 1
   private var effectFor = ""
   /** The shader, kept as Any so the class still loads before Android 13. */
   private var compiled: Any? = null
   private val shape = Path()
   private val fallback = Paint(Paint.ANTI_ALIAS_FLAG)
+  /** Before Android 13: the tone, put on what's behind as it's drawn into the glass. */
+  private val toned = Paint()
+  private val toning = ColorMatrix()
+  private var tonedFor = ""
+  private val scaled = Paint(Paint.FILTER_BITMAP_FLAG)
+  private val placing = Matrix()
   private val step = Matrix()
   /** Takes the backdrop's points to this glass's own, scale and all. */
   private val fromBackdrop = Matrix()
@@ -244,7 +255,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
 
   /** Copies what's on the screen round where this will be, before it's first drawn. */
   private fun takePicture() {
-    if (asked || Build.VERSION.SDK_INT < 31 || laid.isEmpty || !isAttachedToWindow) return
+    if (asked || !blurs || laid.isEmpty || !isAttachedToWindow) return
     val surface = appContext.currentActivity?.window ?: return
     asked = true
     // Where it's laid out and where it grows from, with room for the rim and blur to reach, on
@@ -359,8 +370,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     val glass = node
     val still = picture
     if ((source == null && still == null) || glass == null || !canvas.isHardwareAccelerated) {
-      fallback.color = tint ?: if (dark) Color.argb(184, 40, 40, 44) else Color.argb(184, 255, 255, 255)
-      canvas.drawPath(shape, fallback)
+      drawPlain(canvas)
       return
     }
 
@@ -394,14 +404,106 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       glass.endRecording()
     }
 
-    canvas.save()
-    // From Android 13 the shader draws the edge, and the hairline just outside it. Before, the
-    // blur alone needs the shape cut out.
-    if (Build.VERSION.SDK_INT < 33) canvas.clipPath(shape)
-    canvas.translate(-margin.toFloat(), -margin.toFloat())
-    canvas.drawRenderNode(glass)
-    canvas.restore()
+    // From Android 13 the shader draws it all: the edge, the hairline just outside it, the tone.
+    if (Build.VERSION.SDK_INT >= 33) {
+      canvas.save()
+      canvas.translate(-margin.toFloat(), -margin.toFloat())
+      canvas.drawRenderNode(glass)
+      canvas.restore()
+      return
+    }
+    // Android 12 blurs it. The rest is drawn round it as it is before.
+    plainly(canvas) {
+      canvas.translate(-margin.toFloat(), -margin.toFloat())
+      canvas.drawRenderNode(glass)
+    }
   }
+
+  /**
+   * Glass before Android 12: a small picture of the backdrop, blurred, drawn in where it lies
+   * under the glass. Without one, a translucent pane.
+   */
+  private fun drawPlain(canvas: Canvas) {
+    val source = backdrop
+    // Small enough that a blur this wide is a few of its pixels, which is all a blur needs.
+    val q = if (blur >= 4f) (blur * density / 2.5f).toInt().coerceIn(4, 16) else if (blur > 0f) 2 else 1
+    val taken = if (source != null && !blurs) source.picture(q, blur * density / q) else null
+    if (taken == null) {
+      fallback.color = tint ?: if (dark) Color.argb(184, 40, 40, 44) else Color.argb(184, 255, 255, 255)
+      canvas.drawPath(shape, fallback)
+      Plain.rim(canvas, shape, width.toFloat(), height.toFloat(), density, 0f, -1f, shine, rimClear)
+      return
+    }
+    plainly(canvas) {
+      placing.set(fromBackdrop)
+      placing.preTranslate(taken.left.toFloat(), taken.top.toFloat())
+      placing.preScale(q.toFloat(), q.toFloat())
+      canvas.drawBitmap(taken.bitmap, placing, scaled)
+    }
+  }
+
+  /**
+   * What's behind, drawn by `behind`, inside the glass, on the window's colour where nothing's
+   * drawn and toned as the shader tones it, then the tint, the glow under a finger and the rim.
+   */
+  private inline fun plainly(canvas: Canvas, behind: () -> Unit) {
+    val w = width.toFloat()
+    val h = height.toFloat()
+    val save = canvas.save()
+    canvas.clipPath(shape)
+    canvas.saveLayer(0f, 0f, w, h, tonePaint())
+    canvas.drawColor(if (dark) Color.BLACK else Color.WHITE)
+    if (zoom != 1f) canvas.scale(zoom, zoom, w / 2f, h / 2f)
+    behind()
+    canvas.restoreToCount(save)
+    val t = tint
+    if (t != null && !prominent) {
+      fallback.color = t
+      canvas.drawPath(shape, fallback)
+    }
+    touch?.let { Plain.glow(canvas, shape, it.first * density, it.second * density, density) }
+    Plain.rim(canvas, shape, w, h, density, 0f, -1f, shine, rimClear)
+  }
+
+  private fun tonePaint(): Paint {
+    val t = tint
+    val key = "$lens-$frosted-$clear-$dark-$selection-$prominent-$t-$size"
+    if (key != tonedFor) {
+      tonedFor = key
+      if (prominent && t != null) {
+        Plain.prominent(toning, t)
+      } else {
+        val (contrast, brightness, saturation) = tone()
+        Plain.tone(toning, contrast, brightness, saturation)
+      }
+      toned.colorFilter = ColorMatrixColorFilter(toning)
+    }
+    return toned
+  }
+
+  /**
+   * The tone iOS gives what's behind, as contrast, brightness and saturation, the selection's
+   * darker, richer tone after the glass's own, as the web version measured on iOS: brightness
+   * 0.89 and saturation 1.39 in light mode, 0.75 and 1.7 in dark. Brightness and saturation each
+   * pass through the other, so they fold into the glass's.
+   */
+  private fun tone(): Triple<Float, Float, Float> {
+    fun lerp(a: Float, b: Float) = a + (b - a) * size
+    val (contrast, glassBrightness, glassSaturation) = when {
+      lens && !frosted -> Triple(1f, 1f, 1f)
+      clear -> Triple(0.793f, 1.205f, 1.117f)
+      !dark -> Triple(lerp(0.314f, 0.307f), lerp(1.511f, 1.554f), lerp(2f, 2.081f))
+      else -> Triple(lerp(0.68f, 0.66f), lerp(0.98f, 0.83f), lerp(1.6f, 1.7f))
+    }
+    val brightness = glassBrightness * if (!selection) 1f else if (dark) 0.75f else 0.89f
+    val saturation = glassSaturation * if (!selection) 1f else if (dark) 1.7f else 1.39f
+    return Triple(contrast, brightness, saturation)
+  }
+
+  /** How strongly the rim's lit: not at all on a selection, less on a clear lens. */
+  private val shine: Float get() = if (selection) 0f else if (lens && !frosted) 0.6f else 1f
+  /** Clear glass, and held glass, has nothing lifting it, so its lit edge stands out more. */
+  private val rimClear: Boolean get() = (clear || held) && !lens
 
   // The values below follow the web version's styles.css and refraction.ts, in points.
 
@@ -423,7 +525,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     val key = "$width-$height-$margin-$cornerRadius-$radiusPx-$clear-$dark-$tint-$zoom-$split-$lens-$frosted-$selection-$prominent-$held-$touch-${if (lens || selection) 0 else Tilt.version}"
     if (key == effectFor) return
     effectFor = key
-    if (Build.VERSION.SDK_INT < 31) return
+    if (!blurs) return
 
     // RenderEffect takes a radius and turns it into a deviation as radius * 0.57735 + 0.5.
     val q = shrink
@@ -437,19 +539,7 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
       return
     }
 
-    val light = !dark
-    fun lerp(a: Float, b: Float) = a + (b - a) * size
-    val (contrast, glassBrightness, glassSaturation) = when {
-      lens && !frosted -> Triple(1f, 1f, 1f)
-      clear -> Triple(0.793f, 1.205f, 1.117f)
-      light -> Triple(lerp(0.314f, 0.307f), lerp(1.511f, 1.554f), lerp(2f, 2.081f))
-      else -> Triple(lerp(0.68f, 0.66f), lerp(0.98f, 0.83f), lerp(1.6f, 1.7f))
-    }
-    // The selection's darker, richer tone after the glass's own, as the web version measured on
-    // iOS: brightness 0.89 and saturation 1.39 in light mode, 0.75 and 1.7 in dark. Brightness and
-    // saturation each pass through the other, so they fold into the glass's.
-    val brightness = glassBrightness * if (!selection) 1f else if (dark) 0.75f else 0.89f
-    val saturation = glassSaturation * if (!selection) 1f else if (dark) 1.7f else 1.39f
+    val (contrast, brightness, saturation) = tone()
     // Made once: making one compiles the shader, which takes longer than a frame on a phone.
     val shader = (compiled as RuntimeShader?) ?: RuntimeShader(GLASS_SHADER).also { compiled = it }
     shader.setFloatUniform("size", width.toFloat(), height.toFloat())
@@ -461,8 +551,8 @@ class GlassView(context: Context, appContext: AppContext) : ExpoView(context, ap
     shader.setFloatUniform("contrast", contrast)
     shader.setFloatUniform("brightness", brightness)
     shader.setFloatUniform("saturation", saturation)
-    shader.setFloatUniform("shine", if (selection) 0f else if (lens && !frosted) 0.6f else 1f)
-    shader.setFloatUniform("clear", if ((clear || held) && !lens) 1f else 0f)
+    shader.setFloatUniform("shine", shine)
+    shader.setFloatUniform("clear", if (rimClear) 1f else 0f)
     val finger = touch
     if (finger != null) {
       shader.setFloatUniform("glow", finger.first * density, finger.second * density, 1f)

@@ -66,7 +66,7 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
   internal fun carries(glass: GlassView): Boolean = active && members().contains(glass)
 
   private val active: Boolean
-    get() = Build.VERSION.SDK_INT >= 33 && backdrop != null && isHardwareAccelerated
+    get() = Build.VERSION.SDK_INT >= 33 && !Soft.forced(context) && backdrop != null && isHardwareAccelerated
 
   private fun members(): List<GlassView> {
     val list = ArrayList<GlassView>(childCount)
@@ -108,7 +108,7 @@ class GlassGroupView(context: Context, appContext: AppContext) : ExpoView(contex
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) = Unit
 
   override fun dispatchDraw(canvas: Canvas) {
-    if (Build.VERSION.SDK_INT >= 33 && canvas.isHardwareAccelerated && width > 0 && height > 0) drawSurface(canvas)
+    if (active && canvas.isHardwareAccelerated && width > 0 && height > 0) drawSurface(canvas)
     super.dispatchDraw(canvas)
   }
 

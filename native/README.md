@@ -144,8 +144,9 @@ Glass uses the nearest `Backdrop` drawn before it, as a sibling of the glass or 
 A `Menu` on Android opens over the whole screen, on a layer the outermost `Backdrop` adds just after itself, and its glass shows everything that Backdrop holds, other glass included. So put the outermost `Backdrop` round the whole screen, as above. With no `Backdrop` at all, a menu opens in a window of its own.
 
 - **Android 13 and later:** the full glass.
-- **Android 12:** blur and tone, without the bend.
-- **Android 11 and earlier:** a translucent pane.
+- **Android 12 and earlier:** the glass blurred, toned and lit at its rim as on 13, without the bend. Before 12 Android can't blur as it draws, so each `Backdrop` draws a small picture of what's under its glass once a frame, which its glass blurs and shares. A backdrop holding a hardware bitmap, as an image Glide loads can be, is drawn on the GPU for that from Android 9; before 9, glass on it is a translucent pane.
+
+Glass shows the outermost `Backdrop` that covers it, of those drawn before it: a `Backdrop` inside another, for the page's own glass, doesn't hide the rest of the page from a tab bar over both.
 
 Buttons are iOS 27's sizes, and a filled button is tinted glass that darkens a little over what's behind it, as iOS's does. Under a finger, glass grows, follows the finger and stretches toward it, lights its rim and glows where it's touched, then springs back, and the switch, slider, stepper, segmented control and tab bar tick with Android's own haptic effects.
 

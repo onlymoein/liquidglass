@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+### Changed
+
+- **Glass before Android 13 is glass, not a translucent pane.** Android 11 and earlier drew every pane as a flat, see-through fill, the tab bar's lens as a grey blob over it, and a filled button as a flat colour. Now each `Backdrop` draws a small picture of what's under its glass, once a frame and only when something in it changed, and its glass blurs it, tones it as the shader does, and lights its rim, with the hairline just outside. A filled button darkens a little over what's behind it, as on 13. On Android 12, which blurs, glass now has the tone and rim too; it was only blurred. None of it bends. The picture is a sixteenth of the size and only the part under glass: about 1.5 ms a frame while scrolling, on the emulator. A backdrop that holds a hardware bitmap, as an image from expo-image can be, is recorded and drawn on the GPU for its picture from Android 9.
+
+### Fixed
+
+- **Glass over a `Backdrop` that holds another one shows the outer one.** It took the inner one, so a tab bar over a page whose own glass had a `Backdrop` of the page's background showed only that background, not the page.
+
 ## 0.5.0
 
 ### Changed
