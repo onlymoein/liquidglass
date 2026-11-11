@@ -2,6 +2,9 @@ import { describe, expect, test } from "vitest";
 
 import dependabot from "../.github/dependabot.yml?raw";
 import pages from "../.github/workflows/pages.yml?raw";
+import performance from "../.github/workflows/performance.yml?raw";
+import lock from "../package-lock.json?raw";
+import manifest from "../package.json?raw";
 
 // The site is built from this repo's dependency tree, so a compromised package
 // runs inside the build. These keep that from reaching anything that can publish.
@@ -50,5 +53,50 @@ describe("pages workflow", () => {
 
   test("is kept current by Dependabot", () => {
     expect(dependabot).toContain("package-ecosystem: github-actions");
+  });
+});
+
+// Runs on every pull request, including ones from forks, and installs dependencies, so it
+// must hold nothing that could write to the repo or publish.
+describe("performance workflow", () => {
+  test("pins every action to a full commit SHA", () => {
+    const found = uses(performance);
+    expect(found.length).toBeGreaterThan(0);
+    for (const action of found) expect(action).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
+  });
+
+  test("can only read the repo, and nothing in it can write or mint a token", () => {
+    expect(block(performance, /^permissions:/).trim()).toBe("contents: read");
+    expect(performance).not.toMatch(/\b[\w-]+:\s*write\b/);
+    expect(performance).not.toContain("secrets.");
+    expect(performance).not.toMatch(/pull_request_target/);
+  });
+
+  test("keeps the checkout's credentials out of the steps that run dependencies", () => {
+    expect(performance).toContain("persist-credentials: false");
+  });
+});
+
+// Dependencies the build and CI tools reach, which npm audit holds to account even where
+// the vulnerable code can't run. basic-ftp < 6.2.1 backtracks quadratically on a listing line
+// (GHSA-c475-qrg2-pj4r); Lighthouse CI pulls it in through proxy-agent and get-uri, which
+// ask for ^5, so it's pinned past the fix here.
+describe("dependencies", () => {
+  const atLeast = (version: string, floor: number[]) => {
+    const parts = version.split(".").map(Number);
+    for (let i = 0; i < floor.length; i++) {
+      if ((parts[i] ?? 0) !== floor[i]) return (parts[i] ?? 0) > floor[i]!;
+    }
+    return true;
+  };
+
+  test("pins basic-ftp past its listing-parser fix", () => {
+    expect(JSON.parse(manifest).overrides?.["basic-ftp"]).toBe("^6.2.1");
+  });
+
+  test("resolves basic-ftp to a fixed version everywhere in the lockfile", () => {
+    const packages: Record<string, { version: string }> = JSON.parse(lock).packages;
+    const found = Object.entries(packages).filter(([path]) => path.endsWith("node_modules/basic-ftp"));
+    for (const [, entry] of found) expect(atLeast(entry.version, [6, 2, 1])).toBe(true);
   });
 });
