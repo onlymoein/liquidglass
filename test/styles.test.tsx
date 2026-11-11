@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { expect, test } from "vitest";
 
-import { Button, Slider } from "../src";
+import { ActionSheet, Button, Slider } from "../src";
 import { ORDER } from "../src/styles/order";
 
 const parts = () => [...document.querySelectorAll("style[data-liquidglass]")].map((style) => style.getAttribute("data-liquidglass")!);
