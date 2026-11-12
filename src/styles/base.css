@@ -106,7 +106,7 @@
     --lg-secondary: rgb(255 255 255 / 0.6);
     --lg-grabber: rgb(255 255 255 / 0.3);
     --lg-press-ink: rgb(255 255 255);
-      --lg-glass-tinted: rgb(30 30 32 / 0.95);
+    --lg-glass-tinted: rgb(30 30 32 / 0.95);
     --lg-glass-active: rgb(255 255 255 / 0.3);
     --lg-edge: transparent;
     --lg-drop: rgb(0 0 0 / 0.05);
@@ -119,22 +119,13 @@
     /* Chromium can run the real curve; everywhere else falls back to the tone. */
     --lg-dark: opacity(1);
     --lg-drop-strength: 1.6;
-  /* Chromium can run the real curve; everywhere else falls back to the tone. */
-  --lg-curve: var(--lg-svg-dark);
     --lg-tab-accent: #62dcff;
     --lg-fill-subtle: rgb(118 118 128 / 0.24);
     --lg-stepper: rgb(255 255 255 / 0.1);
-  --lg-stepper: rgb(255 255 255 / 0.1);
     --lg-thumb: rgb(255 255 255 / 0.25);
     --lg-scrim: rgb(0 0 0 / 0.48);
     --lg-action: rgb(255 255 255 / 0.1);
     --lg-sheet-opaque: #1c1c1e;
-  --lg-fill-subtle: rgb(118 118 128 / 0.24);
-  --lg-stepper: rgb(255 255 255 / 0.1);
-  --lg-thumb: rgb(255 255 255 / 0.25);
-  --lg-scrim: rgb(0 0 0 / 0.48);
-  --lg-action: rgb(255 255 255 / 0.1);
-  --lg-sheet-opaque: #1c1c1e;
     --lg-fill-shade: 0%;
     --lg-fill-alpha: 95%;
     --lg-selection: transparent;

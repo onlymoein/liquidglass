@@ -17,6 +17,7 @@ const place = (x: number, y: number) =>
       return this.hasAttribute("data-liquidglass-backdrop") ? new DOMRect(x, y, 100, 100) : new DOMRect(0, 0, 100, 100);
     });
 const safari = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
+const firefox = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:133.0) Gecko/20100101 Firefox/133.0";
 const chrome = "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 
 test("renders a glass surface and forwards its ref", () => {
@@ -26,7 +27,7 @@ test("renders a glass surface and forwards its ref", () => {
 });
 
 test("refracts a copy of the marked backdrop where the live one can't be filtered", () => {
-  browse(safari);
+  browse(firefox);
   place(20, 20);
   render(
     <div>
@@ -49,8 +50,45 @@ test("refracts a copy of the marked backdrop where the live one can't be filtere
   expect(screen.getByText("On top")).toBeTruthy();
 });
 
-test("restyles the copy when a theme set further up changes", async () => {
+test("keeps Safari on the live backdrop, where a copy couldn't be bent", () => {
   browse(safari);
+  place(20, 20);
+  render(
+    <div>
+      <p data-liquidglass-backdrop>Behind</p>
+      <Glass data-testid="glass" />
+    </div>,
+  );
+  const glass = screen.getByTestId("glass");
+  expect(glass.hasAttribute("data-copy")).toBe(false);
+  expect(document.querySelector(".lg-glass-copy")).toBeNull();
+});
+
+test("restyles only what changed in the backdrop, and what's inside it", async () => {
+  browse(firefox);
+  place(20, 20);
+  render(
+    <div>
+      <div data-liquidglass-backdrop>
+        <span className="a">A</span>
+        <span className="b">B</span>
+      </div>
+      <Glass data-testid="glass" />
+    </div>,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  const read = vi.spyOn(window, "getComputedStyle");
+  document.querySelector<HTMLElement>(".a")!.dataset.state = "on";
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  const readFor = read.mock.calls.map(([element]) => (element as Element).className);
+  expect(readFor).toContain("a");
+  expect(readFor).not.toContain("b");
+  const copied = screen.getByTestId("glass").previousElementSibling!.querySelector(".a")!;
+  expect(copied.getAttribute("data-state")).toBe("on");
+});
+
+test("restyles the copy when a theme set further up changes", async () => {
+  browse(firefox);
   place(20, 20);
   const style = document.createElement("style");
   style.textContent = '[data-theme="dark"] .label { color: rgb(255, 0, 0); }';
@@ -67,13 +105,14 @@ test("restyles the copy when a theme set further up changes", async () => {
   expect(copied().style.color).not.toBe("rgb(255, 0, 0)");
 
   (container.firstElementChild as HTMLElement).dataset.theme = "dark";
-  await new Promise((resolve) => setTimeout(resolve));
+  // Restyled once, on the next frame.
+  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(copied().style.color).toBe("rgb(255, 0, 0)");
   style.remove();
 });
 
 test("copies the marked backdrop again when its content changes", async () => {
-  browse(safari);
+  browse(firefox);
   place(20, 20);
   render(
     <div>
@@ -87,7 +126,7 @@ test("copies the marked backdrop again when its content changes", async () => {
 });
 
 test("ignores marked content that isn't behind the glass", () => {
-  browse(safari);
+  browse(firefox);
   place(500, 500);
   render(
     <div>
@@ -99,7 +138,7 @@ test("ignores marked content that isn't behind the glass", () => {
 });
 
 test("ignores the part of marked content hidden by a scroller", () => {
-  browse(safari);
+  browse(firefox);
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
     if (this.hasAttribute("data-liquidglass-backdrop")) return new DOMRect(0, 0, 1000, 1000);
     if ((this as HTMLElement).dataset.testid === "scroller") return new DOMRect(0, 0, 100, 100);
@@ -117,7 +156,7 @@ test("ignores the part of marked content hidden by a scroller", () => {
 });
 
 test("keeps the blur where there's no marked backdrop nearby", () => {
-  browse(safari);
+  browse(firefox);
   render(<Glass data-testid="glass" />);
   expect(screen.getByTestId("glass").hasAttribute("data-copy")).toBe(false);
 });

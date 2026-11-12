@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { BEND_STEPS, bendFilters } from "./internal/bend";
+import { BEND_STEPS, bendFilters, bendKey, bends as bendPool } from "./internal/bend";
 import { createJelly, FLAT, type Squash } from "./internal/jelly";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
@@ -80,6 +80,7 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
   let top = 0;
   let lensWidth = 0;
   let bends: string[] = [];
+  let heldBend = "";
   let active = -1;
   let shown = false;
   let settleFrame = 0;
@@ -100,6 +101,13 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
     // The lens's copy of the labels bends at its rim. Made before the first lift, so it's ready.
     const dark = style.getPropertyValue("--lg-dark").trim() !== "" && style.getPropertyValue("--lg-dark").trim() !== "initial";
     if (tint.offsetWidth && tint.offsetHeight) {
+      // Held for as long as the lens is this size, so it's let go of once it isn't.
+      const key = bendKey(tint.offsetWidth, tint.offsetHeight, dark);
+      if (key !== heldBend) {
+        bendPool.hold(key);
+        if (heldBend) bendPool.drop(heldBend);
+        heldBend = key;
+      }
       bends = bendFilters(tint.offsetWidth, tint.offsetHeight, dark, (ready) => {
         bends = ready;
       });
@@ -371,6 +379,7 @@ function attach({ bar, glass, lens, tint, bend, row }: Parts, select: (index: nu
       lift.stop();
       jelly.stop();
       observer.disconnect();
+      if (heldBend) bendPool.drop(heldBend);
       for (const key of ["ready", "hidden", "lifted", "refracting"]) delete bar.dataset[key];
       bar.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);

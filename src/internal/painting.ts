@@ -4,10 +4,11 @@ import { painter, type Paint, type Painter, type PaintJob } from "./paint";
 // hold up the page. So they're worked out in a worker, off the page's thread, and come back as
 // images; the glass takes them up when they arrive, and draws without them until then. Where a
 // worker can't run, as under a security policy that won't allow one made like this, they're
-// worked out on the page instead, when it's idle. Either way each is made once and kept.
+// worked out on the page instead, when it's idle. Either way each is made once, and kept while
+// glass is drawn with it and for a while after, then let go.
 
 export interface Painted {
-  /** Each image as a data URL, in the order the painter gives them. */
+  /** Each image as a URL, in the order the painter gives them: a blob's from the worker, data on the page. */
   urls: string[];
   maximum?: number;
   reach?: number;
@@ -43,15 +44,6 @@ type Waiting = { job: PaintJob; resolve: (painted: Painted | null) => void };
 let worker: Worker | null | undefined;
 let next = 0;
 const waiting = new Map<number, Waiting>();
-
-function readAsUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
 
 function whenIdle(callback: () => void): void {
   if (typeof requestIdleCallback === "function") requestIdleCallback(callback, { timeout: 500 });
@@ -97,19 +89,21 @@ function giveUpOnWorker(): void {
 function start(): Worker | null {
   if (worker !== undefined) return worker;
   worker = null;
-  if (typeof Worker !== "function" || typeof OffscreenCanvas !== "function" || typeof Blob !== "function") return null;
+  if (typeof Worker !== "function" || typeof OffscreenCanvas !== "function" || typeof Blob !== "function" || typeof URL.createObjectURL !== "function") return null;
   try {
     const url = URL.createObjectURL(new Blob([WORKER], { type: "text/javascript" }));
     const made = new Worker(url);
-    made.onmessage = async (event: MessageEvent<{ id: number; blobs?: Blob[]; error?: string; maximum?: number; reach?: number }>) => {
+    made.onmessage = (event: MessageEvent<{ id: number; blobs?: Blob[]; error?: string; maximum?: number; reach?: number }>) => {
       const { id, blobs, error, maximum, reach } = event.data;
       const entry = waiting.get(id);
       if (!entry) return;
       waiting.delete(id);
       // A browser whose worker can't draw, as Safari before 16.4 can't, does it on the page.
       if (error || !blobs) return onPage(entry.job, entry.resolve);
+      // A blob's URL is a few bytes, where the same image as data is a third bigger than the
+      // file, held as text in every style that names it.
       try {
-        entry.resolve({ urls: await Promise.all(blobs.map(readAsUrl)), maximum, reach });
+        entry.resolve({ urls: blobs.map((blob) => URL.createObjectURL(blob)), maximum, reach });
       } catch {
         onPage(entry.job, entry.resolve);
       }
@@ -140,8 +134,71 @@ const done = new Map<string, Painted | null>();
 const pending = new Map<string, (() => void)[]>();
 
 /**
+ * Things made once and shared, kept while anything uses them. Once nothing does, the last few
+ * stay in case they're wanted again, as a sheet's are when it opens at the same height, and
+ * older ones are let go. Glass that's resized a pixel at a time would otherwise keep a map
+ * for every size it passed through.
+ */
+export interface Pool {
+  /** Something is drawn with `key`. */
+  hold(key: string): void;
+  /** Something that was drawn with `key` no longer is. */
+  drop(key: string): void;
+  /** `key` was made: if nothing holds it, it's kept only as one of the last few. */
+  made(key: string): void;
+}
+
+export function pool(keep: number, forget: (key: string) => void): Pool {
+  const users = new Map<string, number>();
+  // Unused, oldest first.
+  const unused = new Set<string>();
+  const trim = () => {
+    for (const key of unused) {
+      if (unused.size <= keep) break;
+      unused.delete(key);
+      forget(key);
+    }
+  };
+  return {
+    hold(key) {
+      users.set(key, (users.get(key) ?? 0) + 1);
+      unused.delete(key);
+    },
+    drop(key) {
+      const count = (users.get(key) ?? 1) - 1;
+      if (count > 0) return void users.set(key, count);
+      users.delete(key);
+      unused.delete(key);
+      unused.add(key);
+      trim();
+    },
+    made(key) {
+      // What was asked for is usually taken up a frame or two after it arrives; until then it
+      // isn't counted among the unused, or a page that draws a lot at once would let go of
+      // what it's about to use.
+      setTimeout(() => {
+        if (users.has(key) || unused.has(key)) return;
+        unused.add(key);
+        trim();
+      }, 2000);
+    },
+  };
+}
+
+/** Lets go of a painting nothing uses, and of the images it was made of. */
+function forgetPainting(key: string): void {
+  const painting = done.get(key);
+  done.delete(key);
+  for (const url of painting?.urls ?? []) if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+}
+
+/** The paintings in use. Whatever draws with one holds it, and drops it when it stops. */
+export const paintings: Pool = pool(32, forgetPainting);
+
+/**
  * What `job` paints, if it's been painted: null if it couldn't be, undefined if it's still to
- * come, in which case it's started and `ready` is called once it arrives.
+ * come, in which case it's started and `ready` is called once it arrives. What's painted is
+ * kept while it's held in `paintings`, and a while after.
  */
 export function painted(key: string, job: PaintJob, ready?: () => void): Painted | null | undefined {
   if (done.has(key)) return done.get(key);
@@ -149,6 +206,7 @@ export function painted(key: string, job: PaintJob, ready?: () => void): Painted
   if (!pending.has(key) && !start()) {
     const result = paintHere(job);
     done.set(key, result);
+    paintings.made(key);
     return result;
   }
   const callbacks = pending.get(key);
@@ -159,6 +217,7 @@ export function painted(key: string, job: PaintJob, ready?: () => void): Painted
   pending.set(key, ready ? [ready] : []);
   void paint(job).then((result) => {
     done.set(key, result);
+    paintings.made(key);
     const waiters = pending.get(key) ?? [];
     pending.delete(key);
     for (const callback of waiters) callback();

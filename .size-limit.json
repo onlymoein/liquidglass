@@ -1,5 +1,5 @@
 [
-  { "name": "One Button", "path": "dist/index.js", "import": "{ Button }", "ignore": ["react", "react-dom"], "limit": "11.5 kB" },
-  { "name": "One Glass", "path": "dist/index.js", "import": "{ Glass }", "ignore": ["react", "react-dom"], "limit": "9.5 kB" },
-  { "name": "Everything", "path": "dist/index.js", "import": "*", "ignore": ["react", "react-dom"], "limit": "31.5 kB" }
+  { "name": "One Button", "path": "dist/index.js", "import": "{ Button }", "ignore": ["react", "react-dom"], "limit": "12.5 kB" },
+  { "name": "One Glass", "path": "dist/index.js", "import": "{ Glass }", "ignore": ["react", "react-dom"], "limit": "10.5 kB" },
+  { "name": "Everything", "path": "dist/index.js", "import": "*", "ignore": ["react", "react-dom"], "limit": "32 kB" }
 ]

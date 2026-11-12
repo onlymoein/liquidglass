@@ -12,7 +12,7 @@
 // filter on HTML in bounding-box units, so every filter here is in them, and
 // each direction gets its own pass with its own scale.
 
-import { painted } from "./painting";
+import { painted, paintings, pool, type Pool } from "./painting";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -28,6 +28,9 @@ export const BEND_BLUR = 0.9;
 export const BEND_STEPS = 8;
 
 const filters = new Map<string, string[]>();
+// What each size's filters are made of, to take away once no tab bar is that size.
+const made = new Map<string, { elements: SVGElement[]; maps: string }>();
+let madeIds = 0;
 let defs: SVGDefsElement | undefined;
 
 function svg(name: string, attributes: Record<string, string | number>): SVGElement {
@@ -46,6 +49,20 @@ function container(): SVGDefsElement {
   return defs;
 }
 
+/** The key a tab bar's lens of this size is held by in `bends`. */
+export const bendKey = (width: number, height: number, dark: boolean): string =>
+  `${Math.round(width * 2) / 2}x${Math.round(height * 2) / 2}${dark ? "-dark" : ""}`;
+
+/** The bend filters in use: a tab bar holds its lens's size, and drops it when the lens changes size or goes. */
+export const bends: Pool = pool(4, (key) => {
+  const entry = made.get(key);
+  made.delete(key);
+  filters.delete(key);
+  if (!entry) return;
+  for (const element of entry.elements) element.remove();
+  paintings.drop(entry.maps);
+});
+
 /** WebKit draws an SVG filter on HTML only in bounding-box units. */
 const boxUnits = (): boolean => /AppleWebKit\//.test(navigator.userAgent) && !/Chrom(?:e|ium)\//.test(navigator.userAgent);
 
@@ -56,18 +73,20 @@ const boxUnits = (): boolean => /AppleWebKit\//.test(navigator.userAgent) && !/C
 export function bendFilters(width: number, height: number, dark: boolean, ready?: (filters: string[]) => void): string[] {
   const w = Math.round(width * 2) / 2;
   const h = Math.round(height * 2) / 2;
-  const key = `${w}x${h}${dark ? "-dark" : ""}`;
+  const key = bendKey(width, height, dark);
   const cached = filters.get(key);
   if (cached) return cached;
 
   // The maps are drawn off the page, and the filters follow them. Until then the labels under
   // the lens don't bend.
   const density = Math.min(devicePixelRatio || 1, 2);
-  const drawn = painted(`bend-${w}x${h}-${density}`, { kind: "bend", args: [w, h, density] }, () => ready?.(bendFilters(width, height, dark)));
+  const maps = `bend-${w}x${h}-${density}`;
+  const drawn = painted(maps, { kind: "bend", args: [w, h, density] }, () => ready?.(bendFilters(width, height, dark)));
   if (!drawn) return [];
   const [across, down, band] = drawn.urls as [string, string, string];
   const result: string[] = [];
-  const base = `liquidglass-bend-${filters.size}`;
+  const base = `liquidglass-bend-${madeIds++}`;
+  const elements: SVGElement[] = [];
   // On a light page labels are dark ink, which has no colour to part: it only blurs.
   const rays = dark
     ? ([
@@ -141,9 +160,13 @@ export function bendFilters(width: number, height: number, dark: boolean, ready?
       svg("feComposite", { in: "soft-rim", in2: "sharp-middle", operator: "arithmetic", k2: 1, k3: 1 }),
     );
     container().append(filter);
+    elements.push(filter);
     result.push(`url("#${id}")`);
   }
 
   filters.set(key, result);
+  made.set(key, { elements, maps });
+  paintings.hold(maps);
+  bends.made(key);
   return result;
 }

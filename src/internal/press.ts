@@ -33,14 +33,21 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
 
     const value = [1, 1, 0, 0];
     let glass = el;
+    let live = true;
+    // Four springs move the glass, and each frame they're all written at once, after the last.
+    let queued = false;
     const paint = () => {
+      queued = false;
+      if (!live) return;
       glass.style.scale = `${value[0]} ${value[1]}`;
       glass.style.translate = `${value[2]}px ${value[3]}px`;
     };
     const springs = value.map((initial, i) =>
       createSpring(initial, ...POINTER.release, (next) => {
         value[i] = next;
-        paint();
+        if (queued) return;
+        queued = true;
+        queueMicrotask(paint);
       }),
     );
 
@@ -131,6 +138,7 @@ export function usePress(ref: RefObject<HTMLElement | null>): void {
     window.addEventListener("blur", reset);
     return () => {
       end();
+      live = false;
       springs.forEach((spring) => spring.stop());
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("blur", reset);

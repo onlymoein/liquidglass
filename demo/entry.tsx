@@ -209,12 +209,33 @@ const SUPPORT: { browser: ReturnType<typeof browserName>; text: string }[] = [
   { browser: "Firefox", text: "The same colour, blur and rim as Safari. It can bend a copy of a wallpaper you mark, not the live page." },
 ];
 
+// The recording is well down the page, so it's fetched and played only once it's nearly in view,
+// and paused when it's scrolled away, rather than downloading with the page and playing unseen.
+function useInView<T extends HTMLMediaElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const media = ref.current;
+    if (!media || typeof IntersectionObserver !== "function") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void media.play().catch(() => undefined);
+        else media.pause();
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(media);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 function Compare() {
   const here = browserName();
+  const recording = useInView<HTMLVideoElement>();
   return (
     <div className="compare">
       <figure>
-        <video src={video} autoPlay muted loop playsInline controls preload="metadata" aria-label="Side-by-side recording of native iOS 27 controls and liquidglass" />
+        <video ref={recording} src={video} muted loop playsInline controls preload="none" aria-label="Side-by-side recording of native iOS 27 controls and liquidglass" />
         <figcaption>Left is native iOS 27. Right is liquidglass, recorded on 0.10.</figcaption>
       </figure>
       <div className="support">

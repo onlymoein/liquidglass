@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
-import { local, painted } from "./painting";
+import { local, painted, paintings, pool, type Pool } from "./painting";
 
 // Refraction model: https://kube.io/blog/liquid-glass-css-svg/
 
@@ -16,7 +16,39 @@ interface Shape {
 }
 
 const lenses = new Map<string, string>();
+// What each lens is made of, to take away once no glass is drawn with it.
+const lensParts = new Map<string, { filter: SVGElement; maps: string }>();
+let lensIds = 0;
 let defs: SVGDefsElement | undefined;
+
+/** The lenses in use. Glass holds the one it's drawn with, so a size it's left behind is let go of. */
+const lensPool: Pool = pool(16, (key) => {
+  const parts = lensParts.get(key);
+  lenses.delete(key);
+  lensParts.delete(key);
+  if (!parts) return;
+  parts.filter.remove();
+  paintings.drop(parts.maps);
+});
+
+// What each piece of glass is drawn with, by what it's for: its lens, its rim and its mask.
+// Each is held while the glass uses it and dropped when it changes or the glass goes.
+type Slot = "lens" | "rim" | "mask";
+const using = new WeakMap<HTMLElement, Partial<Record<Slot, [Pool, string]>>>();
+
+function use(element: HTMLElement, slot: Slot, held?: [Pool, string]): void {
+  const slots = using.get(element) ?? {};
+  const before = slots[slot];
+  if (before?.[0] === held?.[0] && before?.[1] === held?.[1]) return;
+  if (held) held[0].hold(held[1]);
+  if (before) before[0].drop(before[1]);
+  if (held) slots[slot] = held;
+  else delete slots[slot];
+  using.set(element, slots);
+}
+
+const lensKey = (width: number, height: number, radius: number, selection: boolean, shape: Shape) =>
+  Object.values({ width, height, radius, selection, ...shape }).join("-");
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -57,15 +89,16 @@ const still = (element: HTMLElement) => element.isConnected && managed.has(eleme
 // The filter only bends the rim. Blur and the rim highlight are applied in CSS,
 // which Chromium positions correctly when it repaints part of the glass.
 function lens(width: number, height: number, radius: number, selection: boolean, shape: Shape, ready: () => void): string | undefined {
-  const key = Object.values({ width, height, radius, selection, ...shape }).join("-");
+  const key = lensKey(width, height, radius, selection, shape);
   const cached = lenses.get(key);
   if (cached !== undefined) return cached;
 
   // A pane's map is smooth, so one pixel to a point holds all of it. A lens bends steeply at its
   // rim and enlarges, and keeps the screen's own detail, up to three pixels a point.
   const density = selection ? Math.min(devicePixelRatio || 1, 3) : 1;
+  const mapKey = `lens-${key}-${density}`;
   const maps = painted(
-    `lens-${key}-${density}`,
+    mapKey,
     { kind: "displacement", args: [width, height, radius, selection, shape.bezel, shape.thickness, shape.zoom, density] },
     ready,
   );
@@ -79,7 +112,7 @@ function lens(width: number, height: number, radius: number, selection: boolean,
   const zoomMap = maps.urls[1];
   const scale = maps.maximum! * 2 * shape.level;
   const zoom = zoomMap ? { map: zoomMap, scale: 2 * maps.reach! * (1 - 1 / shape.zoom) } : undefined;
-  const id = `liquidglass-${lenses.size}`;
+  const id = `liquidglass-${lensIds++}`;
   const box = { x: 0, y: 0, width, height };
   const filter = svg("filter", {
     id,
@@ -155,6 +188,9 @@ function lens(width: number, height: number, radius: number, selection: boolean,
 
   const result = `url("#${id}")`;
   lenses.set(key, result);
+  lensParts.set(key, { filter, maps: mapKey });
+  paintings.hold(mapKey);
+  lensPool.made(key);
   return result;
 }
 
@@ -216,11 +252,12 @@ function darkCurve(size: number): string {
   return `url("#${id}")`;
 }
 
-/** The rim's picture as a CSS image, or undefined while it's still being drawn. */
-function rimFor(width: number, height: number, radius: number, shine: number, clear: number, ready: () => void): string | undefined {
+/** The rim's picture as a CSS image, with the painting it's from, or undefined while it's still being drawn. */
+function rimFor(width: number, height: number, radius: number, shine: number, clear: number, ready: () => void): [string, string] | undefined {
   const density = Math.min(devicePixelRatio || 1, 3);
-  const rim = painted(`rim-${width}-${height}-${radius}-${shine}-${clear}-${density}`, { kind: "rim", args: [width, height, radius, shine, clear, density] }, ready);
-  return rim ? `url("${rim.urls[0]}")` : rim === null ? "none" : undefined;
+  const key = `rim-${width}-${height}-${radius}-${shine}-${clear}-${density}`;
+  const rim = painted(key, { kind: "rim", args: [width, height, radius, shine, clear, density] }, ready);
+  return rim ? [`url("${rim.urls[0]}")`, key] : rim === null ? ["none", key] : undefined;
 }
 
 // The rim only changes within this distance of the edge, as far in as it draws, so
@@ -234,17 +271,24 @@ function setRimPieces(element: HTMLElement, width: number, height: number, radiu
   const fits = (side: number) => (half(side) * 2 >= side ? side : half(side) * 2 + 2);
   const [w, h] = [fits(width), fits(height)];
   const [x, y] = [half(width) + RIM_OUTSET, half(height) + RIM_OUTSET];
-  const rim = rimFor(w, h, radius, shine, clear, ready);
+  const drawn = rimFor(w, h, radius, shine, clear, ready);
   // Until its picture is drawn the glass keeps whatever rim it had.
-  if (rim === undefined) return;
+  if (drawn === undefined) return;
+  const [rim, rimKey] = drawn;
   // The sliver keeps its shape as long as the corner still has room in it.
   if (smooth && continuous(w, h, radius) && !hasCornerShape()) {
-    const painting = painted(`mask-${w}-${h}-${radius}-${density}`, { kind: "mask", args: [w, h, radius, density] }, ready);
+    const maskKey = `mask-${w}-${h}-${radius}-${density}`;
+    const painting = painted(maskKey, { kind: "mask", args: [w, h, radius, density] }, ready);
     if (painting === undefined) return;
     const mask = painting ? `url("${painting.urls[0]}")` : "none";
     const [mx, my] = [x - RIM_OUTSET + MASK_OUTSET, y - RIM_OUTSET + MASK_OUTSET];
     element.style.setProperty("--lg-mask", `${mask} ${Math.round(my * density)} ${Math.round(mx * density)} fill / ${my}px ${mx}px / ${MASK_OUTSET}px stretch`);
-  } else element.style.removeProperty("--lg-mask");
+    use(element, "mask", [paintings, maskKey]);
+  } else {
+    element.style.removeProperty("--lg-mask");
+    use(element, "mask");
+  }
+  use(element, "rim", [paintings, rimKey]);
   element.style.setProperty("--lg-rim-x", `${x}px`);
   element.style.setProperty("--lg-rim-y", `${y}px`);
   element.style.setProperty("--lg-rim-image", `${rim} ${Math.round(y * density)} ${Math.round(x * density)} fill / ${y}px ${x}px / 0 stretch`);
@@ -268,6 +312,15 @@ export function lightRim(element: HTMLElement, on: boolean): void {
 
 function clearRim(element: HTMLElement): void {
   for (const name of ["--lg-rim", "--lg-rim-x", "--lg-rim-y", "--lg-rim-image", "--lg-mask"]) element.style.removeProperty(name);
+  use(element, "rim");
+  use(element, "mask");
+}
+
+function clearLens(element: HTMLElement): void {
+  element.style.removeProperty("--lg-filter");
+  element.style.removeProperty("--lg-lens-blur");
+  element.style.removeProperty("--lg-size-curve");
+  use(element, "lens");
 }
 
 function fit(element: HTMLElement, selection: boolean, filtered: boolean): void {
@@ -319,6 +372,7 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
   if (!selection && !element.hasAttribute("data-size-fixed")) element.style.setProperty("--lg-size", String(size));
   if (filtered && filter !== undefined) {
     element.style.setProperty("--lg-filter", filter);
+    use(element, "lens", filter ? [lensPool, lensKey(width, height, radius, selection, shape)] : undefined);
     if (!selection) element.style.setProperty("--lg-lens-blur", "0px");
     // The curve is regular glass's. Clearer glass stays on the tone.
     if (!selection && refractsBackdrop() && (length("--lg-transparency") ?? 0.5) <= 0.5) {
@@ -328,7 +382,10 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
   // A selection's lens stretches as it lifts and draws its rim as a background.
   if (selection) {
     const rim = rimFor(width, height, radius, shape.shine, clear, again);
-    if (rim !== undefined) element.style.setProperty("--lg-rim", rim);
+    if (rim !== undefined) {
+      element.style.setProperty("--lg-rim", rim[0]);
+      use(element, "rim", [paintings, rim[1]]);
+    }
   } else {
     drawn.set(element, [width, height, radius, shape.shine, clear]);
     // A rim refitted while the glass is held stays lit.
@@ -352,6 +409,9 @@ export const refractsBackdrop = (): boolean => /Chrom(?:e|ium)\//.test(navigator
 /** WebKit draws nothing for an SVG filter with an image in it, so its copy gets CSS filters alone. */
 const filtersCopy = (): boolean => !/AppleWebKit\//.test(navigator.userAgent);
 
+/** How long a size has to hold before glass is fitted to it again. */
+const SETTLE_MS = 120;
+
 // Refits the lens whenever the element changes size. Unfiltered, it sets only
 // the rim highlight: the nearest Safari and Firefox come to refraction over
 // content they have no copy of.
@@ -360,18 +420,32 @@ function refract(element: HTMLElement, selection: boolean, filtered: boolean, no
   manage(element);
   // The rim is cheap, and applied part-way through an opening it costs frames.
   if (now) fit(element, selection, filtered);
+  // The first size is fitted as soon as the page is idle. Later ones wait for the size to stop
+  // changing, so glass that's resized a pixel at a time, as a window is dragged wider, works
+  // out its lens once rather than for every size it passes through.
+  let first = true;
   const observer = new ResizeObserver(() => {
     cancel?.();
-    cancel = whenIdle(() => fit(element, selection, filtered));
+    if (first) {
+      first = false;
+      cancel = whenIdle(() => fit(element, selection, filtered));
+      return;
+    }
+    let idle: (() => void) | undefined;
+    const settle = setTimeout(() => {
+      idle = whenIdle(() => fit(element, selection, filtered));
+    }, SETTLE_MS);
+    cancel = () => {
+      clearTimeout(settle);
+      idle?.();
+    };
   });
   observer.observe(element);
   return () => {
     cancel?.();
     observer.disconnect();
     release(element);
-    element.style.removeProperty("--lg-filter");
-    element.style.removeProperty("--lg-lens-blur");
-    element.style.removeProperty("--lg-size-curve");
+    clearLens(element);
     element.style.removeProperty("--lg-size");
     clearRim(element);
   };
@@ -402,9 +476,7 @@ export function fitLens(element: HTMLElement): () => void {
   fit(element, false, true);
   return () => {
     release(element);
-    element.style.removeProperty("--lg-filter");
-    element.style.removeProperty("--lg-lens-blur");
-    element.style.removeProperty("--lg-size-curve");
+    clearLens(element);
   };
 }
 
@@ -441,9 +513,11 @@ function findBackdrop(element: HTMLElement): HTMLElement | null {
   return null;
 }
 
-// A copy never animates on its own (it follows the original instead), and its
-// root is placed by the layer rather than where the original sits.
-const STILL = /^(transition|animation|view-transition)/;
+// A copy never transitions on its own (it follows the original instead), and its root is placed
+// by the layer rather than where the original sits. CSS animations below the root run in the copy
+// too, kept in step with the original's, so a spinner that turns forever costs nothing a frame.
+const STILL = /^(transition|view-transition)/;
+const ANIMATION = /^animation/;
 const PLACED: Record<string, string> = {
   position: "absolute",
   top: "0px",
@@ -473,7 +547,7 @@ interface Copy {
 function inline(original: Element, copy: HTMLElement, root: boolean, names?: Iterable<string>): void {
   const computed = getComputedStyle(original);
   const write = (name: string) => {
-    if (STILL.test(name) || (root && (name in PLACED || name === "width" || name === "height"))) return;
+    if (STILL.test(name) || (root && (ANIMATION.test(name) || name in PLACED || name === "width" || name === "height"))) return;
     const value = computed.getPropertyValue(name);
     if (copy.style.getPropertyValue(name) !== value) copy.style.setProperty(name, value);
   };
@@ -485,28 +559,80 @@ function inline(original: Element, copy: HTMLElement, root: boolean, names?: Ite
   copy.style.height = `${(original as HTMLElement).offsetHeight}px`;
 }
 
-// A deep copy that renders like the original wherever it's placed: each
-// element carries its computed style inline, minus anything that would animate
-// it or tie it to the original.
-function copyOf(source: HTMLElement): Copy {
+// A deep copy that renders like the original wherever it's placed: each element carries its
+// computed style inline, minus anything that would transition it or tie it to the original. The
+// copy is made at once, and each element styled in `order`.
+function cloneOf(source: HTMLElement): Copy & { order: [Element, HTMLElement][] } {
   const root = source.cloneNode(true) as HTMLElement;
   const originals = [source, ...source.querySelectorAll("*")];
   const copies = [root, ...root.querySelectorAll<HTMLElement>("*")];
   const pairs = new Map<Element, HTMLElement>();
+  const order: [Element, HTMLElement][] = [];
   originals.forEach((original, index) => {
     const copy = copies[index];
     if (!copy) return;
     pairs.set(original, copy);
+    order.push([original, copy]);
     copy.removeAttribute("id");
     // Detached, a lazy image would never load.
     if (copy instanceof HTMLImageElement) copy.loading = "eager";
-    copy.style.transition = copy.style.animation = "none";
+    copy.style.transition = "none";
+    if (original === source) copy.style.animation = "none";
     copy.style.setProperty("view-transition-name", "none");
-    inline(original, copy, original === source);
   });
   root.removeAttribute(MARK);
-  return { root, pairs };
+  return { root, pairs, order };
 }
+
+function copyOf(source: HTMLElement): Copy {
+  const copy = cloneOf(source);
+  for (const [original, target] of copy.order) inline(original, target, original === source);
+  return copy;
+}
+
+/**
+ * The same copy, styled a slice at a time while the page is idle, so that copying a large
+ * backdrop never holds the page up. Null if it's no longer wanted by the time it's done.
+ */
+function copyInSlices(source: HTMLElement, wanted: () => boolean): Promise<Copy | null> {
+  const copy = cloneOf(source);
+  let next = 0;
+  return new Promise((resolve) => {
+    const slice = (deadline?: IdleDeadline) => {
+      if (!wanted()) return resolve(null);
+      // A slice is kept short even when the page is idle for longer, so a tap is never kept waiting.
+      const until = performance.now() + SLICE_MS;
+      do {
+        const [original, target] = copy.order[next++]!;
+        inline(original, target, original === source);
+      } while (next < copy.order.length && performance.now() < until && (!deadline || deadline.timeRemaining() > 1));
+      if (next < copy.order.length) later(slice);
+      else resolve(copy);
+    };
+    later(slice);
+  });
+}
+
+function later(callback: (deadline?: IdleDeadline) => void): void {
+  if (typeof requestIdleCallback === "function") requestIdleCallback(callback, { timeout: 200 });
+  else setTimeout(callback, 0);
+}
+
+/** Puts each CSS animation in the copy at the same point as the original's. */
+function keepInStep(copy: Copy): void {
+  for (const [original, target] of copy.pairs) {
+    if (typeof original.getAnimations !== "function" || typeof target.getAnimations !== "function") return;
+    const theirs = original.getAnimations().filter(isCssAnimation);
+    if (!theirs.length) continue;
+    const ours = target.getAnimations().filter(isCssAnimation);
+    for (const animation of ours) {
+      const match = theirs.find((other) => other.animationName === animation.animationName);
+      if (match && match.currentTime !== null) animation.currentTime = match.currentTime;
+    }
+  }
+}
+
+const isCssAnimation = (animation: Animation): animation is CSSAnimation => "animationName" in animation;
 
 const TIMING = new Set(["offset", "computedOffset", "easing", "composite"]);
 
@@ -518,6 +644,8 @@ function animating(source: HTMLElement): Map<Element, Set<string>> {
   for (const animation of source.getAnimations({ subtree: true })) {
     const effect = animation.effect as KeyframeEffect | null;
     if (!effect?.target || effect.pseudoElement) continue;
+    // The copy runs these itself.
+    if (isCssAnimation(animation) && effect.target !== source) continue;
     const names = found.get(effect.target) ?? new Set<string>();
     if ("transitionProperty" in animation) names.add(String(animation.transitionProperty));
     else
@@ -529,6 +657,12 @@ function animating(source: HTMLElement): Map<Element, Set<string>> {
 }
 
 const SOURCE = new Set(["src", "srcset", "sizes"]);
+/** The most elements of a copy restyled in one go; more are restyled a slice at a time. */
+const AT_ONCE = 60;
+/** How long, in ms, a slice of copying runs before the page gets its thread back. */
+const SLICE_MS = 5;
+/** How often, in frames, a copy looks for motion started from script while nothing seems to move. */
+const SWEEP_FRAMES = 20;
 
 // Where the live backdrop can't be filtered, a copy of the marked content is
 // filtered instead, in a layer laid just behind the glass and matched to its
@@ -598,35 +732,103 @@ function copyBackdrop(element: HTMLElement, source: HTMLElement): () => void {
 
   let copy = copyOf(source);
   frame.append(copy.root);
+  keepInStep(copy);
   let stopped = false;
 
-  // Restyles the copy in place, for anything that changes how the original
-  // looks without changing what it holds.
-  const follow = () => {
-    for (const [original, target] of copy.pairs) inline(original, target, original === source);
+  // Restyles the copy in place, for anything that changes how the original looks without
+  // changing what it holds. Every computed property of every element is read, so it's done at
+  // most once a frame, and a change to one element restyles only it and what's inside it.
+  let restyling: Set<Element> | "all" | null = null;
+  let restyleFrame = 0;
+  // Restyling everything, as after a resize or a change of theme, reads as much as copying, so
+  // it's done a slice at a time while the page is idle. A copy on its way is styled already.
+  let whole = 0;
+  let restyleLate = false;
+  const restyleAll = (pairs: [Element, HTMLElement][] = [...copy.pairs]) => {
+    const id = ++whole;
+    let next = 0;
+    const slice = (deadline?: IdleDeadline) => {
+      if (stopped || id !== whole) return;
+      // A copy that's started is styled from what the original was, part of it before this.
+      if (copying) return void (restyleLate = true);
+      if (refresh) return;
+      const until = performance.now() + SLICE_MS;
+      do {
+        const [original, target] = pairs[next++]!;
+        inline(original, target, original === source);
+      } while (next < pairs.length && performance.now() < until && (!deadline || deadline.timeRemaining() > 1));
+      if (next < pairs.length) return later(slice);
+      keepInStep(copy);
+      placed = "";
+      align();
+    };
+    later(slice);
+  };
+  const flush = () => {
+    restyleFrame = 0;
+    const which = restyling;
+    restyling = null;
+    if (which === "all") restyleAll();
+    else if (which) {
+      const pairs: [Element, HTMLElement][] = [];
+      for (const changed of which) {
+        if (!changed.isConnected) continue;
+        for (const original of [changed, ...changed.querySelectorAll("*")]) {
+          const target = copy.pairs.get(original);
+          if (target) pairs.push([original, target]);
+        }
+      }
+      // A few elements are restyled at once; a class on the backdrop itself restyles all of it,
+      // which is done in slices like any restyle that large.
+      if (pairs.length > AT_ONCE) return restyleAll(pairs);
+      for (const [original, target] of pairs) inline(original, target, original === source);
+    }
+    keepInStep(copy);
     placed = "";
     align();
   };
+  const restyleSoon = (what: Element | "all") => {
+    if (what === "all" || restyling === "all") restyling = "all";
+    else {
+      restyling ??= new Set();
+      restyling.add(what);
+    }
+    restyleFrame ||= requestAnimationFrame(flush);
+  };
+  const follow = () => restyleSoon("all");
 
   // Takes a new copy when the original's content changes, keeping the old one
   // up until the new one's images can paint.
   let refresh = 0;
   let version = 0;
+  // Whatever changes while a copy is being made is restyled in it once it's up.
+  let copying: Set<Element> | null = null;
   const recopy = () => {
     refresh = 0;
-    const next = copyOf(source);
     const id = ++version;
-    const images = [...next.root.querySelectorAll("img")];
-    if (next.root instanceof HTMLImageElement) images.push(next.root);
-    void Promise.all(
-      images.map((image) => (typeof image.decode === "function" ? image.decode().catch(() => undefined) : undefined)),
-    ).then(() => {
-      if (stopped || id !== version) return;
-      frame.replaceChildren(next.root);
-      copy = next;
-      placed = "";
-      align();
-    });
+    copying = new Set();
+    void copyInSlices(source, () => !stopped && id === version)
+      .then((next) => {
+        if (!next) return null;
+        const images = [...next.root.querySelectorAll("img")];
+        if (next.root instanceof HTMLImageElement) images.push(next.root);
+        return Promise.all(images.map((image) => (typeof image.decode === "function" ? image.decode().catch(() => undefined) : undefined))).then(() => next);
+      })
+      .then((next) => {
+        if (!next || stopped || id !== version) return;
+        frame.replaceChildren(next.root);
+        copy = next;
+        const late = copying;
+        copying = null;
+        for (const element of late ?? []) restyleSoon(element);
+        if (restyleLate) {
+          restyleLate = false;
+          restyleAll();
+        }
+        keepInStep(copy);
+        placed = "";
+        align();
+      });
   };
   const schedule = () => {
     refresh ||= requestAnimationFrame(recopy);
@@ -662,13 +864,16 @@ function copyBackdrop(element: HTMLElement, source: HTMLElement): () => void {
         continue;
       }
       const target = copy.pairs.get(record.target as Element);
-      if (!target || name === "id" || name === "style" || name === MARK) continue;
+      if (!target) continue;
+      // Whatever changed, the element and what's in it may look different now.
+      restyleSoon(record.target as Element);
+      copying?.add(record.target as Element);
+      if (name === "id" || name === "style" || name === MARK) continue;
       const value = (record.target as Element).getAttribute(name!);
       if (value === null) target.removeAttribute(name!);
       else target.setAttribute(name!, value);
     }
     if (content) schedule();
-    follow();
   });
   changed.observe(source, { attributes: true, childList: true, characterData: true, subtree: true });
   // A theme or state set further up, such as data-theme on the page, restyles
@@ -685,19 +890,57 @@ function copyBackdrop(element: HTMLElement, source: HTMLElement): () => void {
   window.addEventListener("resize", align);
   restyle();
   align();
+
+  // Each frame the copy follows the glass and what's moving in the original, but only while the
+  // glass can be seen. Finding what's moving means asking every element in the original, so
+  // it's asked each frame only once something has started moving, until it stops, and now and
+  // then otherwise, for motion started from script, which announces nothing.
   let tick = 0;
+  let seen = true;
+  let started = false;
+  let frames = 0;
   const loop = () => {
+    tick = 0;
+    if (!seen || stopped) return;
     restyle();
-    animate();
+    if (started || moving.size || ++frames % SWEEP_FRAMES === 0) {
+      animate();
+      started = moving.size > 0;
+    }
     align();
     tick = requestAnimationFrame(loop);
   };
-  tick = requestAnimationFrame(loop);
+  const run = () => {
+    tick ||= requestAnimationFrame(loop);
+  };
+  const begin = () => {
+    started = true;
+    run();
+  };
+  source.addEventListener("transitionrun", begin);
+  source.addEventListener("animationstart", begin);
+  const shown = typeof IntersectionObserver === "function"
+    ? new IntersectionObserver((entries) => {
+        seen = entries[entries.length - 1]!.isIntersecting;
+        if (seen) {
+          placed = "";
+          restyle();
+          align();
+          run();
+        }
+      })
+    : undefined;
+  shown?.observe(element);
+  run();
 
   return () => {
     stopped = true;
     cancelAnimationFrame(tick);
     cancelAnimationFrame(refresh);
+    cancelAnimationFrame(restyleFrame);
+    shown?.disconnect();
+    source.removeEventListener("transitionrun", begin);
+    source.removeEventListener("animationstart", begin);
     moved.disconnect();
     changed.disconnect();
     context.disconnect();
@@ -713,19 +956,22 @@ function copyBackdrop(element: HTMLElement, source: HTMLElement): () => void {
 }
 
 /**
- * Refracts what's behind the element. Chromium filters the live backdrop.
- * Safari and Firefox filter a copy of content marked `data-liquidglass-backdrop`
- * nearby, and otherwise keep the blur with the rim highlight.
+ * Refracts what's behind the element. Chromium filters the live backdrop. Firefox filters a
+ * copy of content marked `data-liquidglass-backdrop` nearby. Safari, and Firefox with nothing
+ * marked, keep the live backdrop's blur with the rim highlight.
  */
 export function useRefraction(ref: RefObject<HTMLElement | null>, selection = false): void {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     if (refractsBackdrop()) return refract(element, selection, true);
-    const source = selection ? null : findBackdrop(element);
+    // A copy is only worth its cost where it can be bent. WebKit draws nothing for the lens on
+    // it, so there the glass keeps the live backdrop, which it blurs and tones as well as a copy
+    // could, and over everything rather than only what's marked.
+    const source = selection || !filtersCopy() ? null : findBackdrop(element);
     if (!source) return refract(element, selection, false);
     const stop = copyBackdrop(element, source);
-    const unfit = refract(element, selection, filtersCopy());
+    const unfit = refract(element, selection, true);
     return () => {
       unfit();
       stop();

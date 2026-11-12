@@ -246,13 +246,13 @@ Each pull request checks this:
 
 - `npm run size`: how much using one `Button`, one `Glass` or everything adds to a site, against `.size-limit.json`.
 - `npm run perf:lighthouse`: the demo's Lighthouse score, time blocked and layout shift, against `lighthouserc.json`.
-- `npm run perf:frames`: scrolls the demo and fails if anything holds up the page.
+- `npm run perf:frames`: scrolls the demo, and the same with Firefox's copied backdrop, and fails if anything holds up the page, or if resizing the window leaves lenses behind.
 
 ## Refraction in Safari and Firefox
 
 Chromium bends the live backdrop, as iOS does. No other browser lets a page bend what's behind an element, so there the glass has the same colour, blur and rim but its edge doesn't bend.
 
-In Firefox, you can put `data-liquidglass-backdrop` on what sits behind your glass, such as a wallpaper or a hero image, and the glass bends a copy of it. In Safari that attribute currently only gives you the blur and colour, because Safari can't draw the filter that does the bending.
+In Firefox, you can put `data-liquidglass-backdrop` on what sits behind your glass, such as a wallpaper or a hero image, and the glass bends a copy of it. Safari can't draw the filter that does the bending, so it ignores the attribute and keeps blurring the live backdrop, which costs nothing extra. In Firefox the copy follows what it copies: keep the marked content to a wallpaper or a hero image rather than a whole page, since every element in it is copied for every piece of glass over it.
 
 ```tsx
 <img data-liquidglass-backdrop src="/wallpaper.jpg" alt="" />
