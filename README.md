@@ -1,56 +1,53 @@
+<div align="center">
+
 # liquidglass
 
-[![web package on npm](https://img.shields.io/npm/v/@onlymoein/liquidglass?logo=react&label=react%20(web))](https://www.npmjs.com/package/@onlymoein/liquidglass)
-[![native package on npm](https://img.shields.io/npm/v/@onlymoein/liquidglass-native?logo=expo&label=react%20native)](https://www.npmjs.com/package/@onlymoein/liquidglass-native)
-[![TypeScript types included](https://img.shields.io/npm/types/@onlymoein/liquidglass?logo=typescript&logoColor=white)](https://www.npmjs.com/package/@onlymoein/liquidglass)
-[![live demo](https://img.shields.io/website?url=https%3A%2F%2Fonlymoein.github.io%2Fliquidglass%2F&label=live%20demo)](https://onlymoein.github.io/liquidglass/)
-[![license](https://img.shields.io/npm/l/@onlymoein/liquidglass)](https://github.com/onlymoein/liquidglass/blob/main/LICENSE)
+### Apple's iOS 27 Liquid Glass for React and React Native
 
-**Apple's iOS 27 Liquid Glass for React and React Native.** Glass that bends the light behind it, and the iOS controls built from it (buttons, switches, sliders, menus, sheets, tab bars), moving the way the real ones do.
+Glass that bends the light behind it, and the iOS controls built from it,<br>
+measured against the real thing on the iOS simulator.
 
-**[Try it live in your browser →](https://onlymoein.github.io/liquidglass/)**
+[![react on npm](https://img.shields.io/npm/v/@onlymoein/liquidglass?logo=react&label=react&color=0a84ff)](https://www.npmjs.com/package/@onlymoein/liquidglass)
+[![react native on npm](https://img.shields.io/npm/v/@onlymoein/liquidglass-native?logo=expo&label=react%20native&color=0a84ff)](https://www.npmjs.com/package/@onlymoein/liquidglass-native)
+[![one Button, minified and compressed](https://img.shields.io/badge/one%20Button-12%20kB-34c759)](#performance)
+[![TypeScript](https://img.shields.io/npm/types/@onlymoein/liquidglass?logo=typescript&logoColor=white)](https://www.npmjs.com/package/@onlymoein/liquidglass)
+[![MIT license](https://img.shields.io/npm/l/@onlymoein/liquidglass)](LICENSE)
 
-## Pick your package
-
-| You're building | Install | Runs on | How the glass is drawn |
-| --- | --- | --- | --- |
-| **A website or web app**: React, Next.js, Vite, Remix | `npm install @onlymoein/liquidglass` | Chrome, Edge, Safari, Firefox | Its own glass, matched to iOS 27 on the simulator |
-| **A mobile app**: React Native, Expo | `npx expo install @onlymoein/liquidglass-native expo-glass-effect` | iOS and Android | iOS: Apple's own glass and controls. Android: its own glass, to iOS's measurements |
-
-Both packages use the same component names, so `Button`, `Switch`, `Slider`, `Menu`, `TabBar` and the rest work the same way in each.
+**[Live demo](https://onlymoein.github.io/liquidglass/)** · **[Web quick start](#react-for-the-web)** · **[React Native quick start](#react-native-and-expo)** · **[Components](#components)** · **[FAQ](#faq)**
 
 <table>
   <tr>
-    <td align="center" width="50%"><a href="https://onlymoein.github.io/liquidglass/"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/assets/liquidglass-site.gif" width="400" alt="Recording of the live site: a glass lens dragged across the word liquidglass, pieces of glass merging, and a segmented control's thumb lifting into a lens."></a></td>
-    <td align="center" width="50%"><a href="https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/assets/liquidglass-v0.10-parity.gif" width="400" alt="Side-by-side recording of native iOS 27 controls and liquidglass: buttons, switch, slider, menu, alert, sheet and tab bar."></a></td>
+    <td align="center"><a href="https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/assets/liquidglass-v0.10-parity.gif" width="360" alt="Side-by-side recording of real iOS 27 controls and liquidglass: buttons, switch, slider, menu, alert, sheet and tab bar."></a></td>
+    <td align="center"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-ios.gif" width="200" alt="The React Native example app on iOS 27: switch, slider, stepper, segmented control, menu, the tab bar's lens, and the tab bar shrinking as the page scrolls."></a></td>
+    <td align="center"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-android.gif" width="200" alt="The same gestures in the example app on Android, with this package's glass."></a></td>
   </tr>
   <tr>
-    <td align="center"><b>Web</b>: the live site, in Chrome</td>
-    <td align="center"><b>Web vs iOS</b>: native iOS 27 on the left, liquidglass on the right (<a href="https://github.com/onlymoein/liquidglass/blob/main/assets/liquidglass-v0.10-parity.mp4">video</a>)</td>
-  </tr>
-  <tr>
-    <td align="center"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-ios.gif" width="260" alt="Recording of the React Native example app on iOS 27: switch, slider, stepper, segmented control, menu, the tab bar's lens, and the tab bar shrinking as the page scrolls."></a></td>
-    <td align="center"><a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4"><img src="https://raw.githubusercontent.com/onlymoein/liquidglass/main/native/assets/demo-android.gif" width="260" alt="The same gestures in the example app on Android, with this package's glass."></a></td>
-  </tr>
-  <tr>
-    <td align="center"><b>React Native on iOS 27</b> (<a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-ios.mp4">video</a>)</td>
-    <td align="center"><b>React Native on Android</b> (<a href="https://github.com/onlymoein/liquidglass/blob/main/native/assets/demo-android.mp4">video</a>)</td>
+    <td align="center"><b>Web</b><br><sub>real iOS 27 left, liquidglass right</sub></td>
+    <td align="center"><b>React Native, iOS</b><br><sub>Apple's own glass</sub></td>
+    <td align="center"><b>React Native, Android</b><br><sub>drawn to iOS's measurements</sub></td>
   </tr>
 </table>
 
-## Contents
+</div>
 
-- [Quick start: React (web)](#quick-start-react-web)
-- [Quick start: React Native and Expo](#quick-start-react-native-and-expo)
-- [Components](#components)
-- [Using the web components](#using-the-web-components)
-- [Look and theme](#look-and-theme)
-- [Browser support](#browser-support)
-- [Performance](#performance)
-- [For coding agents](#for-coding-agents)
-- [Coming from glisse](#coming-from-glisse)
+## Why liquidglass
 
-## Quick start: React (web)
+- **One API for web and mobile.** `Button`, `Switch`, `Slider`, `Menu`, `TabBar` and the rest have the same names and props in React and React Native.
+- **Measured, not eyeballed.** The repo runs real iOS controls and this library side by side on the simulator and measures the difference. In Chrome, glass colour is within 2 levels out of 255 of iOS.
+- **The real thing on iPhone.** In React Native on iOS, the components are Apple's own UIKit glass and controls. On Android, the package draws the glass itself, to the same measurements.
+- **Moves like iOS.** Presses, menus, sheets and the tab bar's lens are on springs fitted to recordings of iOS 27.
+- **Light on the page.** The glass is worked out in a Web Worker, so the page isn't held up. One `Button` is about 12 kB, and bundlers drop the rest. The demo scores 99 on Lighthouse mobile.
+- **Accessible.** Keyboard and screen-reader support throughout. Glass turns fully tinted when the system is set to reduce transparency or increase contrast.
+- **Ready for AI coding agents.** [One command](#for-coding-agents) teaches Claude Code, Cursor or Codex the whole library.
+
+## Quick start
+
+| You're building | Package | Runs on |
+| --- | --- | --- |
+| A website or web app (React, Next.js, Vite, Remix) | [`@onlymoein/liquidglass`](https://www.npmjs.com/package/@onlymoein/liquidglass) | Chrome, Edge, Safari, Firefox |
+| A mobile app (React Native, Expo) | [`@onlymoein/liquidglass-native`](https://www.npmjs.com/package/@onlymoein/liquidglass-native) | iOS and Android |
+
+### React for the web
 
 ```bash
 npm install @onlymoein/liquidglass
@@ -69,12 +66,9 @@ export function Settings() {
 }
 ```
 
-That's all the setup there is. Each component brings its own CSS the first time it renders. If you'd rather load all the CSS up front, import `@onlymoein/liquidglass/styles.css` once.
+There's no other setup: each component brings its own CSS the first time it renders. It needs React 18 or later. Put glass over a photo, a gradient or content that scrolls, since glass shows what's behind it.
 
-- React 18 or later. Works with Next.js (the components are client components), Vite, Remix and anything else that renders React in the browser.
-- Glass shows what's behind it, so put it over a photo, a gradient or content that scrolls. Over a plain white page it's a faint grey card.
-
-## Quick start: React Native and Expo
+### React Native and Expo
 
 ```bash
 npx expo install @onlymoein/liquidglass-native expo-glass-effect
@@ -95,11 +89,7 @@ export function Player() {
 }
 ```
 
-- Expo SDK 54 or later (React Native 0.81 or later). It has native code, so it needs a development build or EAS Build; it doesn't run in Expo Go.
-- **iOS:** the components are Apple's own UIKit glass and controls, so they look exactly like Apple's apps.
-- **Android:** the package draws the glass itself. Wrap what the glass should show in a `Backdrop`.
-
-The full guide is in the **[React Native README](native/)**: icons, fonts, the tab bar and Android.
+It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go. On Android, wrap what the glass should show in a `Backdrop`. The full guide is in the **[React Native README](native/)**.
 
 ## Components
 
@@ -126,9 +116,10 @@ The full guide is in the **[React Native README](native/)**: icons, fonts, the t
 
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
-## Using the web components
+<details>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
 
-### Toolbar
+#### Toolbar
 
 ```tsx
 import { Button, Toolbar, ToolbarGroup } from "@onlymoein/liquidglass";
@@ -146,7 +137,7 @@ import { Button, Toolbar, ToolbarGroup } from "@onlymoein/liquidglass";
 
 Put it first inside whatever scrolls; it sticks to the top. Buttons in one group share a piece of glass. When content scrolls under the bar, a frosted band fades in, as on iOS 27. Use `edge="soft"` for iOS 26's lighter blur, or `edge="none"` for neither. The arrow keys move between actions.
 
-### NavigationBar
+#### NavigationBar
 
 ```tsx
 import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
@@ -164,7 +155,7 @@ import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
 
 A `Toolbar` with a title. The title starts large and scrolls away with the content, and a smaller one fades into the bar once it's gone. `large={false}` keeps the small title from the start. `onBack` adds the round back button, and `leading` and `trailing` hold other actions.
 
-### Menu
+#### Menu
 
 ```tsx
 import { Menu } from "@onlymoein/liquidglass";
@@ -188,7 +179,7 @@ import { Menu } from "@onlymoein/liquidglass";
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
 - It opens in the top layer, so nothing around the trigger can clip it.
 
-### Sheet and Alert
+#### Sheet and Alert
 
 ```tsx
 import { Alert, Sheet } from "@onlymoein/liquidglass";
@@ -208,11 +199,11 @@ import { Alert, Sheet } from "@onlymoein/liquidglass";
 
 A sheet rests at half height as floating glass, and at full height as an opaque panel. `detents` chooses which heights it has. Drag it from anywhere, not just the handle. Scrolling content inside it hands drags back and forth as on iOS. Drags that start on a slider, a text field or anything marked `data-lg-no-sheet-drag` stay with that element.
 
-### TabBar
+#### TabBar
 
 Give items an `icon` for the 62-point iOS tab bar. `minimized` shrinks it to the current tab's icon, as iOS does when a page scrolls down, and `onExpand` tells you when that icon is tapped. Items with an `href` render through `link`, such as Next.js's `Link`.
 
-### GlassGroup
+#### GlassGroup
 
 ```tsx
 import { Button, GlassGroup } from "@onlymoein/liquidglass";
@@ -225,11 +216,14 @@ import { Button, GlassGroup } from "@onlymoein/liquidglass";
 
 Glass closer together than `spacing` becomes one shape, and parts again as it moves away.
 
-### Popups from other libraries
+#### Popups from other libraries
 
 Add the class `lg-grow` to a popup from Radix, Base UI or similar. It then grows out of its `transform-origin` on `data-open` and shrinks away on `data-closed`, with the menu's spring.
 
-## Look and theme
+</details>
+
+<details>
+<summary><b>Theming</b>: light and dark, transparency, colours</summary>
 
 **Light and dark** follow the system. To pin one, set `data-theme="light"` or `data-theme="dark"` on any element.
 
@@ -251,33 +245,29 @@ Add the class `lg-grow` to a popup from Radix, Base UI or similar. It then grows
 | `--lg-shine` | How strong the rim's lines are; `1` matches iOS 27 |
 | `--lg-contrast`, `--lg-brightness`, `--lg-saturate` | What glass does to what's behind it (add `-small` for glass 60 points tall or less) |
 
+</details>
+
 ## Browser support
 
 | Browser | Colour, blur and rim | Edge bends like iOS |
 | --- | :---: | :---: |
-| Chrome, Edge, and other Chromium browsers | ✓ | ✓ |
+| Chrome, Edge and other Chromium browsers | ✓ | ✓ |
 | Safari (Mac, iPhone, iPad) | ✓ | |
 | Firefox | ✓ | Over content you mark |
 
-Only Chromium lets a page bend what's behind an element. Everywhere else the glass looks the same, but its edge doesn't bend.
-
-In Firefox, put `data-liquidglass-backdrop` on what sits behind the glass, such as a wallpaper or hero image, and the glass bends a copy of it. Keep it to a small area, since everything inside it is copied for every piece of glass over it. Safari ignores the attribute.
+Only Chromium lets a page bend what's behind an element. Everywhere else the glass looks the same, but its edge doesn't bend. In Firefox, add `data-liquidglass-backdrop` to a wallpaper or hero image behind the glass, and the glass bends a copy of it. Keep it to a small area, since everything inside it is copied for every piece of glass over it.
 
 ```tsx
 <img data-liquidglass-backdrop src="/wallpaper.jpg" alt="" />
 ```
 
-**How close it is to iOS 27.** `parity/` runs real iOS controls and this library on the same simulator, over the same backgrounds and through the same taps, and measures the difference. In Chromium, glass colour is within 2 levels out of 255 of iOS in both themes. Safari is within 2 levels in light mode and approximate in dark mode. Button presses and menu openings are fitted to recordings of the real thing.
-
 ## Performance
 
-- The lens maps and rims are drawn in a Web Worker, off the page's thread. Glass appears frosted at once and picks up its lens a moment later.
+- The lens maps and rims are drawn in a Web Worker, off the page's thread. Glass is frosted at once and picks up its lens a moment later.
 - Maps are freed once no glass uses them, so resizing doesn't pile them up.
-- On the demo, Lighthouse mobile scores 99, with no time blocked and no dropped frames while scrolling.
-- One `Button` adds about 12 kB to a site, minified and compressed. Bundlers drop the components you don't use.
-- **Content Security Policy:** allow `worker-src blob:` and `img-src blob: data:`. Without the worker, the same glass is drawn on the page instead.
-
-Every pull request checks `npm run size`, `npm run perf:lighthouse` and `npm run perf:frames`. The frames check covers scrolling, Firefox's copied backdrop and resizing the window.
+- One `Button` adds about 12 kB to a site, minified and compressed; everything together is about 31 kB. Bundlers drop what you don't use.
+- Every pull request checks bundle size (`npm run size`), Lighthouse (`npm run perf:lighthouse`) and dropped frames while scrolling and resizing (`npm run perf:frames`).
+- **Content Security Policy:** allow `worker-src blob:` and `img-src blob: data:`.
 
 ## For coding agents
 
@@ -289,10 +279,32 @@ npx skills add onlymoein/liquidglass
 
 It also ships in the web package, at `node_modules/@onlymoein/liquidglass/skills/liquidglass/SKILL.md`.
 
-## Coming from glisse
+## FAQ
 
-liquidglass started as a fork of [glisse](https://github.com/0kzh/glisse) by Kelvin Zhang. The components and props are the same. Install `@onlymoein/liquidglass`, change your imports, and rename `data-glisse-backdrop` to `data-liquidglass-backdrop`. If you set `--lg-glass`, set `--lg-glass-tinted` and `--lg-transparency` instead.
+**Does it work in Next.js?**
+Yes. The components are client components, so you can import them from server component files. Their styles are added on the client.
+
+**Why doesn't the edge bend in Safari?**
+Safari doesn't let a web page filter what's behind an element. The glass has the same colour, blur and rim there; only the bend is missing.
+
+**My glass is invisible or plain grey.**
+Glass needs something colourful behind it. Also check its ancestors: one with `opacity` below 1, `filter`, `mask` or `backdrop-filter` limits the glass to what's inside that ancestor. Glass nested in other glass has the same problem.
+
+**Does the React Native package work in Expo Go?**
+No. It has native code, so it needs a development build (`npx expo run:ios`) or EAS Build.
+
+**What about Android?**
+Android has no Liquid Glass, so the package draws its own to iOS's measurements. It bends from Android 13, and is blurred and toned without the bend before that. See [Android](native/#android).
+
+**I used glisse.**
+liquidglass started as a fork of [glisse](https://github.com/0kzh/glisse) by Kelvin Zhang, and the components and props are the same. Change your imports, and rename `data-glisse-backdrop` to `data-liquidglass-backdrop`. If you set `--lg-glass`, set `--lg-glass-tinted` and `--lg-transparency` instead.
 
 ## License
 
 MIT. Copyright Kelvin Zhang and Moein Saharkhiz.
+
+liquidglass is an independent project. It isn't affiliated with or endorsed by Apple. Apple, iOS and Liquid Glass are trademarks of Apple Inc.
+
+<div align="center">
+<sub>If liquidglass saves you time, a ⭐ helps others find it.</sub>
+</div>
