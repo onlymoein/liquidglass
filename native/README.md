@@ -44,6 +44,14 @@ The package includes native code, so it needs a development build (`npx expo run
 
 If the native code isn't in the build, because the app wasn't rebuilt after installing or its iOS deployment target is too low, the package draws plain stand-ins instead of grey "Unimplemented component" boxes, and logs an error saying why.
 
+## With an AI agent
+
+There's a ready-made prompt for Claude Code, Cursor or Codex in the [main README](https://github.com/onlymoein/liquidglass#use-it-with-an-ai-agent). It has the agent install the liquidglass skill, which covers this package too, and pick the right package for your project. To add the skill yourself:
+
+```sh
+npx skills add onlymoein/liquidglass
+```
+
 ## Use
 
 ```tsx

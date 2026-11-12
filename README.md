@@ -13,7 +13,7 @@ measured against the real thing on the iOS simulator.
 [![TypeScript](https://img.shields.io/npm/types/@onlymoein/liquidglass?logo=typescript&logoColor=white)](https://www.npmjs.com/package/@onlymoein/liquidglass)
 [![MIT license](https://img.shields.io/npm/l/@onlymoein/liquidglass)](LICENSE)
 
-**[Live demo](https://onlymoein.github.io/liquidglass/)** · **[Web quick start](#react-for-the-web)** · **[React Native quick start](#react-native-and-expo)** · **[Components](#components)** · **[FAQ](#faq)**
+**[Live demo](https://onlymoein.github.io/liquidglass/)** · **[Web quick start](#react-for-the-web)** · **[React Native quick start](#react-native-and-expo)** · **[Prompt for your AI agent](#use-it-with-an-ai-agent)** · **[FAQ](#faq)**
 
 <table>
   <tr>
@@ -38,7 +38,7 @@ measured against the real thing on the iOS simulator.
 - **Moves like iOS.** Presses, menus, sheets and the tab bar's lens are on springs fitted to recordings of iOS 27.
 - **Light on the page.** The glass is worked out in a Web Worker, so the page isn't held up. One `Button` is about 12 kB, and bundlers drop the rest. The demo scores 99 on Lighthouse mobile.
 - **Accessible.** Keyboard and screen-reader support throughout. Glass turns fully tinted when the system is set to reduce transparency or increase contrast.
-- **Ready for AI coding agents.** [One command](#for-coding-agents) teaches Claude Code, Cursor or Codex the whole library.
+- **Ready for AI coding agents.** A [ready-made prompt](#use-it-with-an-ai-agent) and an agent skill teach Claude Code, Cursor or Codex the whole library.
 
 ## Quick start
 
@@ -90,6 +90,50 @@ export function Player() {
 ```
 
 It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go. On Android, wrap what the glass should show in a `Backdrop`. The full guide is in the **[React Native README](native/)**.
+
+## Use it with an AI agent
+
+Copy this prompt into Claude Code, Cursor, Codex or any coding agent, and replace the last step with what you want built. It has the agent pick the right package for your project and read the liquidglass skill before it writes any code.
+
+```text
+Add Apple's iOS 27 Liquid Glass to this app using liquidglass.
+
+1. Before writing any code, install the liquidglass agent skill and read it:
+     npx skills add onlymoein/liquidglass
+   If you can't run that, read the skill straight from GitHub:
+     https://github.com/onlymoein/liquidglass/blob/main/skills/liquidglass/SKILL.md
+   Follow it for everything below.
+
+2. Look at this project and pick the matching package:
+   - A website or web app (React, Next.js, Vite, Remix):
+       npm install @onlymoein/liquidglass
+   - A mobile app (React Native or Expo):
+       npx expo install @onlymoein/liquidglass-native expo-glass-effect
+     It has native code, so rebuild with `npx expo run:ios` or `npx expo run:android`;
+     it doesn't run in Expo Go. Read node_modules/@onlymoein/liquidglass-native/README.md,
+     and on Android wrap what the glass should show in a <Backdrop>.
+   If the project has both, use each package in its own app.
+
+3. Use the library's components (Glass, Button, Switch, Slider, Stepper, SegmentedControl,
+   Menu, TabBar, and on the web Toolbar, NavigationBar, Sheet, Alert, Input) instead of
+   hand-made blur or "glassmorphism" CSS. Keep to the skill's rules: put glass over
+   something colourful, don't nest glass inside glass, don't wrap it in opacity or filter,
+   and give icon-only controls an aria-label (accessibilityLabel in React Native).
+
+4. Build this: <describe what you want, for example "replace the bottom navigation with
+   a TabBar and the settings toggles with Switch">
+
+5. When you're done, run the app, look at the screens you changed, and tell me what you
+   changed and anything that didn't work.
+```
+
+The skill teaches the agent both packages: the components and their props, theming, browser differences, and what to check when glass looks wrong. To install it yourself:
+
+```bash
+npx skills add onlymoein/liquidglass
+```
+
+It also ships in the web package, at `node_modules/@onlymoein/liquidglass/skills/liquidglass/SKILL.md`.
 
 ## Components
 
@@ -268,16 +312,6 @@ Only Chromium lets a page bend what's behind an element. Everywhere else the gla
 - One `Button` adds about 12 kB to a site, minified and compressed; everything together is about 31 kB. Bundlers drop what you don't use.
 - Every pull request checks bundle size (`npm run size`), Lighthouse (`npm run perf:lighthouse`) and dropped frames while scrolling and resizing (`npm run perf:frames`).
 - **Content Security Policy:** allow `worker-src blob:` and `img-src blob: data:`.
-
-## For coding agents
-
-An agent skill teaches Claude Code, Cursor, Codex and other agents both packages: the components, theming, browser differences and what to check when glass looks wrong.
-
-```bash
-npx skills add onlymoein/liquidglass
-```
-
-It also ships in the web package, at `node_modules/@onlymoein/liquidglass/skills/liquidglass/SKILL.md`.
 
 ## FAQ
 
