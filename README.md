@@ -78,7 +78,7 @@ It also ships in the web package, at `node_modules/@onlymoein/liquidglass/skills
 
 Glass is expensive to draw, so liquidglass does the heavy work where it can't slow your page down. These numbers are from the demo and the bundle, checked on every pull request:
 
-| | |
+| Measured | Result |
 | --- | --- |
 | **Lighthouse (mobile)** | 99 performance score |
 | **Page held up while scrolling** | 0 ms, with no dropped frames |
