@@ -238,7 +238,7 @@ Colours are CSS variables, so you can change them in your own CSS. The ones you'
 
 ## Performance
 
-The glass's lens maps and rims are worked out a pixel at a time, which on a phone is slow enough to hold up a page. So they're worked out in a Web Worker, off the page's thread, and each is made once and kept. Glass is frosted from the start and takes up its lens a moment later, when the map arrives. A page whose security policy doesn't allow a worker gets the same glass, worked out on the page instead.
+The glass's lens maps and rims are worked out a pixel at a time, which on a phone is slow enough to hold up a page. So they're worked out in a Web Worker, off the page's thread, and come back as `blob:` images. Each is made once and kept while glass is drawn with it, and let go once none is, so resizing doesn't pile them up. Glass is frosted from the start and takes up its lens a moment later, when the map arrives. A page whose security policy doesn't allow a worker gets the same glass, worked out on the page instead. With a Content Security Policy, allow `worker-src blob:` and `img-src blob: data:`.
 
 Measured on the demo with Lighthouse's mobile settings, before and after this: performance 70 to 99, time the page is blocked 1.6 seconds to none, and scrolling without a dropped frame.
 
@@ -265,6 +265,16 @@ In Firefox, you can put `data-liquidglass-backdrop` on what sits behind your gla
 - **Chromium:** glass colour is within 2 levels out of 255 of iOS, in both themes and at both sizes, and its edge bends.
 - **Safari:** light mode is within 2 levels. Dark mode is approximate, because its filters can't follow iOS's curve, and the edge doesn't bend.
 - **Motion:** button press and menu opening are fitted to recordings of the real thing.
+
+## For coding agents
+
+The package ships an agent skill at `skills/liquidglass/SKILL.md`. It covers the components and their props, theming, browser differences, CSP, and what to check when glass looks wrong. Add it to Claude Code, Cursor, Codex and other agents with:
+
+```bash
+npx skills add onlymoein/liquidglass
+```
+
+It's also in the installed package, at `node_modules/@onlymoein/liquidglass/skills/liquidglass/SKILL.md`.
 
 ## Coming from glisse
 

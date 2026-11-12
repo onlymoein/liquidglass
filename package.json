@@ -1,6 +1,6 @@
 {
   "name": "@onlymoein/liquidglass",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Apple's iOS 27 Liquid Glass for React.",
   "keywords": [
     "react",
@@ -48,7 +48,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "scripts": {
     "build": "tsdown",
