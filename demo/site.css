@@ -745,6 +745,27 @@ h3 {
   background: var(--card);
 }
 
+.row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popover-body {
+  display: grid;
+  gap: 12px;
+}
+
+.popover-title {
+  font-weight: 600;
+}
+
+.popover-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 21px;
+}
+
 .row.column {
   display: grid;
   justify-content: stretch;

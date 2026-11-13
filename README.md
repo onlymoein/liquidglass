@@ -172,6 +172,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
+| `Popover` | A card of glass with an arrow that opens out of its trigger and holds whatever you put in it | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |
@@ -181,7 +182,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Popover, Sheet, Alert, TabBar, GlassGroup</summary>
 
 #### Toolbar
 
@@ -242,6 +243,24 @@ import { Menu } from "@onlymoein/liquidglass";
 - An item with `href` is a link: `onSelect` runs instead if it's given, for your router, and ⌘, Ctrl, Shift or the middle button opens a new tab.
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
 - It opens in the top layer, so nothing around the trigger can clip it.
+
+#### Popover
+
+```tsx
+import { Popover, Slider } from "@onlymoein/liquidglass";
+
+<Popover aria-label="Display" label="Display" icon={<SlidersIcon />}>
+  <Slider aria-label="Brightness" value={brightness} onValueChange={setBrightness} />
+</Popover>
+```
+
+A popover is a card of glass with an arrow, which grows out of its trigger and holds anything: text, controls, a small form. It's the iOS popover, not a menu, so what's in it is yours, and it isn't modal. Escape, a press outside, or moving focus out of it closes it. Escape returns focus to the trigger; a press outside or tabbing away leaves focus where it went. It opens in the top layer like `Menu`, so nothing can clip it.
+
+It opens below the trigger, or above when there isn't room (`side` is `"auto"`, `"bottom"` or `"top"`, and a side that doesn't fit gives way to the other one). `align` lines it up with the trigger's centre, start or end. The arrow always points at the trigger's centre, and slides along the card as the card is held against the window's edge, but stays clear of its rounded corners. `arrow={false}` leaves it off, and the card floats beside its trigger instead. A popover taller than the room scrolls its content, and follows its trigger as the page scrolls.
+
+With a `label` the trigger is a pill; without one, a round button with your `icon`, and `aria-label` names both it and the popover. `trigger` passes anything else to the button. Opened from the keyboard, focus starts on the first control in the popover; opened with a pointer it stays on the card, so nothing comes up ringed.
+
+The card is as wide as its content, between 200 and 340 points. Set `--lg-popover-width`, `--lg-popover-min-width`, `--lg-popover-max-width` and `--lg-popover-padding` (16px 20px) on the popover or any parent to change that.
 
 #### Sheet and Alert
 

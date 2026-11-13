@@ -43,8 +43,8 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 - **Every control is controlled or uncontrolled.** Pass `value`/`checked`/`open` with
   `onValueChange`/`onCheckedChange`/`onOpenChange`, or `defaultValue`/`defaultChecked`/`defaultOpen`.
   The handler names are `on…Change`, never `onChange`.
-- **Label anything without text.** An icon-only `Button`, a `Switch`, a `Slider` and a `Menu` need
-  `aria-label` (`Menu` requires it).
+- **Label anything without text.** An icon-only `Button`, a `Switch`, a `Slider`, a `Menu` and a
+  `Popover` need `aria-label` (`Menu` and `Popover` require it).
 
 ## Components
 
@@ -62,6 +62,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Input`, `SearchField` | Text fields | `value`, `onValueChange`, `icon`, `variant: "glass" \| "fill"` |
 | `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items`, `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
+| `Popover` | A card of glass with an arrow that opens out of its trigger and holds anything; not modal | `aria-label` (required), `children`, `label` (pill trigger), `icon`, `side: "auto" \| "bottom" \| "top"`, `align: "start" \| "center" \| "end"`, `arrow` (default true), `open`, `defaultOpen`, `onOpenChange`, `trigger` (props for the trigger `Button`) |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
@@ -105,7 +106,7 @@ Placement rules that matter:
 
 - `Toolbar` and `NavigationBar` go **first inside the element that scrolls**; they stick to its
   top. Don't wrap them in `position: fixed`.
-- `Menu`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
+- `Menu`, `Popover`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
   around them don't matter.
 - In a `Sheet`, drags that start on a slider, a text field, or anything marked
   `data-lg-no-sheet-drag` stay with that element.

@@ -4,6 +4,7 @@ import { Button, type ButtonProps } from "./button";
 import { safeHref } from "./internal/href";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { hideFromTopLayer, showInTopLayer, triggerRect, viewport } from "./internal/anchor";
 import { placeMenu, type Placement } from "./internal/placement";
 import { fitLens, rimAt } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
@@ -181,46 +182,6 @@ const checkmark = (
   </svg>
 );
 
-// Where the trigger stands, without the scale its press spring may still be writing on it.
-function triggerRect(trigger: HTMLElement) {
-  const rect = trigger.getBoundingClientRect();
-  const width = trigger.offsetWidth;
-  const height = trigger.offsetHeight;
-  return {
-    left: rect.left + rect.width / 2 - width / 2,
-    top: rect.top + rect.height / 2 - height / 2,
-    width,
-    height,
-  };
-}
-
-const viewport = () => ({
-  width: document.documentElement.clientWidth || window.innerWidth,
-  height: window.innerHeight,
-});
-
-// In the top layer, the menu is above everything on the page, and nothing that scrolls or
-// clips around its trigger can cut it off.
-// The attribute goes on only where the browser has popovers: elsewhere it can hide the menu.
-function show(card: HTMLElement) {
-  if (!("showPopover" in card) || card.matches(":popover-open")) return;
-  card.setAttribute("popover", "manual");
-  try {
-    card.showPopover();
-  } catch {
-    // Fixed positioning alone still places it.
-  }
-}
-
-function hide(card: HTMLElement) {
-  if (!("hidePopover" in card) || !card.matches(":popover-open")) return;
-  try {
-    card.hidePopover();
-  } catch {
-    // Unmounting takes it out of the top layer anyway.
-  }
-}
-
 export function Menu({
   items,
   "aria-label": name,
@@ -292,7 +253,7 @@ export function Menu({
     const plate = plateRef.current!;
 
     // Measured at its own size first, then placed over the trigger.
-    show(card);
+    showInTopLayer(card);
     card.style.left = "0px";
     card.style.top = "0px";
     card.style.setProperty("--lg-menu-min-width", `${trigger.offsetWidth}px`);
@@ -663,7 +624,7 @@ export function Menu({
       document.removeEventListener("pointerdown", outside, true);
       window.removeEventListener("scroll", follow, true);
       window.removeEventListener("resize", follow);
-      hide(card);
+      hideFromTopLayer(card);
     };
   }, [mounted]);
 

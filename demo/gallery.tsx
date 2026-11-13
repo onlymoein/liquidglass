@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Popover, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -40,6 +40,25 @@ function MenuDemo() {
         { icon: stroke(icons.trash), label: "Delete", destructive: true },
       ]}
     />
+  );
+}
+
+function PopoverDemo() {
+  const [brightness, setBrightness] = useState(65);
+  return (
+    <div className="line">
+      <Popover aria-label="Display" label="Display" icon={stroke(icons.sliders)} trigger={{ size: "large" }} style={{ "--lg-popover-width": "270px" } as CSSProperties}>
+        <div className="popover-body">
+          <div className="popover-title">Display</div>
+          <label className="row small">Brightness <span>{brightness}%</span></label>
+          <Slider aria-label="Brightness" value={brightness} min={0} max={100} onValueChange={setBrightness} />
+          <label className="row small">True Tone <Switch aria-label="True Tone" defaultChecked /></label>
+        </div>
+      </Popover>
+      <Popover aria-label="About brightness" icon={stroke(icons.info)} trigger={{ size: "large" }} style={{ "--lg-popover-width": "230px" } as CSSProperties}>
+        <p className="popover-text">It opens below its trigger, or above when there isn't room, and the arrow keeps pointing at it.</p>
+      </Popover>
+    </div>
   );
 }
 
@@ -253,6 +272,18 @@ const TILES: Tile[] = [
 >
   <Glass>Hold me</Glass>
 </ContextMenu>`,
+  },
+  {
+    title: "Popover",
+    how: "Opens out of its trigger with an arrow. Press outside or Escape to close; scroll the page and it follows.",
+    demo: <PopoverDemo />,
+    code: `<Popover aria-label="Display" label="Display" icon={<SlidersIcon />}>
+  <Slider aria-label="Brightness" value={brightness} onValueChange={setBrightness} />
+</Popover>
+
+<Popover aria-label="About brightness" icon={<InfoIcon />} side="top" arrow={false}>
+  It opens below its trigger, or above when there isn't room.
+</Popover>`,
   },
   {
     title: "Switch",

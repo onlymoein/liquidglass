@@ -12,6 +12,7 @@ export const ORDER: readonly string[] = [
   "switch",
   "slider",
   "menu",
+  "popover",
   "toolbar",
   "navigation-bar",
   "glass-group",
