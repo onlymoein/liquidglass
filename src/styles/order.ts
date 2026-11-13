@@ -18,6 +18,7 @@ export const ORDER: readonly string[] = [
   "segmented-control",
   "stepper",
   "page-control",
+  "picker",
   "progress",
   "layer",
   "alert",
