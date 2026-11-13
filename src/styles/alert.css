@@ -28,12 +28,6 @@
   opacity: 0;
 }
 
-@keyframes lg-fade-in {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes lg-alert-settle {
   from {
     transform: scale(1.125);

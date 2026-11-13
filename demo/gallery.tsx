@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  ActionSheet, Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -113,6 +113,28 @@ function AlertDemo() {
         actions={[
           { label: "Cancel", role: "cancel", onSelect: () => setAnswer("Kept it") },
           { label: "Delete", role: "destructive", onSelect: () => setAnswer("Deleted") },
+        ]}
+      />
+    </div>
+  );
+}
+
+function ActionSheetDemo() {
+  const [open, setOpen] = useState(false);
+  const [answer, setAnswer] = useState("");
+  return (
+    <div className="stack center">
+      <Button size="large" onClick={() => setOpen(true)}>Show action sheet</Button>
+      <output className="readout">{answer || " "}</output>
+      <ActionSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Delete shipment?"
+        message="Archiving keeps it for 30 days."
+        actions={[
+          { label: "Delete", role: "destructive", onSelect: () => setAnswer("Deleted") },
+          { label: "Archive", onSelect: () => setAnswer("Archived") },
+          { label: "Cancel", role: "cancel", onSelect: () => setAnswer("Kept it") },
         ]}
       />
     </div>
@@ -307,6 +329,21 @@ const TILES: Tile[] = [
   actions={[
     { label: "Cancel", role: "cancel" },
     { label: "Delete", role: "destructive", onSelect: remove },
+  ]}
+/>`,
+  },
+  {
+    title: "ActionSheet",
+    how: "Choices rise from the bottom as glass, with Cancel apart. Tap outside to cancel.",
+    demo: <ActionSheetDemo />,
+    code: `<ActionSheet
+  open={open}
+  onOpenChange={setOpen}
+  title="Delete shipment?"
+  actions={[
+    { label: "Delete", role: "destructive", onSelect: remove },
+    { label: "Archive", onSelect: archive },
+    { label: "Cancel", role: "cancel" },
   ]}
 />`,
   },

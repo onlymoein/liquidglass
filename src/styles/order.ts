@@ -21,6 +21,7 @@ export const ORDER: readonly string[] = [
   "progress",
   "layer",
   "alert",
+  "action-sheet",
   "context-menu",
   "sheet",
   "popup",
