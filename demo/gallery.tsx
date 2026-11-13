@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, TabBarAccessory, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -162,6 +162,34 @@ function Tabs() {
         />
       </div>
       <label className="row small">Minimized <Switch aria-label="Minimized" checked={small} onCheckedChange={setSmall} /></label>
+    </div>
+  );
+}
+
+function Accessory() {
+  const [small, setSmall] = useState(false);
+  const [playing, setPlaying] = useState(true);
+  return (
+    <div className="stack center wide">
+      <div className="accessory-demo" data-small={small ? "" : undefined}>
+        <TabBarAccessory aria-label="Now playing" placement={small ? "inline" : "above"}>
+          <span className="accessory-art" />
+          <span className="accessory-title">Blue in Green</span>
+          <Button aria-label={playing ? "Pause" : "Play"} size="small" icon={stroke(playing ? icons.pause : icons.play, 2)} onClick={() => setPlaying(!playing)} />
+        </TabBarAccessory>
+        <TabBar
+          aria-label="Accessory tabs"
+          defaultValue="swatches"
+          minimized={small}
+          onExpand={() => setSmall(false)}
+          items={[
+            { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
+            { value: "search", label: "Search", icon: stroke(icons.search, 2) },
+            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
+          ]}
+        />
+      </div>
+      <label className="row small">Minimized <Switch aria-label="Minimized accessory" checked={small} onCheckedChange={setSmall} /></label>
     </div>
   );
 }
@@ -342,6 +370,18 @@ const TILES: Tile[] = [
     { value: "settings", label: "Settings", icon: <GearIcon /> },
   ]}
 />`,
+  },
+  {
+    title: "TabBarAccessory",
+    how: "The capsule over the tab bar. Turn on Minimized and it slides in beside the shrunk bar.",
+    demo: <Accessory />,
+    wide: true,
+    code: `<TabBarAccessory aria-label="Now playing" placement={minimized ? "inline" : "above"}>
+  <Artwork />
+  <span>Blue in Green</span>
+  <Button aria-label="Pause" size="small" icon={<PauseIcon />} />
+</TabBarAccessory>
+<TabBar minimized={minimized} onExpand={() => setMinimized(false)} items={items} />`,
   },
   {
     title: "Toolbar",
