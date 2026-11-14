@@ -11,6 +11,7 @@ export { Progress, Spinner, type ProgressProps, type SpinnerProps } from "./prog
 export { SearchField, type SearchFieldProps } from "./search-field";
 export { SegmentedControl, type SegmentedControlProps, type SegmentedItem } from "./segmented-control";
 export { Sheet, type SheetDetent, type SheetProps } from "./sheet";
+export { Sidebar, type SidebarEntry, type SidebarItem, type SidebarProps, type SidebarSection } from "./sidebar";
 export { Slider, type SliderProps } from "./slider";
 export { Stepper, type StepperProps } from "./stepper";
 export { Switch, type SwitchProps } from "./switch";
