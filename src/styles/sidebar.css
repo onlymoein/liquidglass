@@ -1,0 +1,208 @@
+/* Sidebar */
+
+/* A slab of glass for the app's destinations. It's as tall as what holds it, 320 points wide
+   unless --lg-sidebar-width says otherwise, and it's up to the app to inset it from the edges. */
+.lg-sidebar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: var(--lg-sidebar-width, 320px);
+  max-width: 100%;
+  height: 100%;
+  padding: 8px;
+  border-radius: 30px;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Slides out to the left on iOS's own curve. */
+  transition:
+    transform 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 240ms ease-out,
+    visibility 0s linear 380ms;
+}
+
+.lg-sidebar[data-open="false"] {
+  transform: translateX(calc(-100% - 16px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.lg-sidebar-header,
+.lg-sidebar-footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.lg-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.lg-sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.lg-sidebar-section + .lg-sidebar-section {
+  margin-top: 12px;
+}
+
+.lg-sidebar-heading {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 16px;
+  color: var(--lg-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+button.lg-sidebar-heading {
+  cursor: pointer;
+}
+
+.lg-sidebar-chevron {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  transition: rotate 240ms var(--lg-ease);
+}
+
+.lg-sidebar-section[data-folded] .lg-sidebar-chevron {
+  rotate: -90deg;
+}
+
+/* A section folds by its rows' height running down to nothing. */
+.lg-sidebar-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 280ms var(--lg-ease),
+    opacity 200ms ease-out,
+    visibility 0s linear 0s;
+}
+
+.lg-sidebar-section[data-folded] .lg-sidebar-fold {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 280ms var(--lg-ease),
+    opacity 160ms ease-out,
+    visibility 0s linear 280ms;
+}
+
+.lg-sidebar-rows {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+/* 44 points tall, as an iPad's rows are, and as round as the panel's corner less its inset. */
+.lg-sidebar-item {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 22px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease-out;
+}
+
+.lg-sidebar-item:focus-visible,
+button.lg-sidebar-heading:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: -2px;
+}
+
+/* Only a mouse lights a row under it: a touch browser keeps hover on whatever was tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .lg-sidebar-item:hover:not(:disabled):not([data-selected]) {
+    background-color: color-mix(in srgb, var(--lg-fill-subtle) 55%, transparent);
+  }
+}
+
+.lg-sidebar-item:active:not(:disabled) {
+  background-color: var(--lg-fill-subtle);
+  transition-duration: 0s;
+}
+
+/* The chosen row is filled with a capsule, and its icon and label keep the ink they had. */
+.lg-sidebar-item[data-selected] {
+  background-color: var(--lg-fill-subtle);
+}
+
+.lg-sidebar-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lg-sidebar-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--lg-tab-accent);
+}
+
+.lg-sidebar-icon > svg {
+  width: 22px;
+  height: 22px;
+}
+
+.lg-sidebar-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lg-sidebar-badge {
+  flex: none;
+  color: var(--lg-secondary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-sidebar,
+  .lg-sidebar-fold,
+  .lg-sidebar-section[data-folded] .lg-sidebar-fold,
+  .lg-sidebar-chevron {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+}

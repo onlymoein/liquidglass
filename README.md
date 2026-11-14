@@ -170,6 +170,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `TabBar` | Tabs with a lens that follows the finger | ✓ | ✓ |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it | ✓ | |
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
+| `Sidebar` | A panel of glass for an app's destinations, with rows that fill when chosen and sections that fold away | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
@@ -181,7 +182,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Sidebar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
 
 #### Toolbar
 
@@ -218,6 +219,27 @@ import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
 ```
 
 A `Toolbar` with a title. The title starts large and scrolls away with the content, and a smaller one fades into the bar once it's gone. `large={false}` keeps the small title from the start. `onBack` adds the round back button, and `leading` and `trailing` hold other actions.
+
+#### Sidebar
+
+```tsx
+import { Sidebar } from "@onlymoein/liquidglass";
+
+<Sidebar
+  aria-label="Mailboxes"
+  value={mailbox}
+  onValueChange={setMailbox}
+  open={sidebarOpen}
+  header={<strong>Mail</strong>}
+  items={[
+    { value: "inbox", label: "Inbox", icon: <InboxIcon />, badge: 3 },
+    { value: "drafts", label: "Drafts", icon: <DraftIcon /> },
+    { heading: "Folders", collapsible: true, items: [{ value: "travel", label: "Travel", icon: <FolderIcon /> }] },
+  ]}
+/>
+```
+
+The panel iPad and Mac apps float beside their content. It fills the height of whatever holds it, 320 points wide unless `--lg-sidebar-width` says otherwise, so inset it from the edges yourself. The chosen row is filled with a capsule, icons take the accent colour, and a section with `collapsible` folds away from its heading. `open={false}` slides it out to the left and makes it inert; the button that brings it back is yours. A row with an `href` is a link (`link` swaps in your router's component), and `javascript:` and `data:` URLs are dropped. The arrow keys move between rows and headings.
 
 #### Menu
 
