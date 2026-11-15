@@ -172,6 +172,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
+| `EditMenu` | The Cut / Copy / Paste capsule above a text selection, paged when it doesn't fit | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |

@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, EditMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -48,6 +48,44 @@ function Hold() {
     <ContextMenu aria-label="Note" items={[{ icon: stroke(icons.copy), label: "Copy" }, { icon: stroke(icons.share), label: "Share" }, "separator", { icon: stroke(icons.trash), label: "Delete", destructive: true }]}>
       <Glass className="hold">Hold me</Glass>
     </ContextMenu>
+  );
+}
+
+function Editing() {
+  const text = useRef<HTMLParagraphElement>(null);
+  const [anchor, setAnchor] = useState<Range | null>(null);
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState("");
+  const selection = () => {
+    const picked = window.getSelection();
+    const range = picked && picked.rangeCount && !picked.isCollapsed ? picked.getRangeAt(0) : null;
+    if (range && text.current?.contains(range.commonAncestorContainer)) {
+      setAnchor(range);
+      setOpen(true);
+    } else setOpen(false);
+  };
+  const act = (name: string, run?: () => void) => ({ label: name, onSelect: () => { run?.(); setDone(name); } });
+  return (
+    <div className="stack">
+      <p ref={text} className="edit-text" onMouseUp={() => setTimeout(selection)} onKeyUp={selection}>
+        Select some of this text, and the menu comes up over it.
+      </p>
+      <EditMenu
+        anchor={anchor}
+        open={open}
+        onOpenChange={setOpen}
+        items={[
+          act("Cut"),
+          act("Copy", () => void navigator.clipboard?.writeText(String(window.getSelection())).catch(() => {})),
+          act("Paste"),
+          act("Select All", () => { const picked = window.getSelection(); if (text.current && picked) picked.selectAllChildren(text.current); }),
+          act("Look Up"),
+          act("Translate"),
+          act("Share…"),
+        ]}
+      />
+      <span className="edit-done" aria-live="polite">{done ? `Chose ${done}` : "\u00a0"}</span>
+    </div>
   );
 }
 
@@ -253,6 +291,22 @@ const TILES: Tile[] = [
 >
   <Glass>Hold me</Glass>
 </ContextMenu>`,
+  },
+  {
+    title: "EditMenu",
+    how: "Select some text. Narrow the window and the menu pages, with a chevron at each end.",
+    demo: <Editing />,
+    code: `<EditMenu
+  anchor={range} // the selection's Range, or a rect: it follows the page as it scrolls
+  open={open}
+  onOpenChange={setOpen}
+  items={[
+    { label: "Cut", onSelect: cut },
+    { label: "Copy", onSelect: copy },
+    { label: "Paste", onSelect: paste },
+    { label: "Select All", onSelect: selectAll },
+  ]}
+/>`,
   },
   {
     title: "Switch",
