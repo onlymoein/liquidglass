@@ -1,0 +1,234 @@
+/* Color well */
+
+.lg-color-well,
+.lg-color-picker {
+  /* What shows through a see-through colour: two greys, as the picker draws it. */
+  --lg-checker: repeating-conic-gradient(color-mix(in srgb, var(--lg-foreground) 16%, var(--lg-sheet-opaque)) 0 25%, var(--lg-sheet-opaque) 0 50%) 0 0 / 8px 8px;
+}
+
+.lg-color-well {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: conic-gradient(#ff3b30, #ff9500, #ffcc00, #34c759, #5ac8fa, #007aff, #af52de, #ff2d55, #ff3b30);
+  color: var(--lg-foreground);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: scale 160ms var(--lg-ease);
+}
+
+/* The gap between the ring and the colour. */
+.lg-color-well::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--lg-sheet-opaque);
+}
+
+.lg-color-well-fill {
+  position: absolute;
+  inset: 5px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: linear-gradient(var(--lg-well-color), var(--lg-well-color)), var(--lg-checker);
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+}
+
+.lg-color-well:active {
+  scale: 0.92;
+}
+
+.lg-color-well:focus-visible,
+.lg-color-spectrum:focus-visible,
+.lg-color-cell:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 2px;
+}
+
+/* The picker */
+
+.lg-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* A sheet as wide as a desktop window would stretch the grid; it keeps a phone's width. */
+  width: min(100%, 440px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 0 20px 24px;
+  color: var(--lg-foreground);
+  font-size: 15px;
+}
+
+.lg-color-header {
+  display: grid;
+  grid-template-columns: 30px 1fr 30px;
+  align-items: center;
+}
+
+.lg-color-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lg-color-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.lg-color-cell {
+  display: block;
+  aspect-ratio: 1 / 1.15;
+  padding: 0;
+  border: 0;
+  background: var(--lg-cell);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-color-cell[aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
+  border-radius: 6px;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3);
+}
+
+.lg-color-spectrum {
+  position: relative;
+  height: clamp(200px, 40vh, 320px);
+  border-radius: 16px;
+  background:
+    linear-gradient(to bottom, #fff 0%, rgb(255 255 255 / 0) 50%, rgb(0 0 0 / 0) 50%, #000 100%),
+    var(--lg-rainbow);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lg-color-spectrum-thumb {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--lg-well-solid);
+  box-shadow:
+    0 1px 6px rgb(0 0 0 / 0.35),
+    inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.lg-color-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lg-color-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.lg-color-label {
+  color: var(--lg-secondary);
+}
+
+.lg-color-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* A slider's rail is the colour it changes, as the picker draws it. */
+.lg-color-slider .lg-slider-track {
+  inset: 13px 0 auto;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--lg-rail-color);
+  /* So a rail that ends in white still shows on a white sheet. */
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.15);
+}
+
+.lg-color-slider .lg-slider-fill {
+  display: none;
+}
+
+.lg-color-opacity .lg-slider-track {
+  background: var(--lg-rail-color), var(--lg-checker);
+}
+
+.lg-color-hex {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.lg-color-hex[aria-invalid="true"] {
+  color: var(--lg-destructive-ink);
+}
+
+.lg-color-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lg-color-preview-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(var(--lg-well-color), var(--lg-well-color)), var(--lg-checker);
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+}
+
+.lg-color-hex-readout {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.lg-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lg-color-swatch {
+  width: 32px;
+  height: 32px;
+  aspect-ratio: auto;
+  border-radius: 50%;
+  background: linear-gradient(var(--lg-cell), var(--lg-cell)), var(--lg-checker);
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+}
+
+.lg-color-swatch[aria-pressed="true"] {
+  outline: 3px solid var(--lg-foreground);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-color-well {
+    transition: none;
+  }
+}

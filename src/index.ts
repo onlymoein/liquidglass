@@ -1,5 +1,6 @@
 export { Alert, type AlertAction, type AlertProps } from "./alert";
 export { Button, type ButtonProps } from "./button";
+export { ColorWell, type ColorWellProps } from "./color-well";
 export { Glass, type GlassProps } from "./glass";
 export { ContextMenu, type ContextMenuProps } from "./context-menu";
 export { GlassGroup, type GlassGroupProps } from "./glass-group";
