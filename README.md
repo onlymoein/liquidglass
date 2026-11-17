@@ -168,6 +168,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `SegmentedControl` | A row of choices with a thumb that lifts into a lens under a finger | ✓ | ✓ |
 | `Menu` | A menu that grows out of its button | ✓ | ✓ |
 | `TabBar` | Tabs with a lens that follows the finger | ✓ | ✓ |
+| `TabBarSearch` | A tab bar with a search circle beside it, which grows into the search field while the tabs fold into one icon | ✓ | |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it | ✓ | |
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
@@ -266,6 +267,22 @@ A sheet rests at half height as floating glass, and at full height as an opaque 
 #### TabBar
 
 Give items an `icon` for the 62-point iOS tab bar. `minimized` shrinks it to the current tab's icon, as iOS does when a page scrolls down, and `onExpand` tells you when that icon is tapped. Items with an `href` render through `link`, such as Next.js's `Link`.
+
+#### TabBarSearch
+
+```tsx
+<TabBarSearch
+  items={[{ value: "songs", label: "Songs", icon: <NoteIcon /> }, { value: "radio", label: "Radio", icon: <RadioIcon /> }]}
+  value={tab}
+  onValueChange={setTab}
+  searching={searching}
+  onSearchingChange={setSearching}
+  query={query}
+  onQueryChange={setQuery}
+/>
+```
+
+The iOS tab bar with a search tab. Tapping the circle grows it into the search field and folds the tabs into the icon of the tab you came from, which stays selected. Tapping that icon, or pressing Escape, closes the search and empties the field. `minimized` and `onExpand` fold the tabs on scroll as for `TabBar`, and the circle stays. It fills the width it's given, so put it in a box as wide as the screen. Give the tabs icons.
 
 #### GlassGroup
 

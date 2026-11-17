@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, Menu, NavigationBar, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBarSearch, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -52,6 +52,7 @@ export function Phone() {
   const [small, setSmall] = useState(false);
   const [sort, setSort] = useState<Sort>("Warm first");
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
   const [picked, setPicked] = useState<Swatch | null>(null);
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState<string[]>([]);
@@ -99,7 +100,7 @@ export function Phone() {
             </div>
           </>
         ) : (
-          tab === "swatches" && (
+          tab === "swatches" && !searching && (
             <>
               <NavigationBar
                 key="swatches"
@@ -118,16 +119,16 @@ export function Phone() {
             </>
           )
         )}
-        {!pushed && tab === "search" && (
+        {!pushed && searching && (
           <>
             <NavigationBar key="search" level={3} title="Search" />
             <div className="phone-page">
-              <SearchField aria-label="Search swatches" placeholder="Try “plum”" value={query} onValueChange={setQuery} />
+              {SWATCHES.some((swatch) => swatch.name.toLowerCase().includes(query.trim().toLowerCase())) ? null : <p className="phone-empty">No swatch called “{query.trim()}”.</p>}
               <Cards swatches={SWATCHES.filter((swatch) => swatch.name.toLowerCase().includes(query.trim().toLowerCase()))} onOpen={show} />
             </div>
           </>
         )}
-        {!pushed && tab === "settings" && (
+        {!pushed && tab === "settings" && !searching && (
           <>
             <NavigationBar key="settings" level={3} title="Settings" />
             <div className="phone-page">
@@ -150,15 +151,24 @@ export function Phone() {
       </div>
 
       <div className="phone-tabs">
-        <TabBar
-          aria-label="Sections"
+        <TabBarSearch
+          tabsLabel="Sections"
           value={tab}
           onValueChange={go}
           minimized={small}
           onExpand={() => setSmall(false)}
+          searching={searching}
+          onSearchingChange={(next) => {
+            setSearching(next);
+            setPushed(false);
+            top();
+          }}
+          query={query}
+          onQueryChange={setQuery}
+          placeholder="Try “plum”"
+          searchLabel="Search swatches"
           items={[
             { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
-            { value: "search", label: "Search", icon: stroke(icons.search, 2) },
             { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
           ]}
         />

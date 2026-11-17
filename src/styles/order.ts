@@ -8,6 +8,7 @@ export const ORDER: readonly string[] = [
   "button",
   "tab-bar",
   "input",
+  "tab-bar-search",
   "thumb",
   "switch",
   "slider",
