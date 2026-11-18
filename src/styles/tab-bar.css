@@ -78,6 +78,51 @@
   height: 100%;
 }
 
+/* The badge: iOS's red mark on a tab's icon. Its left edge starts just right of the icon's
+   middle, and it rides a little above the icon's top. A dot is the same red, smaller. */
+.lg-tab-icon {
+  position: relative;
+}
+
+.lg-tab-badge {
+  position: absolute;
+  top: -4px;
+  left: calc(50% + 2px);
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--lg-destructive);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lg-tab-badge[data-dot] {
+  top: -1px;
+  left: calc(50% + 8px);
+  min-width: 0;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 5px;
+}
+
+/* The badge's text for assistive technology, which reads it after the tab's label. */
+.lg-tab-badge-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .lg-tab-bar-glass {
   position: absolute;
   inset: 0;

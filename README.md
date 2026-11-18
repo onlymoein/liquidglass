@@ -267,6 +267,12 @@ A sheet rests at half height as floating glass, and at full height as an opaque 
 
 Give items an `icon` for the 62-point iOS tab bar. `minimized` shrinks it to the current tab's icon, as iOS does when a page scrolls down, and `onExpand` tells you when that icon is tapped. Items with an `href` render through `link`, such as Next.js's `Link`.
 
+Give an item a `badge` for the red mark on its icon: a number or a string shows as text, `true` shows a plain dot, and `0` or `false` show nothing. It needs an `icon`, and screen readers hear the text after the label. Badges are on the web `TabBar` only for now.
+
+```tsx
+<TabBar items={[{ value: "mail", label: "Mail", icon: <MailIcon />, badge: 12 }]} />
+```
+
 #### GlassGroup
 
 ```tsx

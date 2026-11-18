@@ -159,7 +159,7 @@ export function Phone() {
           items={[
             { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
             { value: "search", label: "Search", icon: stroke(icons.search, 2) },
-            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
+            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2), badge: palette.length },
           ]}
         />
       </div>
