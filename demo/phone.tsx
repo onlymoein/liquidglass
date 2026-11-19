@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { useRef, useState, type CSSProperties } from "react";
+import { Alert, Button, ColorWell, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -59,6 +59,7 @@ export function Phone() {
   const [pushed, setPushed] = useState(false);
   const [size, setSize] = useState(2);
   const [weight, setWeight] = useState(60);
+  const [tint, setTint] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const lastTop = useRef(0);
 
@@ -134,6 +135,7 @@ export function Phone() {
               <div className="group">
                 <label className="row">Show names <Switch aria-label="Show names" defaultChecked /></label>
                 <label className="row">Sync <Switch aria-label="Sync" /></label>
+                <div className="row">Tint <ColorWell aria-label="Tint" value={tint ?? "#0088ff"} onValueChange={setTint} /></div>
                 <div className="row">Columns <Stepper aria-label="Columns" value={size} min={1} max={4} onValueChange={setSize} /></div>
               </div>
               <div className="group">
@@ -149,7 +151,7 @@ export function Phone() {
         )}
       </div>
 
-      <div className="phone-tabs">
+      <div className="phone-tabs" style={tint ? ({ "--lg-tab-accent": tint } as CSSProperties) : undefined}>
         <TabBar
           aria-label="Sections"
           value={tab}

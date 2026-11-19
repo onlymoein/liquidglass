@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ColorWell, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -84,6 +84,16 @@ function Steps() {
       </div>
       <Progress aria-label="Progress" value={count / 10} />
       <output className="readout">{count} of 10</output>
+    </div>
+  );
+}
+
+function Colors() {
+  const [color, setColor] = useState("#ff9500");
+  return (
+    <div className="stack center">
+      <ColorWell aria-label="Fill" value={color} onValueChange={setColor} swatches={["#ff3b30", "#ff9500", "#34c759", "#007aff", "#af52de"]} />
+      <output className="readout">{color}</output>
     </div>
   );
 }
@@ -288,6 +298,12 @@ const TILES: Tile[] = [
     code: `<Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
 <Progress aria-label="Progress" value={count / 10} />
 <Spinner />`,
+  },
+  {
+    title: "ColorWell",
+    how: "Tap the ring to open the picker: a grid, a spectrum, or sliders, and an opacity slider.",
+    demo: <Colors />,
+    code: `<ColorWell aria-label="Fill" value={color} onValueChange={setColor} />`,
   },
   {
     title: "PageControl",
