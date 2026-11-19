@@ -1,0 +1,150 @@
+/* Tab bar with a search tab */
+
+.lg-tab-search {
+  --lg-tab-search-size: 49px;
+  --lg-tab-search-circle: 62px;
+  --lg-tab-search-spring: 420ms cubic-bezier(0.3, 1.25, 0.4, 1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* The tabs keep the width they have at rest, so they can shrink to the icon and back. */
+.lg-tab-search-tabs {
+  display: flex;
+  flex: none;
+  width: var(--lg-tabs-width, auto);
+  transition: width var(--lg-tab-search-spring);
+}
+
+.lg-tab-search-tabs > .lg-tab-bar {
+  flex: none;
+}
+
+.lg-tab-search:is([data-searching], [data-minimized]) .lg-tab-search-tabs {
+  width: var(--lg-tab-search-size);
+}
+
+/* The rest of the bar is empty, and must not cover the field. Its icon still takes taps. */
+.lg-tab-search:is([data-searching], [data-minimized]) .lg-tab-search-tabs > .lg-tab-bar {
+  pointer-events: none;
+}
+
+.lg-tab-search .lg-tab-bar[data-minimized] .lg-tab-bar-glass {
+  top: calc(100% - var(--lg-tab-search-size));
+  width: var(--lg-tab-search-size);
+  height: var(--lg-tab-search-size);
+  border-radius: calc(var(--lg-tab-search-size) / 2);
+}
+
+.lg-tab-search .lg-tab-mini {
+  width: var(--lg-tab-search-size);
+  height: var(--lg-tab-search-size);
+}
+
+/* The circle: at rest it is the field, with its glyph and nothing else. */
+.lg-tab-search-slot {
+  position: relative;
+  flex: 0 0 var(--lg-tab-search-circle);
+  min-width: 0;
+  height: var(--lg-tab-search-circle);
+  transition:
+    flex-grow var(--lg-tab-search-spring),
+    height var(--lg-tab-search-spring);
+}
+
+.lg-tab-search[data-searching] .lg-tab-search-slot {
+  flex-grow: 1;
+  height: var(--lg-tab-search-size);
+}
+
+.lg-tab-search .lg-tab-search-field {
+  --lg-search-pad: calc((var(--lg-tab-search-circle) - 24px) / 2);
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  gap: 0;
+  padding: 0 0 0 var(--lg-search-pad);
+  border-radius: calc(var(--lg-tab-search-circle) / 2);
+  transition:
+    background-color 200ms ease,
+    gap var(--lg-tab-search-spring),
+    padding var(--lg-tab-search-spring),
+    border-radius var(--lg-tab-search-spring);
+}
+
+.lg-tab-search .lg-tab-search-field .lg-input-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--lg-foreground);
+  transition:
+    width var(--lg-tab-search-spring),
+    height var(--lg-tab-search-spring),
+    color 200ms ease;
+}
+
+.lg-tab-search .lg-tab-search-field input {
+  flex: 1;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.lg-tab-search[data-searching] .lg-tab-search-field {
+  gap: 10px;
+  padding: 0 16px;
+  border-radius: calc(var(--lg-tab-search-size) / 2);
+}
+
+.lg-tab-search[data-searching] .lg-tab-search-field .lg-input-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--lg-muted);
+}
+
+.lg-tab-search[data-searching] .lg-tab-search-field input {
+  opacity: 1;
+  transition-delay: 140ms;
+}
+
+/* What's pressed while it's a circle. It lies over the field, and is gone once the field is open. */
+.lg-tab-search-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-tab-search[data-searching] .lg-tab-search-trigger {
+  display: none;
+}
+
+.lg-tab-search-slot:has(.lg-tab-search-trigger:active) .lg-tab-search-field {
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-tab-search-slot:has(.lg-tab-search-trigger:hover) .lg-tab-search-field {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+.lg-tab-search-trigger:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-tab-search :is(.lg-tab-search-tabs, .lg-tab-search-slot, .lg-tab-search-field, .lg-input-icon, input) {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}

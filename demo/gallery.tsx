@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, TabBarSearch, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -162,6 +162,27 @@ function Tabs() {
         />
       </div>
       <label className="row small">Minimized <Switch aria-label="Minimized" checked={small} onCheckedChange={setSmall} /></label>
+    </div>
+  );
+}
+
+function SearchTab() {
+  const [searching, setSearching] = useState(false);
+  return (
+    <div className="stack center wide">
+      <div className="tabs-demo">
+        <TabBarSearch
+          tabsLabel="Example tabs"
+          defaultValue="swatches"
+          searching={searching}
+          onSearchingChange={setSearching}
+          placeholder="Search swatches"
+          items={[
+            { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
+            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
+          ]}
+        />
+      </div>
     </div>
   );
 }
@@ -339,6 +360,25 @@ const TILES: Tile[] = [
   items={[
     { value: "swatches", label: "Swatches", icon: <SwatchIcon /> },
     { value: "search", label: "Search", icon: <SearchIcon /> },
+    { value: "settings", label: "Settings", icon: <GearIcon /> },
+  ]}
+/>`,
+  },
+  {
+    title: "TabBarSearch",
+    how: "Tap the circle: it grows into the search field and the tabs fold into the icon you came from. Tap that icon, or press Escape, to go back.",
+    demo: <SearchTab />,
+    wide: true,
+    code: `<TabBarSearch
+  tabsLabel="Sections"
+  value={tab}
+  onValueChange={setTab}
+  searching={searching}
+  onSearchingChange={setSearching}
+  query={query}
+  onQueryChange={setQuery}
+  items={[
+    { value: "swatches", label: "Swatches", icon: <SwatchIcon /> },
     { value: "settings", label: "Settings", icon: <GearIcon /> },
   ]}
 />`,

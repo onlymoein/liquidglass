@@ -580,6 +580,11 @@ h3 {
   width: 100%;
 }
 
+/* The search field fills the width it's given, as it does on a phone. */
+.tabs-demo .lg-tab-search {
+  max-width: 420px;
+}
+
 .stage[data-bare] {
   display: block;
   height: 300px;
@@ -756,6 +761,7 @@ h3 {
   inset: auto 0 14px;
   display: flex;
   justify-content: center;
+  padding: 0 14px;
   pointer-events: none;
 }
 

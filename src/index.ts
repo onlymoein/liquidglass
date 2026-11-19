@@ -15,4 +15,5 @@ export { Slider, type SliderProps } from "./slider";
 export { Stepper, type StepperProps } from "./stepper";
 export { Switch, type SwitchProps } from "./switch";
 export { TabBar, type TabBarItem, type TabBarProps } from "./tab-bar";
+export { TabBarSearch, type TabBarSearchProps } from "./tab-bar-search";
 export { Toolbar, ToolbarGroup, type ToolbarGroupProps, type ToolbarProps } from "./toolbar";
