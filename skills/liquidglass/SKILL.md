@@ -62,6 +62,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Input`, `SearchField` | Text fields | `value`, `onValueChange`, `icon`, `variant: "glass" \| "fill"` |
 | `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items`, `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
+| `EditMenu` | The Cut / Copy / Paste capsule above a text selection; never takes focus or the selection | `items: { label, onSelect?, disabled? }[]`, `anchor` (a rect, or a `Range` or element), `open`, `onOpenChange`, `aria-label` |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
@@ -105,8 +106,10 @@ Placement rules that matter:
 
 - `Toolbar` and `NavigationBar` go **first inside the element that scrolls**; they stick to its
   top. Don't wrap them in `position: fixed`.
-- `Menu`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
-  around them don't matter.
+- `Menu`, `Sheet`, `Alert`, `ContextMenu` and `EditMenu` open in the top layer, so clipping and
+  `z-index` around them don't matter.
+- `EditMenu` is placed from `anchor`, which can be the selection's `Range`: it follows it as the
+  page scrolls. Items that don't fit the window's width go on pages with a chevron at each end.
 - In a `Sheet`, drags that start on a slider, a text field, or anything marked
   `data-lg-no-sheet-drag` stay with that element.
 - A popup from another library (Radix, Base UI) gets the menu's grow-in spring with the class

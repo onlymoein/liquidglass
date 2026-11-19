@@ -550,6 +550,19 @@ h3 {
   -webkit-user-select: none;
 }
 
+.edit-text {
+  max-width: 260px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  cursor: text;
+}
+
+.edit-done {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
 .rows {
   display: grid;
   gap: 12px;
