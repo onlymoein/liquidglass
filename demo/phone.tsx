@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { useRef, useState, type CSSProperties } from "react";
+import { Alert, Button, Menu, NavigationBar, Popover, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -138,7 +138,15 @@ export function Phone() {
               </div>
               <div className="group">
                 <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
-                <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} /></div>
+                <div className="row column">
+                  <div className="row-head">
+                    Saturation
+                    <Popover aria-label="About saturation" icon={stroke(icons.info)} trigger={{ size: "small" }} style={{ "--lg-popover-width": "236px" } as CSSProperties}>
+                      <p className="popover-text">Scales every swatch from washed out to vivid. It only changes how they're shown.</p>
+                    </Popover>
+                  </div>
+                  <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} />
+                </div>
               </div>
               <div className="group">
                 <div className="row column">Saved: {palette.length ? palette.join(", ") : "nothing yet"}</div>

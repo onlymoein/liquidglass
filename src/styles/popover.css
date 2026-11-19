@@ -1,0 +1,138 @@
+/* Popover */
+
+.lg-popover {
+  position: relative;
+  display: inline-flex;
+}
+
+/* In the top layer, set beside its trigger by the popover itself. Its own resets come
+   first, because a popover has the browser's frame and inset. Set --lg-popover-width for a
+   width of your own; the default is as wide as its content, up to --lg-popover-max-width. */
+.lg-popover-card {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: var(--lg-popover-width, max-content);
+  height: auto;
+  min-width: min(var(--lg-popover-min-width, 200px), calc(100vw - 16px));
+  max-width: min(var(--lg-popover-max-width, 340px), calc(100vw - 16px));
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 28px;
+  color: var(--lg-foreground);
+  background: none;
+  font-size: 17px;
+  line-height: 22px;
+  /* It opens out of its arrow's tip: the popover sets where that is. Only its scale
+     moves, so the glass inside is never behind a faded parent, which would flatten it. */
+  animation: lg-popover-grow 650ms ease-out;
+  /* The menu's measured spring. */
+  animation-timing-function: linear(0, 0.191 4.2%, 0.559 8.3%, 0.873 12.5%, 1.048 16.7%, 1.113 20.8%, 1.101 25%, 1.063 29.2%, 1.023 33.3%, 0.998 37.5%, 0.988 41.7%, 0.987 45.8%, 0.992 50%, 1);
+}
+
+.lg-popover-card:focus {
+  outline: none;
+}
+
+.lg-popover-card[data-phase="leaving"] {
+  pointer-events: none;
+  animation: lg-popover-shrink 180ms ease-in forwards;
+}
+
+.lg-popover-surface {
+  --lg-size: 1;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 0.5px var(--lg-edge),
+    0 12px 40px var(--lg-shadow);
+  pointer-events: none;
+}
+
+/* The arrow is glass of its own, cut to a rounded point, that runs a point into the card so
+   no seam shows between them. Its rim is stroked along the two slanted sides only. */
+.lg-popover-arrow {
+  --lg-size: 1;
+  position: absolute;
+  top: -10px;
+  left: calc(var(--lg-popover-arrow, 50%) - 14px);
+  width: 28px;
+  height: 11px;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.lg-popover-arrow-rim {
+  position: absolute;
+  top: -10px;
+  left: calc(var(--lg-popover-arrow, 50%) - 14px);
+  stroke: var(--lg-popover-rim, rgb(255 255 255 / 0.5));
+  stroke-width: 0.75;
+  pointer-events: none;
+}
+
+.lg-popover-card[data-side="top"] :is(.lg-popover-arrow, .lg-popover-arrow-rim) {
+  top: auto;
+  bottom: -10px;
+  transform: scaleY(-1);
+}
+
+.lg-popover-content {
+  position: relative;
+  box-sizing: border-box;
+  padding: var(--lg-popover-padding, 16px 20px);
+  border-radius: inherit;
+}
+
+/* A popover taller than the room there is scrolls its content. */
+.lg-popover-card[data-scrolls] .lg-popover-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The glass comes in first, and what's on it a beat later. */
+.lg-popover-card[data-phase="open"] :is(.lg-popover-surface, .lg-popover-arrow, .lg-popover-arrow-rim) {
+  animation: lg-popover-fade 120ms ease-out backwards;
+}
+
+.lg-popover-card[data-phase="open"] .lg-popover-content {
+  animation: lg-popover-fade 200ms ease-out 60ms backwards;
+}
+
+.lg-popover-card[data-phase="leaving"] :is(.lg-popover-surface, .lg-popover-arrow, .lg-popover-arrow-rim, .lg-popover-content) {
+  opacity: 0;
+  transition: opacity 150ms ease-in;
+}
+
+@keyframes lg-popover-grow {
+  from {
+    scale: 0.4;
+  }
+}
+
+@keyframes lg-popover-shrink {
+  to {
+    scale: 0.5;
+  }
+}
+
+@keyframes lg-popover-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-popover-card {
+    animation: none;
+  }
+
+  .lg-popover-card[data-phase="leaving"] {
+    animation: none;
+  }
+}
