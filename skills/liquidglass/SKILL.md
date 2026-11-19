@@ -54,6 +54,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Button` | Glass or filled button | `variant: "glass" \| "filled"`, `size: "small" \| "regular" \| "large"` (28/36/52 pt), `icon`, `tint` (any CSS colour), `destructive` |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that sticks to the top of what scrolls and frosts as content passes under | `edge: "uniform" \| "soft" \| "none"`. Buttons in one `ToolbarGroup` share one piece of glass |
 | `NavigationBar` | A screen's top bar: back button, actions, large title that slides into the bar | `title` (required), `onBack`, `backLabel`, `leading`, `trailing`, `large` (default true), `level` |
+| `Sidebar` | A glass panel of destinations: rows that fill when chosen, sections that fold away, slides out when `open` is false | `items` (rows and `{heading, items, collapsible}` sections), `value`/`defaultValue`/`onValueChange`, `open`, `header`, `footer`, `link` |
 | `TabBar` | Tabs with a lens that follows the finger | `items: { value, label, icon?, href? }[]`, `value`, `onValueChange`, `minimized`, `onExpand`, `link` (e.g. Next.js `Link`) |
 | `Switch` | On/off | `checked`, `defaultChecked`, `onCheckedChange` |
 | `Slider` | A number on a track | `value`, `onValueChange`, `min`, `max`, `step` |

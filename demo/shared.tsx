@@ -21,6 +21,10 @@ export const icons = {
   search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4",
   gear: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1",
   drop: "M12 3s7 7.2 7 12a7 7 0 0 1-14 0c0-4.800 7-12 7-12z",
+  inbox: "M4 13l2-8h12l2 8M4 13v6h16v-6M4 13h4l1 2h6l1-2h4",
+  doc: "M6 3h9l4 4v14H6zM14 3v5h5",
+  send: "M21 3 3 10.500l7 3 3 7.500zM10 13.500 21 3",
+  folder: "M3 6h6l2 2h10v11H3z",
 };
 
 /** Only Chromium can bend the live backdrop. The library checks the same way. */

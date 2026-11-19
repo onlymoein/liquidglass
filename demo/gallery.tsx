@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Sidebar, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -162,6 +162,44 @@ function Tabs() {
         />
       </div>
       <label className="row small">Minimized <Switch aria-label="Minimized" checked={small} onCheckedChange={setSmall} /></label>
+    </div>
+  );
+}
+
+function SidebarDemo() {
+  const [value, setValue] = useState("inbox");
+  const [open, setOpen] = useState(true);
+  const titles: Record<string, string> = { inbox: "Inbox", drafts: "Drafts", sent: "Sent", trash: "Trash", receipts: "Receipts", travel: "Travel" };
+  return (
+    <div className="sidebar-demo">
+      <p className="sidebar-title" aria-live="polite">{titles[value]}</p>
+      {open ? null : <Button className="sidebar-show" aria-label="Show sidebar" size="large" icon={stroke(icons.columns)} onClick={() => setOpen(true)} />}
+      <Sidebar
+        aria-label="Mailboxes"
+        open={open}
+        value={value}
+        onValueChange={setValue}
+        header={
+          <>
+            <strong>Mail</strong>
+            <Button aria-label="Hide sidebar" size="small" icon={stroke(icons.columns)} onClick={() => setOpen(false)} />
+          </>
+        }
+        items={[
+          { value: "inbox", label: "Inbox", icon: stroke(icons.inbox), badge: 3 },
+          { value: "drafts", label: "Drafts", icon: stroke(icons.doc) },
+          { value: "sent", label: "Sent", icon: stroke(icons.send) },
+          { value: "trash", label: "Trash", icon: stroke(icons.trash) },
+          {
+            heading: "Folders",
+            collapsible: true,
+            items: [
+              { value: "receipts", label: "Receipts", icon: stroke(icons.folder) },
+              { value: "travel", label: "Travel", icon: stroke(icons.folder) },
+            ],
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -370,6 +408,29 @@ const TILES: Tile[] = [
       <Button aria-label="Share" icon={<ShareIcon />} />
     </ToolbarGroup>
   }
+/>`,
+  },
+  {
+    title: "Sidebar",
+    how: "Choose a mailbox, fold Folders away, or hide the sidebar with its button. Arrow keys move between the rows.",
+    demo: <SidebarDemo />,
+    wide: true,
+    bare: true,
+    code: `<Sidebar
+  aria-label="Mailboxes"
+  open={open}
+  value={mailbox}
+  onValueChange={setMailbox}
+  header={<strong>Mail</strong>}
+  items={[
+    { value: "inbox", label: "Inbox", icon: <InboxIcon />, badge: 3 },
+    { value: "drafts", label: "Drafts", icon: <DraftIcon /> },
+    {
+      heading: "Folders",
+      collapsible: true,
+      items: [{ value: "travel", label: "Travel", icon: <FolderIcon /> }],
+    },
+  ]}
 />`,
   },
 ];
