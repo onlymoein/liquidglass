@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, Menu, NavigationBar, Picker, PickerGroup, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -25,6 +25,10 @@ const SWATCHES: Swatch[] = [
   { name: "Harbour", from: "#2f7fa8", to: "#0c2a44", warm: false },
   { name: "Coral", from: "#ff8c7a", to: "#d4265c", warm: true },
 ];
+
+const two = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, i) => ({ value: two(i), label: two(i) }));
+const MINUTES = Array.from({ length: 60 }, (_, i) => ({ value: two(i), label: two(i) }));
 
 type Sort = "Warm first" | "Cool first" | "A to Z";
 
@@ -59,6 +63,8 @@ export function Phone() {
   const [pushed, setPushed] = useState(false);
   const [size, setSize] = useState(2);
   const [weight, setWeight] = useState(60);
+  const [hour, setHour] = useState("08");
+  const [minute, setMinute] = useState("30");
   const scroller = useRef<HTMLDivElement>(null);
   const lastTop = useRef(0);
 
@@ -139,6 +145,15 @@ export function Phone() {
               <div className="group">
                 <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
                 <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} /></div>
+              </div>
+              <div className="group">
+                <div className="row column">
+                  Remind me at {hour}:{minute}
+                  <PickerGroup>
+                    <Picker aria-label="Hour" rows={5} items={HOURS} value={hour} onValueChange={setHour} />
+                    <Picker aria-label="Minute" rows={5} items={MINUTES} value={minute} onValueChange={setMinute} />
+                  </PickerGroup>
+                </div>
               </div>
               <div className="group">
                 <div className="row column">Saved: {palette.length ? palette.join(", ") : "nothing yet"}</div>

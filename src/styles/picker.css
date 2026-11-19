@@ -1,0 +1,100 @@
+/* Picker */
+
+/* Not measured on an iOS 27 simulator: the row height, the type size, the capsule's inset and the
+   curve of the drum (set in picker.tsx) are close by eye. */
+.lg-picker,
+.lg-picker-group {
+  --lg-picker-row: 34px;
+  --lg-picker-rows: 5;
+}
+
+.lg-picker {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(var(--lg-picker-row) * var(--lg-picker-rows));
+  color: var(--lg-foreground);
+}
+
+/* The capsule the chosen row sits in. It's behind the wheel, so the type is over it. */
+.lg-picker::before,
+.lg-picker-group::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  left: 8px;
+  height: var(--lg-picker-row);
+  border-radius: calc(var(--lg-picker-row) / 2);
+  background: var(--lg-fill-subtle);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Pickers in a group share the group's capsule. */
+.lg-picker-group > .lg-picker::before {
+  display: none;
+}
+
+.lg-picker-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.lg-picker-group > .lg-picker {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+/* The perspective belongs to the scroller, whose own box stays still as the rows go by, so the
+   drum turns about the middle of what's on show. */
+.lg-picker-wheel {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  padding: calc(var(--lg-picker-row) * (var(--lg-picker-rows) - 1) / 2) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  perspective: 480px;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-picker-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.lg-picker-wheel[data-dragging] {
+  scroll-snap-type: none;
+}
+
+.lg-picker-wheel:focus-visible {
+  border-radius: calc(var(--lg-picker-row) / 2);
+  outline: 2px solid var(--lg-ring);
+  outline-offset: -2px;
+}
+
+.lg-picker-item {
+  display: block;
+  box-sizing: border-box;
+  height: var(--lg-picker-row);
+  padding: 0 12px;
+  overflow: hidden;
+  font-size: 22px;
+  line-height: var(--lg-picker-row);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backface-visibility: hidden;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}

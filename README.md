@@ -175,6 +175,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |
+| `Picker`, `PickerGroup` | The iOS wheel: rows on a drum that you flick or drag to one, with the chosen row in a capsule | ✓ | |
 | `Progress`, `Spinner` | A progress bar and the activity indicator | ✓ | |
 | `Backdrop`, `Text`, `ScrollView` | What glass shows on Android, an iOS-like typeface, and iOS's bounce | | ✓ |
 

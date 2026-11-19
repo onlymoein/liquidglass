@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Picker, PickerGroup, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -94,6 +94,27 @@ function Pages() {
     <div className="stack center">
       <PageControl aria-label="Photos" count={5} value={page} onValueChange={setPage} />
       <output className="readout">Page {page + 1} of 5</output>
+    </div>
+  );
+}
+
+const FRUIT = ["Apple", "Apricot", "Banana", "Cherry", "Fig", "Grape", "Lemon", "Mango", "Melon", "Orange", "Peach", "Pear", "Plum"].map((name) => ({ value: name.toLowerCase(), label: name }));
+const two = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, i) => ({ value: two(i), label: two(i) }));
+const MINUTES = Array.from({ length: 60 }, (_, i) => ({ value: two(i), label: two(i) }));
+
+function Wheels() {
+  const [fruit, setFruit] = useState("mango");
+  const [hour, setHour] = useState("09");
+  const [minute, setMinute] = useState("41");
+  return (
+    <div className="stack wide">
+      <PickerGroup>
+        <Picker aria-label="Hour" items={HOURS} value={hour} onValueChange={setHour} />
+        <Picker aria-label="Minute" items={MINUTES} value={minute} onValueChange={setMinute} />
+      </PickerGroup>
+      <Picker aria-label="Fruit" rows={3} items={FRUIT} value={fruit} onValueChange={setFruit} />
+      <output className="readout">{hour}:{minute}, {fruit}</output>
     </div>
   );
 }
@@ -294,6 +315,16 @@ const TILES: Tile[] = [
     how: "Dots on a capsule of glass; click one or use the arrow keys.",
     demo: <Pages />,
     code: `<PageControl aria-label="Photos" count={5} value={page} onValueChange={setPage} />`,
+  },
+  {
+    title: "Picker",
+    how: "Flick or drag a wheel, use the arrow keys, or type a row's first letters. Two wheels in a PickerGroup share one capsule.",
+    demo: <Wheels />,
+    code: `<PickerGroup>
+  <Picker aria-label="Hour" items={hours} value={hour} onValueChange={setHour} />
+  <Picker aria-label="Minute" items={minutes} value={minute} onValueChange={setMinute} />
+</PickerGroup>
+<Picker aria-label="Fruit" rows={3} items={fruit} value={pick} onValueChange={setPick} />`,
   },
   {
     title: "Alert",
