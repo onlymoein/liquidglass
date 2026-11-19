@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, TabBarAccessory, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -87,6 +87,8 @@ export function Phone() {
   };
   const sortItem = (label: Sort) => ({ label, checked: sort === label, keepOpen: true, onSelect: () => setSort(label) });
   const saved = picked ? palette.includes(picked.name) : false;
+  const recent = picked ?? SWATCHES[0]!;
+  const recentSaved = palette.includes(recent.name);
 
   return (
     <div className="phone">
@@ -150,18 +152,35 @@ export function Phone() {
       </div>
 
       <div className="phone-tabs">
-        <TabBar
-          aria-label="Sections"
-          value={tab}
-          onValueChange={go}
-          minimized={small}
-          onExpand={() => setSmall(false)}
-          items={[
-            { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
-            { value: "search", label: "Search", icon: stroke(icons.search, 2) },
-            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
-          ]}
-        />
+        <div className="phone-dock" data-small={small ? "" : undefined}>
+          <TabBarAccessory aria-label="Last opened swatch" placement={small ? "inline" : "above"}>
+            <button type="button" className="accessory-open" aria-label={`Open ${recent.name}`} onClick={() => show(recent)}>
+              <span className="accessory-art" style={{ backgroundImage: `linear-gradient(145deg, ${recent.from}, ${recent.to})` }} />
+              <span className="accessory-title">
+                {recent.name}
+                {!small && <span className="accessory-sub">{picked ? "Last opened" : "Try this one"}</span>}
+              </span>
+            </button>
+            <Button
+              aria-label={recentSaved ? `Remove ${recent.name}` : `Save ${recent.name}`}
+              size="small"
+              icon={stroke(recentSaved ? icons.check : icons.plus, 2)}
+              onClick={() => setPalette((all) => (recentSaved ? all.filter((name) => name !== recent.name) : [...all, recent.name]))}
+            />
+          </TabBarAccessory>
+          <TabBar
+            aria-label="Sections"
+            value={tab}
+            onValueChange={go}
+            minimized={small}
+            onExpand={() => setSmall(false)}
+            items={[
+              { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
+              { value: "search", label: "Search", icon: stroke(icons.search, 2) },
+              { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
+            ]}
+          />
+        </div>
       </div>
 
       <Sheet aria-label={picked?.name ?? "Swatch"} open={open} onOpenChange={setOpen}>

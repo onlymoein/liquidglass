@@ -168,6 +168,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `SegmentedControl` | A row of choices with a thumb that lifts into a lens under a finger | ✓ | ✓ |
 | `Menu` | A menu that grows out of its button | ✓ | ✓ |
 | `TabBar` | Tabs with a lens that follows the finger | ✓ | ✓ |
+| `TabBarAccessory` | The capsule over the tab bar that holds a mini player or similar, and goes inline beside a minimised bar | ✓ | |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it | ✓ | |
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
@@ -181,7 +182,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, TabBarAccessory, GlassGroup</summary>
 
 #### Toolbar
 
@@ -266,6 +267,21 @@ A sheet rests at half height as floating glass, and at full height as an opaque 
 #### TabBar
 
 Give items an `icon` for the 62-point iOS tab bar. `minimized` shrinks it to the current tab's icon, as iOS does when a page scrolls down, and `onExpand` tells you when that icon is tapped. Items with an `href` render through `link`, such as Next.js's `Link`.
+
+#### TabBarAccessory
+
+```tsx
+import { Button, TabBar, TabBarAccessory } from "@onlymoein/liquidglass";
+
+<TabBarAccessory aria-label="Now playing" placement={minimized ? "inline" : "above"}>
+  <Artwork />
+  <span>Blue in Green</span>
+  <Button aria-label="Pause" size="small" icon={<PauseIcon />} />
+</TabBarAccessory>
+<TabBar minimized={minimized} onExpand={() => setMinimized(false)} items={items} />
+```
+
+The tab bar's bottom accessory, as in SwiftUI's `tabViewBottomAccessory`: a capsule of glass, 48 points tall, for a mini player or any row that goes with the tabs. It draws the capsule and lays its content out in a row; the buttons in it are yours. `placement="above"` is the capsule over the bar, `"inline"` the 39-point one beside the bar once `minimized` has shrunk it, and switching between them eases its height and corners. Moving it, over the bar or into the row beside it, is up to your layout: the phone demo places it with absolute positioning against a wrapper around the bar. The 48 and 39 point heights are set by eye, not measured on an iOS 27 simulator.
 
 #### GlassGroup
 
