@@ -539,6 +539,11 @@ h3 {
   text-shadow: var(--wall-shadow);
 }
 
+/* Icons at a slider's ends read as the wall's ink, like the readout under it. */
+.wide .lg-slider-icon {
+  color: var(--wall-ink);
+}
+
 .hold {
   display: grid;
   place-items: center;

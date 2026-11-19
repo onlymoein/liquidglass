@@ -56,7 +56,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `NavigationBar` | A screen's top bar: back button, actions, large title that slides into the bar | `title` (required), `onBack`, `backLabel`, `leading`, `trailing`, `large` (default true), `level` |
 | `TabBar` | Tabs with a lens that follows the finger | `items: { value, label, icon?, href? }[]`, `value`, `onValueChange`, `minimized`, `onExpand`, `link` (e.g. Next.js `Link`) |
 | `Switch` | On/off | `checked`, `defaultChecked`, `onCheckedChange` |
-| `Slider` | A number on a track | `value`, `onValueChange`, `min`, `max`, `step` |
+| `Slider` | A number on a track | `value`, `onValueChange`, `min`, `max`, `step`, `ticks` (`true` for a mark at each step, or a list of values), `minimumIcon`, `maximumIcon` |
 | `Stepper` | Minus/plus buttons | `value`, `onValueChange`, `min`, `max`, `step` |
 | `SegmentedControl` | One of a few choices | `items: { value, label, disabled? }[]`, `value`, `onValueChange` |
 | `Input`, `SearchField` | Text fields | `value`, `onValueChange`, `icon`, `variant: "glass" \| "fill"` |

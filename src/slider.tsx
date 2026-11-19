@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type ForwardRefExoticComponent,
   type InputHTMLAttributes,
+  type ReactNode,
   type RefAttributes,
 } from "react";
 
@@ -29,16 +30,41 @@ export interface SliderProps
   min?: number;
   max?: number;
   step?: number;
+  /**
+   * Marks along the track. `true` puts one at every step, as SwiftUI's stepped slider does, and
+   * draws none when that would be more than 50. A list puts one at each value in it.
+   */
+  ticks?: boolean | readonly number[];
+  /** Shown before the track, small and in secondary ink, like UISlider's minimum value image. */
+  minimumIcon?: ReactNode;
+  /** Shown after the track, like UISlider's maximum value image. */
+  maximumIcon?: ReactNode;
 }
 
 // The width of the thumb at rest, which is how far short of each end its centre stops.
 const THUMB = 37;
 
+// Past this many, marks would run together, so a plain `ticks` draws none.
+const MOST_TICKS = 50;
+const MOST_LISTED = 200;
+
+/** Where the marks go: each step, or each listed value that is on the track, once, in order. */
+export function tickValues(ticks: boolean | readonly number[] | undefined, min: number, max: number, step: number): number[] {
+  if (!ticks || !(max > min)) return [];
+  if (ticks === true) {
+    const count = Math.round((max - min) / step);
+    if (!(step > 0) || !(count >= 1) || count > MOST_TICKS) return [];
+    return Array.from({ length: count + 1 }, (_, index) => Number((min + index * step).toFixed(6)));
+  }
+  const on = ticks.filter((value) => Number.isFinite(value) && value >= min && value <= max);
+  return [...new Set(on)].sort((a, b) => a - b).slice(0, MOST_LISTED);
+}
+
 export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLInputElement>> = /* @__PURE__ */ forwardRef<
   HTMLInputElement,
   SliderProps
 >(function Slider(
-  { value: valueProp, defaultValue, onValueChange, min = 0, max = 100, step = 1, className, style, ...props },
+  { value: valueProp, defaultValue, onValueChange, min = 0, max = 100, step = 1, ticks, minimumIcon, maximumIcon, className, style, ...props },
   forwardedRef,
 ) {
   useStyles(["thumb", thumbCss], ["slider", sliderCss]);
@@ -50,6 +76,7 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
   const progress = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
   useImperativeHandle(forwardedRef, () => inputRef.current!);
   useRefraction(thumbRef, true);
+  const marks = tickValues(ticks, min, max, step);
 
   const latest = useRef({ value, setValue, min, max, step });
   useEffect(() => {
@@ -170,22 +197,42 @@ export const Slider: ForwardRefExoticComponent<SliderProps & RefAttributes<HTMLI
 
   return (
     <div className={cx("lg-slider", className)} style={{ ...style, "--lg-progress": progress } as CSSProperties}>
-      <span className="lg-slider-track" aria-hidden>
-        <span className="lg-slider-fill" />
-      </span>
-      <span ref={thumbRef} className="lg-glass lg-slider-thumb" aria-hidden>
-        <span ref={faceRef} className="lg-thumb-face" />
-      </span>
-      <input
-        ref={inputRef}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => setValue(event.currentTarget.valueAsNumber)}
-        {...props}
-      />
+      {minimumIcon ? (
+        <span className="lg-slider-icon" aria-hidden>
+          {minimumIcon}
+        </span>
+      ) : null}
+      <div className="lg-slider-body">
+        <span className="lg-slider-track" aria-hidden>
+          <span className="lg-slider-fill" />
+          {marks.map((mark) => (
+            <span
+              key={mark}
+              className="lg-slider-tick"
+              data-passed={mark <= value ? "" : undefined}
+              style={{ "--lg-at": (mark - min) / (max - min) } as CSSProperties}
+            />
+          ))}
+        </span>
+        <span ref={thumbRef} className="lg-glass lg-slider-thumb" aria-hidden>
+          <span ref={faceRef} className="lg-thumb-face" />
+        </span>
+        <input
+          ref={inputRef}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(event) => setValue(event.currentTarget.valueAsNumber)}
+          {...props}
+        />
+      </div>
+      {maximumIcon ? (
+        <span className="lg-slider-icon" aria-hidden>
+          {maximumIcon}
+        </span>
+      ) : null}
     </div>
   );
 });

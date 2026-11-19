@@ -138,7 +138,7 @@ export function Phone() {
               </div>
               <div className="group">
                 <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
-                <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} onValueChange={setWeight} /></div>
+                <div className="row column">Saturation <Slider aria-label="Saturation" value={weight} min={0} max={100} step={10} ticks minimumIcon={stroke(icons.drop, 1.4)} maximumIcon={stroke(icons.drop, 2.8)} onValueChange={setWeight} /></div>
               </div>
               <div className="group">
                 <div className="row column">Saved: {palette.length ? palette.join(", ") : "nothing yet"}</div>
