@@ -280,3 +280,83 @@ test("a tap carries the lens across on the loose spring, and it swings past its 
     vi.useRealTimers();
   }
 });
+
+const icon = <svg aria-hidden viewBox="0 0 24 24" />;
+
+test("a badge shows its text over the tab's icon and is read after the label", () => {
+  render(
+    <TabBar
+      aria-label="Sections"
+      defaultValue="mail"
+      items={[
+        { value: "mail", label: "Mail", icon, badge: 12 },
+        { value: "files", label: "Files", icon },
+      ]}
+    />,
+  );
+  const mail = screen.getByRole("tab", { name: "Mail 12" });
+  const badge = mail.querySelector(".lg-tab-badge")!;
+  expect(badge.textContent).toBe("12");
+  expect(badge.getAttribute("aria-hidden")).toBe("true");
+  expect(badge.parentElement?.classList.contains("lg-tab-icon")).toBe(true);
+  expect(badge.hasAttribute("data-dot")).toBe(false);
+  // The other tab has none, and its name is just its label.
+  expect(screen.getByRole("tab", { name: "Files" }).querySelector(".lg-tab-badge")).toBeNull();
+});
+
+test("the copy of the tabs under the lens carries the badge too", () => {
+  const { container } = render(<TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, badge: 5 }]} />);
+  expect(container.querySelectorAll(".lg-tab-badge")).toHaveLength(2);
+  expect(container.querySelector(".lg-tab-copy .lg-tab-badge")?.textContent).toBe("5");
+  // That copy is hidden from assistive technology, so the count is read once.
+  expect(container.querySelectorAll(".lg-tab-badge-name")).toHaveLength(2);
+  expect(screen.getAllByText("5", { selector: ".lg-tab-badge-name" })).toHaveLength(2);
+  expect(screen.getByRole("tab", { name: "Mail 5" })).toBeTruthy();
+});
+
+test("true and an empty string show a dot, and the name stays the label", () => {
+  for (const badge of [true, ""]) {
+    const { container, unmount } = render(<TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, badge }]} />);
+    const dot = container.querySelector(".lg-tab-badge")!;
+    expect(dot.hasAttribute("data-dot")).toBe(true);
+    expect(dot.textContent).toBe("");
+    expect(screen.getByRole("tab", { name: "Mail" })).toBeTruthy();
+    unmount();
+  }
+});
+
+test("0, false, negative, NaN, null and nothing show no badge", () => {
+  for (const badge of [0, false, -3, NaN, Infinity, null, undefined]) {
+    const { container, unmount } = render(<TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, badge }]} />);
+    expect(container.querySelector(".lg-tab-badge")).toBeNull();
+    expect(container.querySelector(".lg-tab-badge-name")).toBeNull();
+    unmount();
+  }
+});
+
+test("a badge follows its item as the count changes", () => {
+  const view = (badge: number) => <TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, badge }]} />;
+  const { container, rerender } = render(view(0));
+  expect(container.querySelector(".lg-tab-badge")).toBeNull();
+  rerender(view(7));
+  expect(screen.getByRole("tab", { name: "Mail 7" })).toBeTruthy();
+  rerender(view(0));
+  expect(container.querySelector(".lg-tab-badge")).toBeNull();
+});
+
+test("a badge on a tab without an icon is left out", () => {
+  const { container } = render(<TabBar aria-label="Range" defaultValue="day" items={[{ value: "day", label: "Day", badge: 3 }]} />);
+  expect(container.querySelector(".lg-tab-badge")).toBeNull();
+  expect(screen.getByRole("tab", { name: "Day" })).toBeTruthy();
+});
+
+test("a badge on a link tab is read after its label", () => {
+  render(<TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, href: "#mail", badge: 2 }]} />);
+  expect(screen.getByRole("link", { name: "Mail 2" })).toBeTruthy();
+});
+
+test("a badge's text is shown as text, never as markup", () => {
+  const { container } = render(<TabBar aria-label="Sections" defaultValue="mail" items={[{ value: "mail", label: "Mail", icon, badge: "<img src=x onerror=alert(1)>" }]} />);
+  expect(container.querySelector(".lg-tab-badge img")).toBeNull();
+  expect(container.querySelector(".lg-tab-badge")?.textContent).toBe("<img src=x onerror=alert(1)>");
+});

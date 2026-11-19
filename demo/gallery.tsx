@@ -146,6 +146,7 @@ function Fields() {
 
 function Tabs() {
   const [small, setSmall] = useState(false);
+  const [unread, setUnread] = useState(3);
   return (
     <div className="stack center wide">
       <div className="tabs-demo">
@@ -157,11 +158,12 @@ function Tabs() {
           items={[
             { value: "swatches", label: "Swatches", icon: stroke(icons.swatch, 2) },
             { value: "search", label: "Search", icon: stroke(icons.search, 2) },
-            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2) },
+            { value: "settings", label: "Settings", icon: stroke(icons.gear, 2), badge: unread },
           ]}
         />
       </div>
       <label className="row small">Minimized <Switch aria-label="Minimized" checked={small} onCheckedChange={setSmall} /></label>
+      <label className="row small">Badge <Stepper aria-label="Badge" value={unread} min={0} max={120} onValueChange={setUnread} /></label>
     </div>
   );
 }
@@ -327,7 +329,7 @@ const TILES: Tile[] = [
   },
   {
     title: "TabBar",
-    how: "Drag across the tabs and the lens follows your finger.",
+    how: "Drag across the tabs and the lens follows your finger. A count on an item's badge shows red on its icon.",
     demo: <Tabs />,
     wide: true,
     code: `<TabBar
@@ -339,7 +341,7 @@ const TILES: Tile[] = [
   items={[
     { value: "swatches", label: "Swatches", icon: <SwatchIcon /> },
     { value: "search", label: "Search", icon: <SearchIcon /> },
-    { value: "settings", label: "Settings", icon: <GearIcon /> },
+    { value: "settings", label: "Settings", icon: <GearIcon />, badge: 3 },
   ]}
 />`,
   },

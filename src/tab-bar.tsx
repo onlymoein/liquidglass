@@ -30,6 +30,19 @@ export interface TabBarItem {
   icon?: ReactNode;
   /** Renders the tab as a link. Clicking it navigates; the bar still tracks selection. */
   href?: string;
+  /**
+   * The red mark on the tab's icon, as for unread mail. A number or a string shows as its text.
+   * `true`, or an empty string, shows a plain dot. `0`, `false` and nothing show no badge.
+   * Needs an `icon`; assistive technology reads the text after the label.
+   */
+  badge?: number | string | boolean | null;
+}
+
+/** What a badge shows: its text, `null` for a dot, or `undefined` for no badge at all. */
+function badgeText(badge: TabBarItem["badge"]): string | null | undefined {
+  if (badge === true || badge === "") return null;
+  if (typeof badge === "number") return Number.isFinite(badge) && badge > 0 ? String(badge) : undefined;
+  return typeof badge === "string" ? badge : undefined;
 }
 
 export interface TabBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange"> {
@@ -417,15 +430,29 @@ export function TabBar({
   const latest = useRef({ items, selected, setValue });
   const signature = items.map((item) => item.value).join("\n");
   const navigation = items.every((item) => safeHref(item.href) !== undefined);
-  const face = (item: TabBarItem) =>
-    item.icon == null ? (
-      item.label
-    ) : (
+  const face = (item: TabBarItem) => {
+    if (item.icon == null) return item.label;
+    const text = badgeText(item.badge);
+    return (
       <>
-        <span className="lg-tab-icon">{item.icon}</span>
+        <span className="lg-tab-icon">
+          {item.icon}
+          {text === undefined ? null : (
+            <span className="lg-tab-badge" data-dot={text === null ? "" : undefined} aria-hidden>
+              {text}
+            </span>
+          )}
+        </span>
         {item.label}
+        {text ? (
+          <>
+            {" "}
+            <span className="lg-tab-badge-name">{text}</span>
+          </>
+        ) : null}
       </>
     );
+  };
 
   useRefraction(glassRef);
   useRefraction(lensRef, true);
