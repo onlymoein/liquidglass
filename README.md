@@ -174,6 +174,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
+| `ActionSheet` | A list of choices that rises from the bottom as floating glass, with Cancel in a card of its own | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |
 | `Progress`, `Spinner` | A progress bar and the activity indicator | ✓ | |
 | `Backdrop`, `Text`, `ScrollView` | What glass shows on Android, an iOS-like typeface, and iOS's bounce | | ✓ |
@@ -181,7 +182,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, ActionSheet, TabBar, GlassGroup</summary>
 
 #### Toolbar
 
@@ -243,10 +244,10 @@ import { Menu } from "@onlymoein/liquidglass";
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
 - It opens in the top layer, so nothing around the trigger can clip it.
 
-#### Sheet and Alert
+#### Sheet, Alert and ActionSheet
 
 ```tsx
-import { Alert, Sheet } from "@onlymoein/liquidglass";
+import { ActionSheet, Alert, Sheet } from "@onlymoein/liquidglass";
 
 <Sheet aria-label="Details" open={open} onOpenChange={setOpen}>
   {details}
@@ -259,9 +260,18 @@ import { Alert, Sheet } from "@onlymoein/liquidglass";
   message="This can't be undone."
   actions={[{ label: "Cancel", role: "cancel" }, { label: "Delete", role: "destructive", onSelect: remove }]}
 />
+
+<ActionSheet
+  open={choosing}
+  onOpenChange={setChoosing}
+  title="Delete shipment?"
+  actions={[{ label: "Delete", role: "destructive", onSelect: remove }, { label: "Archive", onSelect: archive }, { label: "Cancel", role: "cancel" }]}
+/>
 ```
 
 A sheet rests at half height as floating glass, and at full height as an opaque panel. `detents` chooses which heights it has. Drag it from anywhere, not just the handle. Scrolling content inside it hands drags back and forth as on iOS. Drags that start on a slider, a text field or anything marked `data-lg-no-sheet-drag` stay with that element.
+
+An action sheet takes the same `actions` as an alert. It puts the `cancel` action in a card of its own below the others, and Escape, or a tap anywhere outside the sheet, does what Cancel does. Up and down move between its choices.
 
 #### TabBar
 

@@ -1,3 +1,4 @@
+export { ActionSheet, type ActionSheetProps } from "./action-sheet";
 export { Alert, type AlertAction, type AlertProps } from "./alert";
 export { Button, type ButtonProps } from "./button";
 export { Glass, type GlassProps } from "./glass";

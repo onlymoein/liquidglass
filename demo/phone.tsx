@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { ActionSheet, Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -56,6 +56,7 @@ export function Phone() {
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [pushed, setPushed] = useState(false);
   const [size, setSize] = useState(2);
   const [weight, setWeight] = useState(60);
@@ -173,7 +174,8 @@ export function Phone() {
             variant="filled"
             size="large"
             onClick={() => {
-              if (picked) setPalette((all) => (saved ? all.filter((name) => name !== picked.name) : [...all, picked.name]));
+              if (saved) return setRemoving(true);
+              if (picked) setPalette((all) => [...all, picked.name]);
               setOpen(false);
             }}
           >
@@ -190,6 +192,23 @@ export function Phone() {
           </ul>
         </div>
       </Sheet>
+      <ActionSheet
+        open={removing}
+        onOpenChange={setRemoving}
+        title={`Remove ${picked?.name ?? "swatch"}?`}
+        message="It leaves your saved swatches."
+        actions={[
+          {
+            label: "Remove from saved",
+            role: "destructive",
+            onSelect: () => {
+              if (picked) setPalette((all) => all.filter((name) => name !== picked.name));
+              setOpen(false);
+            },
+          },
+          { label: "Cancel", role: "cancel" },
+        ]}
+      />
       <Alert
         open={asking}
         onOpenChange={setAsking}

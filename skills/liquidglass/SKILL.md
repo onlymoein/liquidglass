@@ -64,6 +64,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
+| `ActionSheet` | A list of choices rising from the bottom as floating glass, Cancel in a card of its own | `open`, `onOpenChange`, `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` (the `cancel` action is also Escape and a tap outside) |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
 | `Progress`, `Spinner` | Progress bar (`value` 0–1), activity indicator | |
 | `GlassGroup` | Glass that flows together when pieces come close | `spacing` (points) |
@@ -105,7 +106,7 @@ Placement rules that matter:
 
 - `Toolbar` and `NavigationBar` go **first inside the element that scrolls**; they stick to its
   top. Don't wrap them in `position: fixed`.
-- `Menu`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
+- `Menu`, `Sheet`, `Alert`, `ActionSheet` and `ContextMenu` open in the top layer, so clipping and `z-index`
   around them don't matter.
 - In a `Sheet`, drags that start on a slider, a text field, or anything marked
   `data-lg-no-sheet-drag` stay with that element.
