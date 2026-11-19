@@ -69,11 +69,10 @@ function container(): SVGDefsElement {
 }
 
 // The painter's own measures, shared with what it works out off the page.
-const { continuous, CORNER_REACH, CORNER_POWER, RIM_OUTSET, MASK_OUTSET } = local;
-// The same curve in CSS, where there's corner-shape. Safari gets a mask instead: on the Mac it
-// has corner-shape, but it doesn't clip the backdrop to it, and the frost shows square corners.
-const CORNER_SHAPE = `superellipse(${Math.log2(CORNER_POWER).toFixed(3)})`;
-const hasCornerShape = () => /Chrom(?:e|ium)\//.test(navigator.userAgent) && typeof CSS !== "undefined" && CSS.supports?.("corner-shape", CORNER_SHAPE);
+const { continuous, CORNER_REACH, RIM_OUTSET, MASK_OUTSET } = local;
+// Continuous corners come from a mask in every browser, not CSS corner-shape: Chromium cuts the
+// backdrop to corner-shape without smoothing it, which leaves a stepped edge, and Safari doesn't
+// cut the backdrop to it at all. The mask is smoothed to the screen's own pixels.
 
 // Glass that's handed a map, rim or mask to come is fitted again when it arrives, if it's
 // still glass by then.
@@ -276,7 +275,7 @@ function setRimPieces(element: HTMLElement, width: number, height: number, radiu
   if (drawn === undefined) return;
   const [rim, rimKey] = drawn;
   // The sliver keeps its shape as long as the corner still has room in it.
-  if (smooth && continuous(w, h, radius) && !hasCornerShape()) {
+  if (smooth && continuous(w, h, radius)) {
     const maskKey = `mask-${w}-${h}-${radius}-${density}`;
     const painting = painted(maskKey, { kind: "mask", args: [w, h, radius, density] }, ready);
     if (painting === undefined) return;
@@ -329,24 +328,9 @@ function fit(element: HTMLElement, selection: boolean, filtered: boolean): void 
   if (!width || !height) return;
   const style = getComputedStyle(element);
   const corner = style.borderTopLeftRadius;
-  // What was asked for, if the radius is still the one this set for a continuous corner.
-  const asked = element.dataset.lgCornerSet === corner ? parseFloat(element.dataset.lgCorner!) : NaN;
-  const radius = Number.isNaN(asked)
-    ? Math.min(width / 2, height / 2, corner.endsWith("%") ? (Math.min(width, height) * parseFloat(corner)) / 100 : parseFloat(corner))
-    : asked;
+  const radius = Math.min(width / 2, height / 2, corner.endsWith("%") ? (Math.min(width, height) * parseFloat(corner)) / 100 : parseFloat(corner));
   // Corners that differ, as on a sheet at full height, stay as CSS draws them.
   const even = style.borderBottomLeftRadius === corner;
-  if (!selection && even && continuous(width, height, radius) && hasCornerShape()) {
-    const reach = `${radius * CORNER_REACH}px`;
-    element.style.borderRadius = reach;
-    element.style.setProperty("corner-shape", CORNER_SHAPE);
-    element.dataset.lgCorner = String(radius);
-    element.dataset.lgCornerSet = reach;
-  } else if (element.dataset.lgCornerSet) {
-    element.style.removeProperty("corner-shape");
-    delete element.dataset.lgCorner;
-    delete element.dataset.lgCornerSet;
-  }
   const length = (name: string) => {
     const value = parseFloat(style.getPropertyValue(name));
     return Number.isFinite(value) ? value : undefined;

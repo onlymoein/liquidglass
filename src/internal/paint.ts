@@ -170,17 +170,15 @@ export function painter(): Painter {
     const point = (x: number, y: number) => {
       const px = ((x + 0.5) * width) / columns - width / 2;
       const py = ((y + 0.5) * height) / rows - height / 2;
-      const qx = Math.abs(px) - (width / 2 - radius);
-      const qy = Math.abs(py) - (height / 2 - radius);
-      const ox = Math.max(qx, 0);
-      const oy = Math.max(qy, 0);
-      const length = Math.hypot(ox, oy);
-      const distance = radius - (length + Math.min(Math.max(qx, qy), 0));
-      const nx = length > 0 ? (ox / length) * Math.sign(px) : qx > qy ? Math.sign(px) : 0;
-      const ny = length > 0 ? (oy / length) * Math.sign(py) : qx > qy ? 0 : Math.sign(py);
+      // The same edge the glass is cut to, continuous corners and all, so the bend hugs it.
+      const edge = toEdge(px, py, width, height, radius);
+      const { nx, ny } = edge;
+      // A pixel whose centre is just past the edge still shows inside it where the edge
+      // crosses it, so it bends as the edge does. Left flat, a curve shows steps a pixel tall.
+      const distance = Math.max(0, edge.distance);
 
       let shift = 0;
-      if (distance >= 0 && distance < bezel) {
+      if (distance < bezel) {
         const sample = (distance / bezel) * (samples.length - 1);
         const lower = Math.floor(sample);
         const a = samples[lower]!;
@@ -209,14 +207,14 @@ export function painter(): Painter {
       for (let y = 0; y < rows; y++) for (let x = 0; x < columns; x++) point(x, y);
     } else {
       flat(field, 128, 128, 128, 255);
-      rimPixels(columns, rows, density, bezel, radius, point);
+      rimPixels(columns, rows, density, bezel, continuous(width, height, radius) ? radius * CORNER_REACH : radius, point);
     }
     return { images: magnify ? [field, magnify] : [field], maximum, reach };
   }
 
-  // CSS only draws circular corners, and Safari has no corner-shape, but a mask keeps the
-  // backdrop where a clip doesn't. It trims the circle down to the continuous curve, and
-  // leaves everything outside the circle as it was: only the shadow is out there.
+  // CSS only draws circular corners, but a mask keeps the backdrop where a clip doesn't. It
+  // trims the circle down to the continuous curve, smoothed across one of the screen's pixels,
+  // and leaves everything outside the circle as it was: only the shadow is out there.
   function mask(width: number, height: number, radius: number, density: number): Paint {
     const result = image(Math.ceil((width + MASK_OUTSET * 2) * density), Math.ceil((height + MASK_OUTSET * 2) * density));
     for (let y = 0; y < result.height; y++) {
@@ -227,8 +225,63 @@ export function painter(): Painter {
         const qy = Math.abs(py) - (height / 2 - radius);
         const outsideCircle = qx > 0 && qy > 0 ? Math.hypot(qx, qy) > radius : qx > radius || qy > radius;
         // A point past the rim's hairline is cut; the hairline itself has to stay.
-        const alpha = outsideCircle ? 1 : clamp(toEdge(px, py, width, height, radius).distance + RIM_OUTSET + 0.5, 0, 1);
+        const alpha = outsideCircle ? 1 : clamp((toEdge(px, py, width, height, radius).distance + RIM_OUTSET) * density + 0.5, 0, 1);
         result.data[(y * result.width + x) * 4 + 3] = Math.round(alpha * 255);
+      }
+    }
+    return { images: [result] };
+  }
+
+  /**
+   * Draws a rim from how light and how shaded it is at each distance from the edge, out to
+   * `reach` inside it. Its lines are a point wide or less, finer than a pixel on most screens,
+   * so each pixel is the average of a grid of points across it rather than its centre alone,
+   * and lines and curves come out smooth instead of dotted and stepped.
+   */
+  function drawRim(
+    width: number,
+    height: number,
+    radius: number,
+    density: number,
+    reach: number,
+    at: (distance: number, nx: number, ny: number) => [light: number, shade: number],
+  ): Paint {
+    const result = image(Math.ceil((width + RIM_OUTSET * 2) * density), Math.ceil((height + RIM_OUTSET * 2) * density));
+    // Four points a CSS pixel each way on an ordinary screen, two on a sharp one; a phone's
+    // pixels are already finer than the lines.
+    const grid = density >= 3 ? 1 : density >= 2 ? 2 : 4;
+    const step = 1 / (grid * density);
+    // How far a pixel's own points can be from its centre.
+    const spread = 0.75 / density;
+    for (let y = 0; y < result.height; y++) {
+      for (let x = 0; x < result.width; x++) {
+        const cx = (x + 0.5) / density - RIM_OUTSET - width / 2;
+        const cy = (y + 0.5) / density - RIM_OUTSET - height / 2;
+        const centre = toEdge(cx, cy, width, height, radius);
+        if (centre.distance > reach + spread || centre.distance < -RIM_OUTSET - spread) continue;
+        // The lines are all within a point or so of the edge. Further in, the rim changes
+        // slowly enough that a pixel's centre speaks for all of it.
+        const fine = grid > 1 && centre.distance < 2 + spread;
+        const across = fine ? grid : 1;
+        let alpha = 0;
+        let white = 0;
+        for (let j = 0; j < across; j++) {
+          for (let k = 0; k < across; k++) {
+            const { distance, nx, ny } = fine
+              ? toEdge(x / density + (k + 0.5) * step - RIM_OUTSET - width / 2, y / density + (j + 0.5) * step - RIM_OUTSET - height / 2, width, height, radius)
+              : centre;
+            if (distance > reach) continue;
+            const [light, shade] = at(distance, nx, ny);
+            const covered = light + shade - light * shade;
+            alpha += covered;
+            // Premultiplied, so a point with nothing on it doesn't grey its neighbours.
+            if (covered > 0) white += (light / (light + shade)) * covered;
+          }
+        }
+        if (alpha <= 0) continue;
+        const i = (y * result.width + x) * 4;
+        result.data[i] = result.data[i + 1] = result.data[i + 2] = Math.round((255 * white) / alpha);
+        result.data[i + 3] = Math.round((alpha / (across * across)) * 255);
       }
     }
     return { images: [result] };
@@ -239,43 +292,27 @@ export function painter(): Painter {
   // rest, and a faint shade inside everywhere but the bottom. Measured in parity/.
   function rim(width: number, height: number, radius: number, shine: number, clear: number, density: number, lens = false): Paint {
     if (lens) return lensRim(width, height, radius, shine, density);
-    const result = image(Math.ceil((width + RIM_OUTSET * 2) * density), Math.ceil((height + RIM_OUTSET * 2) * density));
-    for (let y = 0; y < result.height; y++) {
-      for (let x = 0; x < result.width; x++) {
-        const px = (x + 0.5) / density - RIM_OUTSET - width / 2;
-        const py = (y + 0.5) / density - RIM_OUTSET - height / 2;
-        const { distance, nx, ny } = toEdge(px, py, width, height, radius);
-        if (distance > 15) continue;
-        const side = nx * nx;
-        const end = ny * ny;
-
-        let light = 0;
-        let shade = 0;
-        if (distance >= 0) {
-          const line = Math.max(0, 0.39 - 0.29 * distance);
-          if (ny < 0) {
-            light = end * (line + (distance > 1 ? 0.05 * Math.max(0, 1 - (distance - 1) / 2.5) : 0));
-            shade = end * 0.02 * Math.max(0, 1 - Math.abs(distance - 9) / 5);
-          } else if (ny > 0) {
-            light = end * line;
-          }
-          shade += side * 0.02 * clamp((15 - distance) / 5, 0, 1);
-        } else {
-          const outside = clamp(1 + distance / 0.75, 0, 1);
-          shade = (side * 0.75 + end * 0.2) * outside;
+    return drawRim(width, height, radius, density, 15, (distance, nx, ny) => {
+      const side = nx * nx;
+      const end = ny * ny;
+      let light = 0;
+      let shade = 0;
+      if (distance >= 0) {
+        const line = Math.max(0, 0.39 - 0.29 * distance);
+        if (ny < 0) {
+          light = end * (line + (distance > 1 ? 0.05 * Math.max(0, 1 - (distance - 1) / 2.5) : 0));
+          shade = end * 0.02 * Math.max(0, 1 - Math.abs(distance - 9) / 5);
+        } else if (ny > 0) {
+          light = end * line;
         }
-        // Clear glass has nothing lifting it, so its lit edge stands out more.
-        light = clamp(light * shine * (1 + clear * 1.1), 0, 1);
-        shade = clamp(shade * shine, 0, 1);
-        const alpha = light + shade - light * shade;
-        if (alpha <= 0) continue;
-        const i = (y * result.width + x) * 4;
-        const white = Math.round((255 * light) / (light + shade));
-        result.data[i] = result.data[i + 1] = result.data[i + 2] = white;
-        result.data[i + 3] = Math.round(alpha * 255);
+        shade += side * 0.02 * clamp((15 - distance) / 5, 0, 1);
+      } else {
+        const outside = clamp(1 + distance / 0.75, 0, 1);
+        shade = (side * 0.75 + end * 0.2) * outside;
       }
-    }
-    return { images: [result] };
+      // Clear glass has nothing lifting it, so its lit edge stands out more.
+      return [clamp(light * shine * (1 + clear * 1.1), 0, 1), clamp(shade * shine, 0, 1)];
+    });
   }
 
   // A lens held under a finger (a thumb, the tab and segment lenses), as iOS 27 draws it:
@@ -285,32 +322,18 @@ export function painter(): Painter {
   // inside the ends. No sheen, no glow and no colour of its own: what colour shows at its rim
   // is what's behind, bent. Measured in the simulator over a colourful grid and plain white.
   function lensRim(width: number, height: number, radius: number, shine: number, density: number): Paint {
-    const result = image(Math.ceil((width + RIM_OUTSET * 2) * density), Math.ceil((height + RIM_OUTSET * 2) * density));
     const strength = clamp(shine / 0.6, 0.4, 1.6);
-    for (let y = 0; y < result.height; y++) {
-      for (let x = 0; x < result.width; x++) {
-        const px = (x + 0.5) / density - RIM_OUTSET - width / 2;
-        const py = (y + 0.5) / density - RIM_OUTSET - height / 2;
-        const { distance, nx, ny } = toEdge(px, py, width, height, radius);
-        if (distance > 2) continue;
-        let light = 0;
-        let shade = 0;
-        if (distance < 0) {
-          shade = clamp(1 + distance / 0.8, 0, 1) * 0.27;
-        } else {
-          light = ny * ny * clamp(1.1 - distance, 0, 1) * 0.34;
-          shade = nx * nx * clamp(1 - distance / 1.6, 0, 1) * 0.1;
-        }
-        light = clamp(light * strength, 0, 1);
-        shade = clamp(shade * strength, 0, 1);
-        const alpha = light + shade - light * shade;
-        if (alpha <= 0) continue;
-        const i = (y * result.width + x) * 4;
-        result.data[i] = result.data[i + 1] = result.data[i + 2] = Math.round((255 * light) / (light + shade));
-        result.data[i + 3] = Math.round(alpha * 255);
+    return drawRim(width, height, radius, density, 2, (distance, nx, ny) => {
+      let light = 0;
+      let shade = 0;
+      if (distance < 0) {
+        shade = clamp(1 + distance / 0.8, 0, 1) * 0.27;
+      } else {
+        light = ny * ny * clamp(1.1 - distance, 0, 1) * 0.34;
+        shade = nx * nx * clamp(1 - distance / 1.6, 0, 1) * 0.1;
       }
-    }
-    return { images: [result] };
+      return [clamp(light * strength, 0, 1), clamp(shade * strength, 0, 1)];
+    });
   }
 
   /** A tab lens's maps for a capsule: how far each point reaches in, across and down, and where it bends at all. */
