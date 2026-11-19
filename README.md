@@ -181,7 +181,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Slider, Sheet, Alert, TabBar, GlassGroup</summary>
 
 #### Toolbar
 
@@ -242,6 +242,27 @@ import { Menu } from "@onlymoein/liquidglass";
 - An item with `href` is a link: `onSelect` runs instead if it's given, for your router, and ⌘, Ctrl, Shift or the middle button opens a new tab.
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
 - It opens in the top layer, so nothing around the trigger can clip it.
+
+#### Slider
+
+```tsx
+import { Slider } from "@onlymoein/liquidglass";
+
+<Slider
+  aria-label="Volume"
+  min={0}
+  max={10}
+  step={1}
+  ticks
+  minimumIcon={<SpeakerLow />}
+  maximumIcon={<SpeakerHigh />}
+  value={volume}
+  onValueChange={setVolume}
+/>
+```
+
+- `ticks` puts a mark at every `step`, as SwiftUI's stepped slider does, white over the fill and dark over the rest. It draws none if that would be more than 50, which would run together; pass a list instead, such as `ticks={[0, 25, 50, 75, 100]}`, to mark only those values.
+- `minimumIcon` and `maximumIcon` sit either side of the track in secondary ink, like UISlider's minimum and maximum value images. They are decoration and hidden from screen readers, so label the slider itself with `aria-label`.
 
 #### Sheet and Alert
 

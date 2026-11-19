@@ -18,7 +18,7 @@ beforeEach(() => {
   );
   vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockImplementation(() => `data:image/png;base64,${++drawn}`);
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
-    return this.classList.contains("lg-slider-thumb") ? 37 : this.classList.contains("lg-slider") ? 337 : 120;
+    return this.classList.contains("lg-slider-thumb") ? 37 : this.classList.contains("lg-slider-body") ? 337 : 120;
   });
   vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(44);
   // Fingers on a screen, with motion allowed.
@@ -64,7 +64,7 @@ test.each([
 
 test("a thumb taken quickly along the track stretches along it, then settles", async () => {
   const { container } = render(<Slider aria-label="Value" defaultValue={10} />);
-  const root = container.firstElementChild as HTMLElement;
+  const root = container.querySelector<HTMLElement>(".lg-slider-body")!;
   const thumb = container.querySelector<HTMLElement>(".lg-slider-thumb")!;
   vi.spyOn(root, "getBoundingClientRect").mockReturnValue({ left: 0, width: 337, right: 337, top: 0, bottom: 40, height: 40 } as DOMRect);
   const input = screen.getByRole("slider") as HTMLInputElement;
@@ -94,7 +94,7 @@ test("a thumb taken quickly along the track stretches along it, then settles", a
 
 test("a thumb taken slowly keeps its shape", async () => {
   const { container } = render(<Slider aria-label="Value" defaultValue={10} />);
-  const root = container.firstElementChild as HTMLElement;
+  const root = container.querySelector<HTMLElement>(".lg-slider-body")!;
   const thumb = container.querySelector<HTMLElement>(".lg-slider-thumb")!;
   vi.spyOn(root, "getBoundingClientRect").mockReturnValue({ left: 0, width: 337, right: 337, top: 0, bottom: 40, height: 40 } as DOMRect);
   const at = 18.5 + (300 * 10) / 100;

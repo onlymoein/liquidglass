@@ -60,12 +60,34 @@ function Switches() {
   );
 }
 
+const speaker = {
+  quiet: "M4 10v4h3l4 3V7l-4 3H4z",
+  loud: "M4 10v4h3l4 3V7l-4 3H4zM15 9a4 4 0 0 1 0 6M17.500 6.500a8 8 0 0 1 0 11",
+};
+
 function SliderDemo() {
   const [value, setValue] = useState(40);
+  const [level, setLevel] = useState(6);
   return (
-    <div className="wide">
-      <Slider aria-label="Volume" value={value} min={0} max={100} onValueChange={setValue} />
-      <output className="readout">{Math.round(value)}</output>
+    <div className="stack wide">
+      <div className="wide">
+        <Slider aria-label="Volume" value={value} min={0} max={100} onValueChange={setValue} />
+        <output className="readout">{Math.round(value)}</output>
+      </div>
+      <div className="wide">
+        <Slider
+          aria-label="Level"
+          value={level}
+          min={0}
+          max={10}
+          step={1}
+          ticks
+          minimumIcon={stroke(speaker.quiet)}
+          maximumIcon={stroke(speaker.loud)}
+          onValueChange={setLevel}
+        />
+        <output className="readout">{level}</output>
+      </div>
     </div>
   );
 }
@@ -263,9 +285,12 @@ const TILES: Tile[] = [
   },
   {
     title: "Slider",
-    how: "Hold the thumb and drag. It turns into a lens over the track.",
+    how: "Hold the thumb and drag. It turns into a lens over the track; the second has ticks and end icons.",
     demo: <SliderDemo />,
-    code: `<Slider aria-label="Volume" value={value} min={0} max={100} onValueChange={setValue} />`,
+    code: `<Slider aria-label="Volume" value={value} min={0} max={100} onValueChange={setValue} />
+
+// Marks at each step, and icons at the ends:
+<Slider aria-label="Level" min={0} max={10} step={1} ticks minimumIcon={<SpeakerLow />} maximumIcon={<SpeakerHigh />} />`,
   },
   {
     title: "SegmentedControl",
