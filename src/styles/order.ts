@@ -14,6 +14,7 @@ export const ORDER: readonly string[] = [
   "menu",
   "toolbar",
   "navigation-bar",
+  "scroll-edge",
   "glass-group",
   "segmented-control",
   "stepper",

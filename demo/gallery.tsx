@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, ScrollEdge, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -205,6 +205,23 @@ function Navigation() {
   );
 }
 
+function Edge() {
+  const [edge, setEdge] = useState("uniform");
+  return (
+    <div className="edge-demo">
+      <div className="scroll-demo" tabIndex={0} role="region" aria-label="Scroll under the bottom bar">
+        <div className="scroll-fill">
+          {["Scroll", "and it frosts", "under the", "bar below"].map((word) => <p key={word}>{word}</p>)}
+        </div>
+        <ScrollEdge edge={edge as "uniform" | "soft"} size={84} />
+      </div>
+      <div className="edge-bar">
+        <SegmentedControl aria-label="Edge" value={edge} onValueChange={setEdge} items={[{ value: "uniform", label: "Uniform" }, { value: "soft", label: "Soft" }]} />
+      </div>
+    </div>
+  );
+}
+
 interface Tile {
   title: string;
   how: string;
@@ -355,6 +372,18 @@ const TILES: Tile[] = [
     <Button>Edit</Button>
   </ToolbarGroup>
 </Toolbar>`,
+  },
+  {
+    title: "ScrollEdge",
+    how: "Scroll this panel. Where a bar floats over the content, a frosted band fades in beneath it.",
+    demo: <Edge />,
+    wide: true,
+    bare: true,
+    code: `<div className="screen" style={{ overflowY: "auto" }}>
+  {content}
+  <ScrollEdge edge="uniform" />
+</div>
+<TabBar aria-label="Sections" items={items} />`,
   },
   {
     title: "NavigationBar",

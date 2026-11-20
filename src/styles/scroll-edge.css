@@ -1,0 +1,78 @@
+/* Scroll edge */
+
+/* No height of its own: it sticks to an end of what scrolls, and the band hangs off it. */
+.lg-scroll-edge {
+  position: sticky;
+  z-index: 1;
+  height: 0;
+  pointer-events: none;
+}
+
+.lg-scroll-edge[data-side="top"] {
+  top: 0;
+  --lg-edge-to: to bottom;
+}
+
+.lg-scroll-edge[data-side="bottom"] {
+  bottom: 0;
+  --lg-edge-to: to top;
+}
+
+.lg-scroll-edge::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--lg-edge-size, 100px);
+  opacity: 0;
+  transition: opacity 200ms var(--lg-ease);
+}
+
+.lg-scroll-edge[data-side="top"]::before {
+  top: 0;
+}
+
+.lg-scroll-edge[data-side="bottom"]::before {
+  bottom: 0;
+}
+
+.lg-scroll-edge[data-active]::before {
+  opacity: 1;
+}
+
+/* iOS 27: a tinted band, fading out over its last 24 points. The same as the toolbar's. */
+.lg-scroll-edge[data-edge="uniform"]::before {
+  background: color-mix(in srgb, var(--lg-glass-tinted) 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-mask-image: linear-gradient(var(--lg-edge-to), #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(var(--lg-edge-to), #000 calc(100% - 24px), transparent);
+}
+
+/* iOS 26: only a blur, thinning out from the bar. */
+.lg-scroll-edge[data-edge="soft"]::before {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(var(--lg-edge-to), #000 40%, transparent);
+  mask-image: linear-gradient(var(--lg-edge-to), #000 40%, transparent);
+}
+
+/* Reduce Transparency swaps the blur for a plain fade, as iOS does, and Increase Contrast
+   makes that fade nearly solid. */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-scroll-edge[data-edge]::before {
+    background: color-mix(in srgb, var(--lg-glass-tinted) 88%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: linear-gradient(var(--lg-edge-to), #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(var(--lg-edge-to), #000 calc(100% - 24px), transparent);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lg-scroll-edge[data-edge]::before {
+    background: color-mix(in srgb, var(--lg-glass-tinted) 96%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

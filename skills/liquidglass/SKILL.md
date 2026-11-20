@@ -54,6 +54,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Button` | Glass or filled button | `variant: "glass" \| "filled"`, `size: "small" \| "regular" \| "large"` (28/36/52 pt), `icon`, `tint` (any CSS colour), `destructive` |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that sticks to the top of what scrolls and frosts as content passes under | `edge: "uniform" \| "soft" \| "none"`. Buttons in one `ToolbarGroup` share one piece of glass |
 | `NavigationBar` | A screen's top bar: back button, actions, large title that slides into the bar | `title` (required), `onBack`, `backLabel`, `leading`, `trailing`, `large` (default true), `level` |
+| `ScrollEdge` | The frosted band that fades in under a tab bar or bottom toolbar floating over scrolling content | `side: "top" \| "bottom"` (default bottom), `edge: "uniform" \| "soft"`, `size` (px, default 100). Decoration: hidden from screen readers |
 | `TabBar` | Tabs with a lens that follows the finger | `items: { value, label, icon?, href? }[]`, `value`, `onValueChange`, `minimized`, `onExpand`, `link` (e.g. Next.js `Link`) |
 | `Switch` | On/off | `checked`, `defaultChecked`, `onCheckedChange` |
 | `Slider` | A number on a track | `value`, `onValueChange`, `min`, `max`, `step` |
@@ -105,6 +106,8 @@ Placement rules that matter:
 
 - `Toolbar` and `NavigationBar` go **first inside the element that scrolls**; they stick to its
   top. Don't wrap them in `position: fixed`.
+- `ScrollEdge` goes **last inside the element that scrolls** (first, with `side="top"`); the bar
+  it sits behind floats over that element, outside it.
 - `Menu`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
   around them don't matter.
 - In a `Sheet`, drags that start on a slider, a text field, or anything marked
@@ -160,6 +163,7 @@ Placement rules that matter:
 | Edge doesn't bend | Safari or Firefox (expected); in Chromium, a CSP blocking `blob:` images, or `--lg-refraction: 0` |
 | Lens doesn't match a new `--lg-*` value | Those are read at measure time; resize or remount the glass |
 | Toolbar doesn't stick or frost | It isn't the first child of the scrolling element |
+| ScrollEdge never shows | It isn't inside the scrolling element, or nothing is left to scroll beneath it |
 | A drag inside a `Sheet` moves the sheet | Mark the element `data-lg-no-sheet-drag` |
 | Styles missing in a test or SSR snapshot | Styles are inserted on first client render; import `@onlymoein/liquidglass/styles.css` |
 
