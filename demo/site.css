@@ -592,6 +592,24 @@ h3 {
   overscroll-behavior: contain;
 }
 
+/* A bar floating over the bottom of a scrolling panel, with ScrollEdge behind it. */
+.edge-demo {
+  position: relative;
+  height: 100%;
+}
+
+.edge-bar {
+  position: absolute;
+  inset: auto 0 14px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.edge-bar > * {
+  pointer-events: auto;
+}
+
 .scroll-fill {
   padding: 8px 24px 40px;
   color: var(--wall-ink);

@@ -8,6 +8,7 @@ export { Menu, type MenuEntry, type MenuItem, type MenuProps } from "./menu";
 export { NavigationBar, type NavigationBarProps } from "./navigation-bar";
 export { PageControl, type PageControlProps } from "./page-control";
 export { Progress, Spinner, type ProgressProps, type SpinnerProps } from "./progress";
+export { ScrollEdge, type ScrollEdgeProps } from "./scroll-edge";
 export { SearchField, type SearchFieldProps } from "./search-field";
 export { SegmentedControl, type SegmentedControlProps, type SegmentedItem } from "./segmented-control";
 export { Sheet, type SheetDetent, type SheetProps } from "./sheet";

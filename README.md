@@ -170,6 +170,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `TabBar` | Tabs with a lens that follows the finger | ✓ | ✓ |
 | `Toolbar`, `ToolbarGroup` | A bar of actions that frosts as content scrolls under it | ✓ | |
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
+| `ScrollEdge` | The frosted band that fades in under a bar floating over scrolling content | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
@@ -181,7 +182,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
 
 <details>
-<summary><b>Web components in detail</b>: Toolbar, NavigationBar, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
+<summary><b>Web components in detail</b>: Toolbar, NavigationBar, ScrollEdge, Menu, Sheet, Alert, TabBar, GlassGroup</summary>
 
 #### Toolbar
 
@@ -218,6 +219,20 @@ import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
 ```
 
 A `Toolbar` with a title. The title starts large and scrolls away with the content, and a smaller one fades into the bar once it's gone. `large={false}` keeps the small title from the start. `onBack` adds the round back button, and `leading` and `trailing` hold other actions.
+
+#### ScrollEdge
+
+```tsx
+import { ScrollEdge, TabBar } from "@onlymoein/liquidglass";
+
+<div className="screen" style={{ overflowY: "auto" }}>
+  {content}
+  <ScrollEdge />
+</div>
+<TabBar aria-label="Sections" items={items} />
+```
+
+Put it last inside whatever scrolls, and when content runs under the bottom of the screen, a frosted band fades in beneath the tab bar or bottom toolbar, as on iOS. It fades out again once the scroll reaches the end. `edge="soft"` is iOS 26's lighter blur, `size` is how tall the band is in pixels (100 by default: the bar, then a 24px fade), and `side="top"` goes first and guards the top for a bar that isn't a `Toolbar`, which frosts its own edge. Reduce Transparency swaps the blur for a plain fade.
 
 #### Menu
 

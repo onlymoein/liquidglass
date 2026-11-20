@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, Menu, NavigationBar, ScrollEdge, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -147,6 +147,7 @@ export function Phone() {
             </div>
           </>
         )}
+        <ScrollEdge />
       </div>
 
       <div className="phone-tabs">
