@@ -38,7 +38,8 @@
 }
 
 /* A menu taller than the room there is scrolls, and a finger can scroll it. */
-.lg-menu-card[data-scrolls] {
+.lg-menu-card[data-scrolls],
+.lg-menu-sub[data-scrolls] {
   touch-action: pan-y;
 }
 
@@ -51,7 +52,8 @@
 }
 
 /* While its shape runs through the morph the rim can't follow it, so a plain edge does. */
-.lg-menu-card[data-morphing] .lg-menu-surface {
+.lg-menu-card[data-morphing] .lg-menu-surface,
+.lg-menu-sub[data-morphing] .lg-menu-surface {
   -webkit-mask-box-image: none;
   mask-border: none;
   box-shadow:
@@ -61,7 +63,8 @@
     0 12px 40px var(--lg-shadow);
 }
 
-.lg-menu-card[data-morphing] .lg-menu-surface::before {
+.lg-menu-card[data-morphing] .lg-menu-surface::before,
+.lg-menu-sub[data-morphing] .lg-menu-surface::before {
   display: none;
 }
 
@@ -125,7 +128,8 @@
   padding: 10px 8px;
 }
 
-.lg-menu-card[data-scrolls] .lg-menu-content {
+.lg-menu-card[data-scrolls] .lg-menu-content,
+.lg-menu-sub[data-scrolls] .lg-menu-content {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -243,6 +247,62 @@
 .lg-menu-check > svg {
   width: 14px;
   height: 14px;
+}
+
+/* A submenu: a second card of glass over the menu, as wide as it, set and grown out of the row
+   that opened it by the menu. */
+.lg-menu-sub {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  max-width: calc(100vw - 16px);
+  border-radius: 33px;
+  touch-action: none;
+}
+
+.lg-menu-sub:focus {
+  outline: none;
+}
+
+.lg-menu-sub[data-leaving] {
+  pointer-events: none;
+}
+
+/* Its row's chevron, after the label. */
+.lg-menu-item > .lg-menu-more {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+/* The row that opened a submenu is its title: heavier, with the chevron turned down as the
+   card opens. */
+.lg-menu-sub-head {
+  font-weight: 600;
+}
+
+.lg-menu-sub-head > .lg-menu-more {
+  transform: rotate(calc(var(--lg-turn, 1) * 90deg));
+}
+
+/* What a submenu covers shrinks away from it and dims, toward the edge the menu grew from.
+   It's custom properties the menu's own opening and closing don't write, as they do transform
+   and opacity, and only while a submenu is over it, so nothing else is made a layer. */
+[data-receder] > .lg-menu-surface,
+[data-receder] > .lg-menu-content {
+  scale: calc(1 - var(--lg-recede, 0) * 0.03);
+  translate: 0 calc(var(--lg-recede, 0) * var(--lg-recede-dy, 0px));
+  opacity: calc(1 - var(--lg-recede, 0) * 0.55);
+}
+
+/* The menu closing takes its submenus with it. */
+.lg-menu-card[data-phase="leaving"] > .lg-menu-sub {
+  opacity: 0;
+  transition: opacity 90ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

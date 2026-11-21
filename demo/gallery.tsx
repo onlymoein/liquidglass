@@ -36,7 +36,7 @@ function MenuDemo() {
         choice("Date"),
         choice("Size"),
         "separator",
-        { icon: stroke(icons.share), label: "Share" },
+        { icon: stroke(icons.share), label: "Share", items: [{ label: "Copy link" }, { label: "Message" }, { label: "Mail" }] },
         { icon: stroke(icons.trash), label: "Delete", destructive: true },
       ]}
     />
@@ -226,7 +226,7 @@ const TILES: Tile[] = [
   },
   {
     title: "Menu",
-    how: "The pill itself stretches into the menu. Try the choices: it stays open.",
+    how: "The pill itself stretches into the menu. Try the choices: it stays open. Share opens a second card over it.",
     demo: <MenuDemo />,
     code: `<Menu
   aria-label="Sort"
@@ -236,6 +236,7 @@ const TILES: Tile[] = [
     { label: "Name", checked: sort === "name", keepOpen: true, onSelect: () => setSort("name") },
     { label: "Date", checked: sort === "date", keepOpen: true, onSelect: () => setSort("date") },
     "separator",
+    { label: "Share", items: [{ label: "Copy link", onSelect: copy }, { label: "Message", onSelect: message }] },
     { label: "Delete", destructive: true, onSelect: remove },
   ]}
 />`,
