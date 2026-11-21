@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 import { Menu } from "../src";
@@ -220,4 +220,217 @@ test("a finger opens it as it lifts, once, and leaves no row ringed", () => {
   expect(document.activeElement).toBe(menu);
   fireEvent.click(trigger);
   expect(menu.dataset.phase).toBe("open");
+});
+
+const sortItems = (onName = vi.fn(), onPin = vi.fn()) => [
+  { label: "Pin", onSelect: onPin },
+  { label: "Sort by", items: [{ label: "Name", onSelect: onName }, { label: "Date" }] },
+  "separator" as const,
+  { label: "Delete" },
+];
+
+test("a submenu's row opens a second card over the menu, titled with the row", () => {
+  render(<Menu aria-label="Options" items={sortItems()} />);
+  open();
+  const row = screen.getByRole("menuitem", { name: "Sort by" });
+  expect(row.getAttribute("aria-haspopup")).toBe("menu");
+  expect(row.getAttribute("aria-expanded")).toBe("false");
+  expect(row.querySelector(".lg-menu-more")).toBeTruthy();
+  expect(screen.getByRole("menuitem", { name: "Pin" }).hasAttribute("aria-haspopup")).toBe(false);
+
+  fireEvent.click(row);
+  expect(row.getAttribute("aria-expanded")).toBe("true");
+  const card = screen.getByRole("menu", { name: "Options" });
+  const sub = within(card).getByRole("menu", { name: "Sort by" });
+  const title = within(sub).getAllByRole("menuitem")[0]!;
+  expect(title.textContent).toBe("Sort by");
+  expect(title.classList.contains("lg-menu-sub-head")).toBe(true);
+  expect(within(sub).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Sort by", "Name", "Date"]);
+  expect(within(sub).getByRole("separator")).toBeTruthy();
+  // What it covers can't be reached, by a key or a reader, while it's up.
+  expect(card.querySelector(":scope > .lg-menu-content")!.hasAttribute("inert")).toBe(true);
+  expect(card.hasAttribute("data-receder")).toBe(true);
+});
+
+test("choosing an item of a submenu selects it and closes the whole menu", async () => {
+  vi.useFakeTimers();
+  const onName = vi.fn();
+  const onPin = vi.fn();
+  const onOpenChange = vi.fn();
+  render(<Menu aria-label="Options" items={sortItems(onName, onPin)} onOpenChange={onOpenChange} />);
+  open();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Name" }));
+
+  // The one at the same index in the menu itself is not the one chosen.
+  expect(onName).toHaveBeenCalledOnce();
+  expect(onPin).not.toHaveBeenCalled();
+  expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu")).toBeNull();
+
+  // It opens again as the menu it was, with no submenu left over it.
+  open();
+  expect(screen.getAllByRole("menu")).toHaveLength(1);
+  expect(screen.getByRole("menuitem", { name: "Sort by" }).getAttribute("aria-expanded")).toBe("false");
+  vi.useRealTimers();
+});
+
+test("a submenu stays open for a choice that keeps the menu open", () => {
+  const onSelect = vi.fn();
+  render(<Menu aria-label="Options" items={[{ label: "Sort by", items: [{ label: "Name", checked: true, keepOpen: true, onSelect }] }]} />);
+  open();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  fireEvent.click(screen.getByRole("menuitemradio", { name: "Name" }));
+  expect(onSelect).toHaveBeenCalledOnce();
+  expect(screen.getByRole("menu", { name: "Options" }).dataset.phase).toBe("open");
+  expect(screen.getByRole("menu", { name: "Sort by" })).toBeTruthy();
+});
+
+test("choosing the title folds the submenu back into its row", async () => {
+  vi.useFakeTimers();
+  render(<Menu aria-label="Options" items={sortItems()} />);
+  open();
+  const row = screen.getByRole("menuitem", { name: "Sort by" });
+  fireEvent.click(row);
+  const sub = screen.getByRole("menu", { name: "Sort by" });
+  fireEvent.click(within(sub).getAllByRole("menuitem")[0]!);
+
+  // Folding, it's shut already, and what it covered works again.
+  expect(row.getAttribute("aria-expanded")).toBe("false");
+  expect(sub.hasAttribute("data-leaving")).toBe(true);
+  const card = screen.getByRole("menu", { name: "Options" });
+  expect(card.querySelector(":scope > .lg-menu-content")!.hasAttribute("inert")).toBe(false);
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu", { name: "Sort by" })).toBeNull();
+  expect(card.dataset.phase).toBe("open");
+  expect(card.hasAttribute("data-receder")).toBe(false);
+  expect(card.style.getPropertyValue("--lg-recede")).toBe("");
+  vi.useRealTimers();
+});
+
+test("Escape folds a submenu first, and the menu next", async () => {
+  vi.useFakeTimers();
+  render(<Menu aria-label="Options" items={sortItems()} />);
+  open();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu", { name: "Sort by" })).toBeNull();
+  expect(screen.getByRole("menu", { name: "Options" }).dataset.phase).toBe("open");
+
+  fireEvent.keyDown(screen.getByRole("menu", { name: "Options" }), { key: "Escape" });
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu")).toBeNull();
+  vi.useRealTimers();
+});
+
+test("the arrow keys open a submenu, move within it and fold it back to its row", async () => {
+  vi.useFakeTimers();
+  render(<Menu aria-label="Options" items={sortItems()} />);
+  open();
+  const row = screen.getByRole("menuitem", { name: "Sort by" });
+  row.focus();
+  fireEvent.keyDown(row, { key: "ArrowRight" });
+  // A key starts on the first item, under the title.
+  const name = screen.getByRole("menuitem", { name: "Name" });
+  expect(document.activeElement).toBe(name);
+
+  fireEvent.keyDown(name, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Date" }));
+  // The menu behind it has no part in the keys.
+  fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+  const title = within(screen.getByRole("menu", { name: "Sort by" })).getAllByRole("menuitem")[0];
+  expect(document.activeElement).toBe(title);
+  fireEvent.keyDown(document.activeElement!, { key: "End" });
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Date" }));
+
+  fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu", { name: "Sort by" })).toBeNull();
+  expect(document.activeElement).toBe(row);
+  vi.useRealTimers();
+});
+
+test("a submenu opens another over it, and folding the first takes both", async () => {
+  vi.useFakeTimers();
+  const onRaw = vi.fn();
+  render(
+    <Menu
+      aria-label="Options"
+      items={[{ label: "Export", items: [{ label: "Pin" }, { label: "As", items: [{ label: "CSV" }, { label: "Raw", onSelect: onRaw }] }] }]}
+    />,
+  );
+  open();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "As" }));
+  const as = screen.getByRole("menu", { name: "As" });
+  expect(screen.getAllByRole("menu")).toHaveLength(3);
+  // Each is over the one that has its row.
+  const first = screen.getByRole("menu", { name: "Export" });
+  expect(first.hasAttribute("data-receder")).toBe(true);
+  expect(first.querySelector(":scope > .lg-menu-content")!.hasAttribute("inert")).toBe(true);
+  expect(screen.getByRole("menu", { name: "Options" }).hasAttribute("data-receder")).toBe(true);
+
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu", { name: "As" })).toBeNull();
+  expect(first.hasAttribute("data-receder")).toBe(false);
+  expect(screen.getByRole("menu", { name: "Export" })).toBe(first);
+
+  fireEvent.click(screen.getByRole("menuitem", { name: "As" }));
+  fireEvent.click(within(screen.getByRole("menu", { name: "As" })).getByRole("menuitem", { name: "Raw" }));
+  expect(onRaw).toHaveBeenCalledOnce();
+  expect(as.isConnected).toBe(false);
+  vi.useRealTimers();
+});
+
+test("the menu closing takes its submenus with it", async () => {
+  vi.useFakeTimers();
+  const { rerender } = render(<Menu aria-label="Options" items={sortItems()} open />);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  expect(screen.getAllByRole("menu")).toHaveLength(2);
+
+  rerender(<Menu aria-label="Options" items={sortItems()} open={false} />);
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu")).toBeNull();
+  vi.useRealTimers();
+});
+
+test("a press on the menu behind a submenu folds it, and chooses nothing", async () => {
+  vi.useFakeTimers();
+  const onPin = vi.fn();
+  render(<Menu aria-label="Options" items={sortItems(vi.fn(), onPin)} />);
+  open();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  const card = screen.getByRole("menu", { name: "Options" });
+  // jsdom doesn't lay anything out, so says what is under the finger.
+  document.elementFromPoint = () => card;
+  fireEvent.pointerDown(card, { pointerId: 1, isPrimary: true, button: 0, clientX: 4, clientY: 4 });
+  fireEvent.pointerUp(card, { pointerId: 1, isPrimary: true, button: 0, clientX: 4, clientY: 4 });
+  await act(() => vi.runAllTimersAsync());
+  expect(screen.queryByRole("menu", { name: "Sort by" })).toBeNull();
+  expect(onPin).not.toHaveBeenCalled();
+  expect(card.dataset.phase).toBe("open");
+  delete (document as Partial<Document>).elementFromPoint;
+  vi.useRealTimers();
+});
+
+test("a submenu's row has no link or choice of its own", () => {
+  const onSelect = vi.fn();
+  render(<Menu aria-label="Options" items={[{ label: "More", href: "/more", checked: true, onSelect, items: [{ label: "Name" }] }]} />);
+  open();
+  const row = screen.getByRole("menuitem", { name: "More" });
+  expect(row.tagName).toBe("BUTTON");
+  expect(row.hasAttribute("href")).toBe(false);
+  fireEvent.click(row);
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(screen.getByRole("menu", { name: "More" })).toBeTruthy();
+});
+
+test("a submenu that's gone from the items goes from the screen", () => {
+  const { rerender } = render(<Menu aria-label="Options" items={sortItems()} open />);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Sort by" }));
+  rerender(<Menu aria-label="Options" items={[{ label: "Pin" }]} open />);
+  expect(screen.queryByRole("menu", { name: "Sort by" })).toBeNull();
 });

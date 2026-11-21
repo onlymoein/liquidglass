@@ -8,6 +8,7 @@ import { placeMenu, type Placement } from "./internal/placement";
 import { fitLens, rimAt } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
 import { useStyles } from "./internal/styles";
+import { entryAt, isItem, renderEntries, Submenu } from "./menu-list";
 import buttonCss from "./styles/button.css?inline";
 import menuCss from "./styles/menu.css?inline";
 
@@ -30,6 +31,12 @@ export interface MenuItem {
   checked?: boolean;
   /** Choosing the item leaves the menu open, so what it changed can be seen, as for a setting. */
   keepOpen?: boolean;
+  /**
+   * Makes the item a submenu. As on iOS it doesn't act itself: choosing it opens these items on a
+   * second card stacked over the menu, titled with this item, and choosing the title folds the card
+   * back. `Menu` opens submenus; `ContextMenu` doesn't yet.
+   */
+  items?: MenuEntry[];
   className?: string;
 }
 
@@ -65,14 +72,18 @@ export interface MenuProps {
 
 type Phase = "closed" | "open" | "leaving";
 
+interface Sub {
+  path: number[];
+  open: boolean;
+  keyboard: boolean;
+}
+
 // The menu is measured and placed before it's first painted.
 const useLayout = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const modifiers = ({ metaKey, ctrlKey, shiftKey }: MouseEvent | PointerEvent) => ({ metaKey, ctrlKey, shiftKey });
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const resistance = (value: number) => Math.sign(value) * 7 * (1 - Math.exp((-Math.abs(value) * 0.12) / 7));
-const isItem = (entry: MenuEntry | undefined): entry is MenuItem =>
-  entry != null && entry !== "separator" && !("heading" in entry);
 
 // The glass's shape as it opens and closes, one row a frame at 60fps, read from iOS 27.
 // Width, height and centre are how far along from the trigger (0) to the menu (1). The
@@ -175,12 +186,6 @@ const ellipsis = (
   </svg>
 );
 
-const checkmark = (
-  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" aria-hidden>
-    <path d="m2.75 7.25 2.75 2.75 5.75-6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 // Where the trigger stands, without the scale its press spring may still be writing on it.
 function triggerRect(trigger: HTMLElement) {
   const rect = trigger.getBoundingClientRect();
@@ -251,12 +256,14 @@ export function Menu({
   // `open` is whether the menu should be open; the phase follows it, and keeps
   // the menu mounted while its glass runs back into the trigger.
   const [phase, setPhase] = useState<Phase>(open ? "open" : "closed");
+  // The submenus stacked over the menu, bottom first. One that's folding back is still here, shut.
+  const [subs, setSubs] = useState<Sub[]>([]);
+  const opened = subs.filter((sub) => sub.open).map((sub) => sub.path.join("."));
   const triggerRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLSpanElement>(null);
   const glyphRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const plateRef = useRef<HTMLSpanElement>(null);
   const morphRef = useRef<{ set(target: number): void } | null>(null);
   const latest = useRef({ items, open, setOpen });
   const refocus = useRef(true);
@@ -270,6 +277,8 @@ export function Menu({
   useEffect(() => {
     if (open) return setPhase("open");
     setPhase((current) => (current === "closed" ? current : "leaving"));
+    // Submenus fold away with the menu.
+    setSubs((all) => (all.some((sub) => sub.open) ? all.map((sub) => ({ ...sub, open: false })) : all));
     // Focus left inside the menu would be lost as it unmounts.
     if (refocus.current && cardRef.current?.contains(document.activeElement)) {
       triggerRef.current?.focus({ preventScroll: true });
@@ -280,6 +289,7 @@ export function Menu({
   useEffect(() => {
     if (phase === "open") morphRef.current?.set(1);
     if (phase === "leaving") morphRef.current?.set(0);
+    if (phase === "closed") setSubs((all) => (all.length ? [] : all));
   }, [phase]);
 
   useLayout(() => {
@@ -289,7 +299,6 @@ export function Menu({
     const surface = surfaceRef.current!;
     const glyph = glyphRef.current!;
     const content = contentRef.current!;
-    const plate = plateRef.current!;
 
     // Measured at its own size first, then placed over the trigger.
     show(card);
@@ -466,11 +475,28 @@ export function Menu({
     };
     morphRef.current = morph;
     morph.set(1);
+    // The submenu on top, if one is open: it has the keys and the pointer, and what it covers has neither.
+    const topSub = () => [...card.querySelectorAll<HTMLElement>(".lg-menu-sub:not([data-leaving])")].pop() ?? null;
     // A row its own className hides, say for one kind of screen, is passed over.
-    const rows = () =>
-      [...card.querySelectorAll<HTMLElement>(".lg-menu-item:not(:disabled)")].filter(
-        (row) => getComputedStyle(row).display !== "none",
+    const rows = () => {
+      const sub = topSub();
+      return [...(sub ?? card).querySelectorAll<HTMLElement>(".lg-menu-item:not(:disabled)")].filter(
+        (row) => row.closest(".lg-menu-sub") === sub && getComputedStyle(row).display !== "none",
       );
+    };
+    // A submenu opens over the menu, or the submenu, that has its row, and folds back into that row.
+    const fold = (path: string) =>
+      setSubs((all) =>
+        all.map((sub) => {
+          const at = sub.path.join(".");
+          return at === path || at.startsWith(`${path}.`) ? { ...sub, open: false } : sub;
+        }),
+      );
+    const unfold = (path: number[], keyboard: boolean) =>
+      setSubs((all) => {
+        const at = path.join(".");
+        return [...all.filter((sub) => at.startsWith(`${sub.path.join(".")}.`)), { path, open: true, keyboard }];
+      });
     // A keyboard starts on the first row. A finger has no use for it, and it'd come up ringed.
     if (tapped.current) card.focus({ preventScroll: true });
     else rows()[0]?.focus({ preventScroll: true });
@@ -507,7 +533,8 @@ export function Menu({
       paint();
     });
 
-    let gesture: { id: number; x: number; y: number } | null = null;
+    let gesture: { id: number; x: number; y: number; dismiss: boolean } | null = null;
+    let viaPointer = false;
     let current: HTMLElement | null = null;
     let suppressClickUntil = 0;
 
@@ -518,21 +545,29 @@ export function Menu({
       latest.current.setOpen(false);
     };
 
-    // The plate slides between rows for a drag and for a hovering mouse alike.
+    // Each card has a plate of its own. It slides between rows for a drag and for a hovering
+    // mouse alike.
+    const plateOf = (row: HTMLElement) =>
+      [...(row.closest(".lg-menu-content")?.children ?? [])].find((child): child is HTMLElement =>
+        child.classList.contains("lg-menu-plate"),
+      );
+    let lit: HTMLElement | undefined;
     const highlight = (row: HTMLElement | null) => {
       if (current === row) return;
-      const first = !current;
+      const plate = row ? plateOf(row) : undefined;
+      // The first row lights up in place and at once, taking over from the
+      // row's own hover background without a gap; later rows slide to it.
+      const first = !current || plate !== lit;
       current = row;
-      if (!row) {
+      if (lit && lit !== plate) lit.style.opacity = "0";
+      lit = plate;
+      if (!row || !plate) {
         delete card.dataset.scrubbing;
-        plate.style.opacity = "0";
         return;
       }
       card.dataset.scrubbing = "";
       plate.style.width = `${row.offsetWidth}px`;
       plate.style.height = `${row.offsetHeight}px`;
-      // The first row lights up in place and at once, taking over from the
-      // row's own hover background without a gap; later rows slide to it.
       if (first) plate.style.transition = "none";
       plate.style.transform = `translate(${row.offsetLeft}px, ${row.offsetTop}px)`;
       plate.style.opacity = "1";
@@ -549,9 +584,14 @@ export function Menu({
 
     const down = (event: PointerEvent) => {
       if (!event.isPrimary || event.button !== 0) return;
-      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      // A press on what a submenu covers folds the submenu back, and chooses nothing.
+      const sub = topSub();
+      const dismiss = !!sub && !document.elementFromPoint(event.clientX, event.clientY)?.closest(".lg-menu-sub:not([data-leaving])");
+      if (sub && dismiss) fold(sub.dataset.sub!);
+      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, dismiss };
       // A menu that scrolls leaves a finger free to scroll it.
-      if (!(event.pointerType === "touch" && place.scrolls)) card.setPointerCapture(event.pointerId);
+      const scrolls = place.scrolls || !!(event.target as Element).closest(".lg-menu-sub[data-scrolls]");
+      if (!(event.pointerType === "touch" && scrolls)) card.setPointerCapture(event.pointerId);
       card.dataset.pressed = "";
       scale.set(1 + 5 / Math.max(card.offsetWidth, card.offsetHeight, 200));
       highlight(rowAt(event.clientX, event.clientY));
@@ -573,7 +613,7 @@ export function Menu({
 
     const end = (event: PointerEvent) => {
       if (event.pointerId !== gesture?.id) return;
-      const chosen = event.type === "pointerup" ? rowAt(event.clientX, event.clientY) : null;
+      const chosen = event.type === "pointerup" && !gesture.dismiss ? rowAt(event.clientX, event.clientY) : null;
       highlight(null);
       gesture = null;
       delete card.dataset.pressed;
@@ -582,7 +622,9 @@ export function Menu({
       y.set(0);
       suppressClickUntil = performance.now() + 500;
       // Carries the modifiers, so ⌘ on a link still means a new tab.
+      viaPointer = true;
       chosen?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ...modifiers(event) }));
+      viaPointer = false;
     };
 
     const leave = (event: PointerEvent) => {
@@ -595,7 +637,15 @@ export function Menu({
       // A link is followed here, once, rather than by the browser as well.
       if (row instanceof HTMLAnchorElement) event.preventDefault();
       if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
-      const item = latest.current.items[Number(row.dataset.index)];
+      const at = row.dataset.path;
+      if (!at) return;
+      // A submenu's row opens it, and its title folds it back; neither is a choice.
+      if (row.dataset.submenu !== undefined) {
+        if (row.classList.contains("lg-menu-sub-head")) fold(at);
+        else unfold(at.split(".").map(Number), !viaPointer && event.detail === 0);
+        return;
+      }
+      const item = entryAt(latest.current.items, at.split(".").map(Number));
       if (!isItem(item)) return;
       const elsewhere = Object.values(modifiers(event)).some(Boolean);
       const href = safeHref(item.href);
@@ -606,11 +656,20 @@ export function Menu({
     };
 
     const key = (event: KeyboardEvent) => {
+      const sub = topSub();
+      const focused = document.activeElement;
       if (event.key === "Escape") {
-        // The menu takes the Escape, so a dialog it opened over stays open.
+        // The menu takes the Escape, so a dialog it opened over stays open. A submenu folds back first.
         event.preventDefault();
         event.stopPropagation();
-        close();
+        if (sub) fold(sub.dataset.sub!);
+        else close();
+      } else if (event.key === "ArrowLeft" && sub) {
+        event.preventDefault();
+        fold(sub.dataset.sub!);
+      } else if (event.key === "ArrowRight" && focused instanceof HTMLElement && focused.matches(".lg-menu-item[data-submenu]:not(.lg-menu-sub-head)")) {
+        event.preventDefault();
+        unfold(focused.dataset.path!.split(".").map(Number), true);
       } else if (event.key === "Tab") {
         close(false);
       } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
@@ -715,47 +774,25 @@ export function Menu({
             {face}
           </span>
           <div ref={contentRef} role="none" className="lg-menu-content">
-            <span ref={plateRef} className="lg-menu-plate" aria-hidden />
-            {items.map((item, index) => {
-              if (item === "separator") return <div key={index} role="separator" className="lg-menu-separator" />;
-              if ("heading" in item) {
-                return (
-                  <div key={index} role="presentation" className="lg-menu-heading">
-                    {item.heading}
-                  </div>
-                );
-              }
-              const choice = item.checked !== undefined;
-              const props = {
-                role: choice ? "menuitemradio" : "menuitem",
-                "aria-checked": choice ? item.checked : undefined,
-                className: cx("lg-menu-item", item.className),
-                "data-index": index,
-                "data-destructive": item.destructive ? "" : undefined,
-              };
-              const body = (
-                <>
-                  {choice ? (
-                    <span className="lg-menu-check" aria-hidden>
-                      {item.checked ? checkmark : null}
-                    </span>
-                  ) : null}
-                  {item.icon}
-                  {item.label}
-                </>
-              );
-              const href = safeHref(item.href);
-              return href && !item.disabled ? (
-                <a key={index} href={href} {...props}>
-                  {body}
-                </a>
-              ) : (
-                <button key={index} type="button" disabled={item.disabled} {...props}>
-                  {body}
-                </button>
-              );
-            })}
+            <span className="lg-menu-plate" aria-hidden />
+            {renderEntries(items, [], opened)}
           </div>
+          {subs.map((sub) => {
+            const key = sub.path.join(".");
+            const entry = entryAt(items, sub.path);
+            if (!isItem(entry) || !entry.items) return null;
+            return (
+              <Submenu
+                key={key}
+                item={entry}
+                path={sub.path}
+                open={sub.open}
+                keyboard={sub.keyboard}
+                opened={opened}
+                onGone={() => setSubs((all) => all.filter((one) => one.open || one.path.join(".") !== key))}
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>

@@ -60,7 +60,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Stepper` | Minus/plus buttons | `value`, `onValueChange`, `min`, `max`, `step` |
 | `SegmentedControl` | One of a few choices | `items: { value, label, disabled? }[]`, `value`, `onValueChange` |
 | `Input`, `SearchField` | Text fields | `value`, `onValueChange`, `icon`, `variant: "glass" \| "fill"` |
-| `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items`, `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
+| `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items` (an item's own `items` make it a submenu), `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
@@ -71,7 +71,9 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 Menu items are `{ label, icon?, onSelect?, href?, checked?, keepOpen?, destructive?, disabled? }`,
 `{ heading }`, or `"separator"`. `href` makes an item a link: `onSelect` runs instead if given,
 for a router's navigate, and ⌘, Ctrl, Shift or the middle button opens a new tab. Use
-`checked` with `keepOpen: true` for settings like a theme picker.
+`checked` with `keepOpen: true` for settings like a theme picker. `items` makes an item a
+submenu: choosing it opens a second glass card over the menu, titled with the item, and
+choosing the title (or Escape, or ←) folds it back. `Menu` opens submenus; `ContextMenu` doesn't yet.
 
 ```tsx
 <Toolbar aria-label="Notes">

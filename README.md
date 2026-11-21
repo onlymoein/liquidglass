@@ -232,6 +232,7 @@ import { Menu } from "@onlymoein/liquidglass";
     { label: "Light", checked: theme === "light", keepOpen: true, onSelect: () => setTheme("light") },
     { label: "Dark", checked: theme === "dark", keepOpen: true, onSelect: () => setTheme("dark") },
     "separator",
+    { label: "Share", items: [{ label: "Copy link", onSelect: copyLink }, { label: "Mail", onSelect: mail }] },
     { label: "Sign out", destructive: true, onSelect: signOut },
   ]}
 />
@@ -241,6 +242,7 @@ import { Menu } from "@onlymoein/liquidglass";
 - `align` lines the menu up with the trigger's `start`, `center` or `end`. `trigger` passes props to the trigger button, such as `{ variant: "filled" }`.
 - An item with `href` is a link: `onSelect` runs instead if it's given, for your router, and ⌘, Ctrl, Shift or the middle button opens a new tab.
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
+- `items` on an item makes it a submenu, as on iOS: choosing it opens a second card of glass over the menu, grown out of that row and titled with it, while the menu behind shrinks and dims. Choosing the title, Escape or ← folds the card back into its row, and → opens one from the keyboard. Submenus can nest. Web only for now, and `ContextMenu` doesn't open them yet.
 - It opens in the top layer, so nothing around the trigger can clip it.
 
 #### Sheet and Alert
