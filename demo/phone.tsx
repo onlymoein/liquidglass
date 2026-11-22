@@ -93,7 +93,7 @@ export function Phone() {
       <div className="phone-scroll" ref={scroller} onScroll={(event) => scrolled(event.currentTarget.scrollTop)}>
         {pushed ? (
           <>
-            <NavigationBar key="saved" level={3} title="Saved" onBack={() => push(false)} />
+            <NavigationBar key="saved" level={3} title="Saved" subtitle={`${palette.length} of ${SWATCHES.length} colours`} onBack={() => push(false)} />
             <div className="phone-page">
                 {palette.length ? <Cards swatches={SWATCHES.filter((swatch) => palette.includes(swatch.name))} onOpen={show} /> : <p className="phone-empty">Nothing saved yet. Open a swatch and tap Save.</p>}
             </div>
@@ -105,6 +105,7 @@ export function Phone() {
                 key="swatches"
                 level={3}
                 title="Swatches"
+                subtitle={`${SWATCHES.length} colours`}
                 leading={<Menu aria-label="Sort" icon={stroke(icons.sort)} align="start" items={[{ heading: "Sort" }, sortItem("Warm first"), sortItem("Cool first"), sortItem("A to Z")]} />}
                 trailing={
                   <ToolbarGroup aria-label="Saved">

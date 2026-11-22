@@ -190,6 +190,7 @@ function Navigation() {
       <NavigationBar
         level={3}
         title="Inbox"
+        subtitle="3 unread"
         onBack={() => {}}
         trailing={
           <ToolbarGroup aria-label="Actions">
@@ -358,12 +359,13 @@ const TILES: Tile[] = [
   },
   {
     title: "NavigationBar",
-    how: "Scroll this panel. The large title slides under the bar and its small twin fades into the middle.",
+    how: "Scroll this panel. The large title and its subtitle slide under the bar and their small twins fade into the middle.",
     demo: <Navigation />,
     wide: true,
     bare: true,
     code: `<NavigationBar
   title="Inbox"
+  subtitle="3 unread"
   onBack={goBack}
   trailing={
     <ToolbarGroup aria-label="Actions">

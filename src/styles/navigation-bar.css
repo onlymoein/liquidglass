@@ -30,22 +30,65 @@
   white-space: nowrap;
 }
 
+/* A subtitle stacks under the title, centred, and the title shrinks to 15 points to make room, as on iOS 27. */
+.lg-nav-titles {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+}
+
+.lg-nav-titles > .lg-nav-title {
+  max-width: 100%;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.lg-nav-subtitle {
+  max-width: 100%;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--lg-muted);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* With a large title the bar's own stays hidden until the large one has scrolled under. */
-.lg-nav[data-large] .lg-nav-title {
+.lg-nav[data-large] .lg-nav-title,
+.lg-nav[data-large] .lg-nav-subtitle {
   opacity: 0;
   transition: opacity 200ms var(--lg-ease);
 }
 
-.lg-nav[data-large][data-collapsed] .lg-nav-title {
+.lg-nav[data-large][data-collapsed] .lg-nav-title,
+.lg-nav[data-large][data-collapsed] .lg-nav-subtitle {
   opacity: 1;
 }
 
-/* 34 points, bold. It sits in the content, under the bar, and scrolls with it. */
+/* 34 points, bold. It sits in the content, under the bar, and scrolls with it. Its baseline is 47 points under the bar's buttons. */
 .lg-nav-large {
-  padding: 0 16px 8px;
+  padding: 5px 16px 8px;
   color: var(--lg-foreground);
   font-size: 34px;
   font-weight: 700;
   line-height: 41px;
+  overflow-wrap: anywhere;
+}
+
+/* With a subtitle the title sits 4 points lower, and its line of detail follows it in secondary colour, 11 points. */
+.lg-nav-large[data-subtitled] {
+  padding-top: 9px;
+  padding-bottom: 0;
+}
+
+.lg-nav-large-subtitle {
+  margin-top: -2px;
+  padding: 0 16px 13px;
+  color: var(--lg-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
   overflow-wrap: anywhere;
 }

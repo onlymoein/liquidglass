@@ -707,6 +707,12 @@ h3 {
   text-shadow: var(--wall-shadow);
 }
 
+.phone .lg-nav-subtitle,
+.phone .lg-nav-large-subtitle {
+  color: color-mix(in srgb, var(--wall-ink) 78%, transparent);
+  text-shadow: var(--wall-shadow);
+}
+
 .phone-empty {
   color: var(--wall-ink);
   text-shadow: var(--wall-shadow);

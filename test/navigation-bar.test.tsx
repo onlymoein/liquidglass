@@ -6,10 +6,16 @@ import { Button, NavigationBar, ToolbarGroup } from "../src";
 
 afterEach(() => vi.restoreAllMocks());
 
-// jsdom has no layout, so say where the bar's bottom and the large title's bottom are.
-function layout(bar: number, title: number) {
+// jsdom has no layout, so say where the bar's bottom and the large title's bottom are (and the subtitle's, if it has one).
+function layout(bar: number, title: number, subtitle = title) {
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-    const bottom = this.classList.contains("lg-nav-large") ? title : this.classList.contains("lg-nav") ? bar : 0;
+    const bottom = this.classList.contains("lg-nav-large-subtitle")
+      ? subtitle
+      : this.classList.contains("lg-nav-large")
+        ? title
+        : this.classList.contains("lg-nav")
+          ? bar
+          : 0;
     return { top: bottom, bottom, left: 0, right: 0, width: 0, height: 0, x: 0, y: bottom, toJSON() {} } as DOMRect;
   });
 }
@@ -122,4 +128,88 @@ test("stops listening when it unmounts", () => {
   const remove = vi.spyOn(box, "removeEventListener");
   unmount();
   expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
+});
+
+test("a subtitle sits under the large title, and is read once, after the title", () => {
+  render(<NavigationBar title="Swatches" subtitle="12 colours" />);
+
+  // The heading is the title alone; the subtitle is a line of text beside it.
+  expect(screen.getByRole("heading", { name: "Swatches" }).textContent).toBe("Swatches");
+  const big = screen.getByRole("heading", { name: "Swatches" });
+  expect(big.hasAttribute("data-subtitled")).toBe(true);
+  expect(big.nextElementSibling?.className).toBe("lg-nav-large-subtitle");
+  expect(big.nextElementSibling?.textContent).toBe("12 colours");
+
+  // The bar's copy of both is for the eye only while the large ones are showing.
+  const bar = screen.getByRole("toolbar");
+  expect(bar.querySelector(".lg-nav-title")?.getAttribute("aria-hidden")).toBe("true");
+  expect(bar.querySelector(".lg-nav-subtitle")?.getAttribute("aria-hidden")).toBe("true");
+  expect(screen.getAllByText("12 colours")).toHaveLength(2);
+  expect(screen.getAllByRole("heading")).toHaveLength(1);
+});
+
+test("without a large title, the subtitle is in the bar under the heading, not inside it", () => {
+  render(<NavigationBar title="Settings" subtitle="Updated just now" large={false} level={2} />);
+
+  const heading = screen.getByRole("heading", { name: "Settings", level: 2 });
+  expect(heading.className).toBe("lg-nav-title");
+  const subtitle = screen.getByText("Updated just now");
+  expect(subtitle.className).toBe("lg-nav-subtitle");
+  expect(subtitle.hasAttribute("aria-hidden")).toBe(false);
+  expect(heading.contains(subtitle)).toBe(false);
+  expect(heading.parentElement).toBe(subtitle.parentElement);
+  expect(document.querySelector(".lg-nav-large, .lg-nav-large-subtitle")).toBeNull();
+});
+
+test("adds nothing to a bar without a subtitle", () => {
+  render(<NavigationBar title="Swatches" />);
+
+  expect(document.querySelector(".lg-nav-titles, .lg-nav-subtitle, .lg-nav-large-subtitle")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Swatches" }).hasAttribute("data-subtitled")).toBe(false);
+});
+
+test("the bar's own title waits for the subtitle to scroll under the bar too", () => {
+  const { container } = render(
+    <div style={{ overflowY: "auto" }}>
+      <NavigationBar title="Swatches" subtitle="12 colours" />
+    </div>,
+  );
+  const box = container.firstElementChild as HTMLElement;
+  const bar = screen.getByRole("toolbar");
+
+  // The title is under the bar, but the line below it isn't yet.
+  layout(60, 40, 80);
+  fireEvent.scroll(box);
+  expect(bar.hasAttribute("data-collapsed")).toBe(false);
+
+  layout(60, 40, 70);
+  fireEvent.scroll(box);
+  expect(bar.hasAttribute("data-collapsed")).toBe(true);
+});
+
+test("picks the subtitle up when it arrives later, and drops it again", () => {
+  layout(60, 40, 100);
+  const { rerender } = render(
+    <div style={{ overflowY: "auto" }}>
+      <NavigationBar title="Swatches" />
+    </div>,
+  );
+  const bar = screen.getByRole("toolbar");
+  expect(bar.hasAttribute("data-collapsed")).toBe(true);
+
+  rerender(
+    <div style={{ overflowY: "auto" }}>
+      <NavigationBar title="Swatches" subtitle="12 colours" />
+    </div>,
+  );
+  expect(bar.hasAttribute("data-collapsed")).toBe(false);
+  expect(screen.getAllByText("12 colours")).toHaveLength(2);
+
+  rerender(
+    <div style={{ overflowY: "auto" }}>
+      <NavigationBar title="Swatches" />
+    </div>,
+  );
+  expect(bar.hasAttribute("data-collapsed")).toBe(true);
+  expect(screen.queryByText("12 colours")).toBeNull();
 });
