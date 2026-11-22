@@ -208,6 +208,7 @@ import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
 
 <NavigationBar
   title="Inbox"
+  subtitle="3 unread"
   onBack={goBack}
   trailing={
     <ToolbarGroup aria-label="Actions">
@@ -217,7 +218,7 @@ import { Button, NavigationBar, ToolbarGroup } from "@onlymoein/liquidglass";
 />
 ```
 
-A `Toolbar` with a title. The title starts large and scrolls away with the content, and a smaller one fades into the bar once it's gone. `large={false}` keeps the small title from the start. `onBack` adds the round back button, and `leading` and `trailing` hold other actions.
+A `Toolbar` with a title. The title starts large and scrolls away with the content, and a smaller one fades into the bar once it's gone. `large={false}` keeps the small title from the start. `subtitle` adds a line of detail under the title: grey under the large one, and in the bar the title shrinks to make room for it, as on iOS 27. `onBack` adds the round back button, and `leading` and `trailing` hold other actions.
 
 #### Menu
 

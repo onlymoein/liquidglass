@@ -18,6 +18,8 @@ import navigationBarCss from "./styles/navigation-bar.css?inline";
 export interface NavigationBarProps extends Omit<ToolbarProps, "title" | "children"> {
   /** The screen's name. Large under the bar, then in the bar once it has scrolled under. */
   title: string;
+  /** A line of detail under the title, such as "12 colours" or "Updated just now". Under the large title it scrolls away with it; in the bar the title shrinks to make room for it. */
+  subtitle?: string;
   /** Show the title large below the bar. Without it the title sits in the bar from the start. Defaults to true. */
   large?: boolean;
   /** Adds the round back button at the leading edge, and is called when it's pressed. */
@@ -51,6 +53,7 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
   /* @__PURE__ */ forwardRef<HTMLDivElement, NavigationBarProps>(function NavigationBar(
     {
       title,
+      subtitle,
       large = true,
       onBack,
       backLabel = "Back",
@@ -66,6 +69,7 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
   useStyles(["navigation-bar", navigationBarCss]);
     const ref = useRef<HTMLDivElement>(null);
     const heading = useRef<HTMLDivElement>(null);
+    const detail = useRef<HTMLDivElement>(null);
     useImperativeHandle(forwardedRef, () => ref.current!);
 
     // The bar swaps to its own title once the large one has scrolled under it.
@@ -74,7 +78,8 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
       const big = heading.current;
       if (!bar || !big) return;
       const target = scroller(bar) ?? window;
-      const update = () => bar.toggleAttribute("data-collapsed", big.getBoundingClientRect().bottom - COVERED <= bar.getBoundingClientRect().bottom);
+      // The subtitle goes under the bar with the title it belongs to.
+      const update = () => bar.toggleAttribute("data-collapsed", (detail.current ?? big).getBoundingClientRect().bottom - COVERED <= bar.getBoundingClientRect().bottom);
       update();
       target.addEventListener("scroll", update, { passive: true });
       window.addEventListener("resize", update);
@@ -83,7 +88,7 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
         window.removeEventListener("resize", update);
         bar.removeAttribute("data-collapsed");
       };
-    }, [large]);
+    }, [large, subtitle]);
 
     return (
       <>
@@ -102,22 +107,45 @@ export const NavigationBar: ForwardRefExoticComponent<NavigationBarProps & RefAt
             )}
             {leading}
           </div>
-          <span
-            className="lg-nav-title"
-            role={large ? undefined : "heading"}
-            aria-level={large ? undefined : level}
-            aria-hidden={large ? true : undefined}
-          >
-            {title}
-          </span>
+          {subtitle ? (
+            <div className="lg-nav-titles">
+              <span
+                className="lg-nav-title"
+                role={large ? undefined : "heading"}
+                aria-level={large ? undefined : level}
+                aria-hidden={large ? true : undefined}
+              >
+                {title}
+              </span>
+              <span className="lg-nav-subtitle" aria-hidden={large ? true : undefined}>
+                {subtitle}
+              </span>
+            </div>
+          ) : (
+            <span
+              className="lg-nav-title"
+              role={large ? undefined : "heading"}
+              aria-level={large ? undefined : level}
+              aria-hidden={large ? true : undefined}
+            >
+              {title}
+            </span>
+          )}
           <div className="lg-nav-side" data-side="trailing">
             {trailing}
           </div>
         </Toolbar>
         {large && (
-          <div ref={heading} className="lg-nav-large" role="heading" aria-level={level}>
-            {title}
-          </div>
+          <>
+            <div ref={heading} className="lg-nav-large" role="heading" aria-level={level} data-subtitled={subtitle ? "" : undefined}>
+              {title}
+            </div>
+            {subtitle && (
+              <div ref={detail} className="lg-nav-large-subtitle">
+                {subtitle}
+              </div>
+            )}
+          </>
         )}
       </>
     );
