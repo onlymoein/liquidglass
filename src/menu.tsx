@@ -4,6 +4,7 @@ import { Button, type ButtonProps } from "./button";
 import { safeHref } from "./internal/href";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { upwardOrder } from "./internal/menu-order";
 import { placeMenu, type Placement } from "./internal/placement";
 import { fitLens, rimAt } from "./internal/refraction";
 import { createSpring, prefersReducedMotion } from "./internal/spring";
@@ -199,6 +200,21 @@ const viewport = () => ({
   height: window.innerHeight,
 });
 
+// The menu measured at its own size, and where it goes over its trigger. It has to be in the top layer.
+function placed(trigger: HTMLElement, card: HTMLElement) {
+  card.style.left = "0px";
+  card.style.top = "0px";
+  card.style.setProperty("--lg-menu-min-width", `${trigger.offsetWidth}px`);
+  const start = triggerRect(trigger);
+  const place: Placement = placeMenu(
+    start,
+    { width: card.offsetWidth, height: card.offsetHeight },
+    card.dataset.align as "start" | "center" | "end",
+    viewport(),
+  );
+  return { start, place };
+}
+
 // In the top layer, the menu is above everything on the page, and nothing that scrolls or
 // clips around its trigger can cut it off.
 // The attribute goes on only where the browser has popovers: elsewhere it can hide the menu.
@@ -251,6 +267,9 @@ export function Menu({
   // `open` is whether the menu should be open; the phase follows it, and keeps
   // the menu mounted while its glass runs back into the trigger.
   const [phase, setPhase] = useState<Phase>(open ? "open" : "closed");
+  // Which way the menu opens, once it's been measured over its trigger: it lists its rows from the
+  // bottom when it opens upward, so this is known before they're placed.
+  const [opensUp, setOpensUp] = useState<boolean | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLSpanElement>(null);
@@ -282,8 +301,16 @@ export function Menu({
     if (phase === "leaving") morphRef.current?.set(0);
   }, [phase]);
 
+  // Measured first, with its rows in their own order, to see which way it opens.
   useLayout(() => {
-    if (!mounted) return;
+    if (!mounted) return setOpensUp(null);
+    show(cardRef.current!);
+    setOpensUp(placed(triggerRef.current!, cardRef.current!).place.side === "top");
+  }, [mounted]);
+
+  const ready = mounted && opensUp !== null;
+  useLayout(() => {
+    if (!ready) return;
     const trigger = triggerRef.current!;
     const card = cardRef.current!;
     const surface = surfaceRef.current!;
@@ -291,18 +318,8 @@ export function Menu({
     const content = contentRef.current!;
     const plate = plateRef.current!;
 
-    // Measured at its own size first, then placed over the trigger.
-    show(card);
-    card.style.left = "0px";
-    card.style.top = "0px";
-    card.style.setProperty("--lg-menu-min-width", `${trigger.offsetWidth}px`);
-    const start = triggerRect(trigger);
-    const place: Placement = placeMenu(
-      start,
-      { width: card.offsetWidth, height: card.offsetHeight },
-      card.dataset.align as "start" | "center" | "end",
-      viewport(),
-    );
+    // Measured again at its own size, now in the order it's listed in, then placed over the trigger.
+    const { start, place } = placed(trigger, card);
     card.dataset.side = place.side;
     if (place.scrolls) {
       card.dataset.scrolls = "";
@@ -665,7 +682,15 @@ export function Menu({
       window.removeEventListener("resize", follow);
       hide(card);
     };
-  }, [mounted]);
+  }, [ready]);
+
+  // Each entry keeps its place in `items`, which is what choosing one looks up.
+  const entries = items.map((item, index) => ({ item, index }));
+  const listed = opensUp
+    ? upwardOrder(entries, ({ item }) => (item === "separator" ? "separator" : "heading" in item ? "heading" : "row"))
+    : entries;
+  // With a choice in the menu, every row leaves room for its checkmark, so the labels line up.
+  const gutter = items.some((item) => isItem(item) && item.checked !== undefined);
 
   return (
     <div className={cx("lg-menu", className)} style={style}>
@@ -709,6 +734,7 @@ export function Menu({
           data-phase={phase}
           data-align={align}
           data-label={label == null ? undefined : ""}
+          data-gutter={gutter ? "" : undefined}
         >
           <span ref={surfaceRef} className="lg-glass lg-menu-surface" data-size-fixed aria-hidden />
           <span ref={glyphRef} className="lg-menu-glyph" aria-hidden>
@@ -716,7 +742,7 @@ export function Menu({
           </span>
           <div ref={contentRef} role="none" className="lg-menu-content">
             <span ref={plateRef} className="lg-menu-plate" aria-hidden />
-            {items.map((item, index) => {
+            {listed.map(({ item, index }) => {
               if (item === "separator") return <div key={index} role="separator" className="lg-menu-separator" />;
               if ("heading" in item) {
                 return (

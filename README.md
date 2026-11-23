@@ -241,6 +241,8 @@ import { Menu } from "@onlymoein/liquidglass";
 - `align` lines the menu up with the trigger's `start`, `center` or `end`. `trigger` passes props to the trigger button, such as `{ variant: "filled" }`.
 - An item with `href` is a link: `onSelect` runs instead if it's given, for your router, and ⌘, Ctrl, Shift or the middle button opens a new tab.
 - `checked` shows a checkmark, and `keepOpen` leaves the menu open so the change can be seen.
+- With a `checked` item in the menu, every row leaves a gutter for the checkmark, so the labels line up as on iOS.
+- Where there's no room below, the menu opens upward and lists its items from the bottom, like iOS: sections and rows run in reverse, with each heading still above its own rows. `items` stays in the order you wrote it.
 - It opens in the top layer, so nothing around the trigger can clip it.
 
 #### Sheet and Alert
