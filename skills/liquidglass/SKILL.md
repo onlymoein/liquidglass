@@ -72,6 +72,9 @@ Menu items are `{ label, icon?, onSelect?, href?, checked?, keepOpen?, destructi
 `{ heading }`, or `"separator"`. `href` makes an item a link: `onSelect` runs instead if given,
 for a router's navigate, and ⌘, Ctrl, Shift or the middle button opens a new tab. Use
 `checked` with `keepOpen: true` for settings like a theme picker.
+With a `checked` item, every row leaves a gutter for the checkmark. A menu that opens upward
+lists its items from the bottom, like iOS (sections and rows reversed, headings stay on top of
+their rows); write `items` in reading order and leave the reversing to the Menu.
 
 ```tsx
 <Toolbar aria-label="Notes">

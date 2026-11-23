@@ -230,14 +230,22 @@
   padding-top: 4px;
 }
 
-/* A choice keeps the room for its checkmark, chosen or not, so the labels line up. */
+/* With a choice in the menu, every row and heading leaves a gutter on the left, 15 points as
+   measured on iOS 27, and a choice's checkmark sits in it, chosen or not. */
+.lg-menu-card[data-gutter] .lg-menu-item,
+.lg-menu-card[data-gutter] .lg-menu-heading {
+  padding-left: 35px;
+}
+
 .lg-menu-check {
-  flex: none;
+  position: absolute;
+  top: 50%;
+  left: 12px;
   display: grid;
   place-items: center;
   width: 16px;
   height: 16px;
-  margin-right: -2px;
+  translate: 0 -50%;
 }
 
 .lg-menu-check > svg {

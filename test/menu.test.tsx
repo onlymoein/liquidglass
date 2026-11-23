@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
 import { Menu } from "../src";
 
 const open = () => fireEvent.click(screen.getByRole("button", { name: "Options" }));
+
+afterEach(() => vi.restoreAllMocks());
 
 test("opens, focuses the first item and selects", () => {
   const onPin = vi.fn();
@@ -220,4 +222,90 @@ test("a finger opens it as it lifts, once, and leaves no row ringed", () => {
   expect(document.activeElement).toBe(menu);
   fireEvent.click(trigger);
   expect(menu.dataset.phase).toBe("open");
+});
+
+// jsdom lays nothing out, so a trigger at the bottom of the window and a tall card stand in for a menu with no room below.
+function opensUpward() {
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains("lg-menu-card") ? 400 : 40;
+  });
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const box = this.hasAttribute("aria-haspopup") ? { left: 100, top: 700, width: 100, height: 40 } : { left: 0, top: 0, width: 0, height: 0 };
+    return { ...box, right: box.left + box.width, bottom: box.top + box.height, x: box.left, y: box.top, toJSON() {} } as DOMRect;
+  });
+}
+
+const listed = () =>
+  [...screen.getByRole("menu", { hidden: true }).querySelectorAll(".lg-menu-item, .lg-menu-heading, .lg-menu-separator")].map((row) =>
+    row.classList.contains("lg-menu-separator") ? "-" : row.textContent,
+  );
+
+test("lists its items from the bottom when it opens upward, as iOS does", () => {
+  opensUpward();
+  const onB = vi.fn();
+  const onC = vi.fn();
+  render(
+    <Menu
+      aria-label="Options"
+      items={[
+        { label: "A" },
+        "separator",
+        { heading: "Sort" },
+        { label: "B", checked: true, onSelect: onB },
+        { label: "C", checked: false, onSelect: onC },
+      ]}
+    />,
+  );
+  open();
+
+  const card = screen.getByRole("menu", { hidden: true });
+  expect(card.getAttribute("data-side")).toBe("top");
+  expect(listed()).toEqual(["Sort", "C", "B", "-", "A"]);
+
+  // The first row on screen is the one the keyboard starts on, and the arrows follow the screen.
+  const [c, b] = [screen.getByRole("menuitemradio", { name: "C", hidden: true }), screen.getByRole("menuitemradio", { name: "B", hidden: true })];
+  expect(document.activeElement).toBe(c);
+  fireEvent.keyDown(c, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(b);
+
+  // Each row is still the item it was in `items`.
+  fireEvent.click(c);
+  expect(onC).toHaveBeenCalledOnce();
+  expect(onB).not.toHaveBeenCalled();
+});
+
+test("lists its items in their own order when it opens downward", () => {
+  render(<Menu aria-label="Options" items={[{ label: "A" }, "separator", { label: "B" }, { label: "C" }]} />);
+  open();
+  expect(screen.getByRole("menu").getAttribute("data-side")).toBe("bottom");
+  expect(listed()).toEqual(["A", "-", "B", "C"]);
+});
+
+test("goes back to its own order when it's opened again with room below", () => {
+  vi.useFakeTimers();
+  opensUpward();
+  render(<Menu aria-label="Options" items={[{ label: "A" }, { label: "B" }]} />);
+  open();
+  expect(listed()).toEqual(["B", "A"]);
+
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "B", hidden: true }), { key: "Escape" });
+  act(() => vi.runAllTimers());
+  expect(screen.queryByRole("menu", { hidden: true })).toBeNull();
+
+  vi.restoreAllMocks();
+  open();
+  expect(listed()).toEqual(["A", "B"]);
+  vi.useRealTimers();
+});
+
+test("leaves a gutter on every row for the checkmarks when any item is a choice", () => {
+  render(<Menu aria-label="Options" items={[{ label: "Copy" }, { heading: "Sort" }, { label: "Name", checked: true }, { label: "Date", checked: false }]} />);
+  open();
+  expect(screen.getByRole("menu").hasAttribute("data-gutter")).toBe(true);
+});
+
+test("leaves no gutter where nothing is a choice", () => {
+  render(<Menu aria-label="Options" items={[{ label: "Copy" }, { label: "Share" }]} />);
+  open();
+  expect(screen.getByRole("menu").hasAttribute("data-gutter")).toBe(false);
 });
