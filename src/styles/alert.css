@@ -93,3 +93,69 @@
 .lg-alert-action[data-destructive] {
   color: var(--lg-destructive-ink);
 }
+
+/* iOS leaves 16pt under the message when a field follows, then 20pt before the buttons. */
+.lg-alert-card[data-fields] .lg-alert-text {
+  padding-bottom: 16px;
+}
+
+/* One 48pt pill for one field; several share a single group with a hairline between them. */
+.lg-alert-fields {
+  margin: 0 16px 20px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--lg-action);
+}
+
+.lg-alert-field-row {
+  position: relative;
+}
+
+.lg-alert-field-row + .lg-alert-field-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 16px auto;
+  height: 0.5px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.lg-alert-field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: none;
+  caret-color: var(--lg-fill);
+  font: inherit;
+  font-size: 17px;
+}
+
+.lg-alert-field::placeholder {
+  color: var(--lg-track);
+}
+
+/* The preferred action is the filled button's colour, semibold, with white text. */
+.lg-alert-action[data-preferred] {
+  color: #fff;
+  background-color: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--lg-fill) calc(100% - var(--lg-fill-shade)), #000) var(--lg-fill-alpha),
+    transparent
+  );
+  font-weight: 600;
+}
+
+.lg-alert-action[data-preferred]:active {
+  background-color: color-mix(in srgb, var(--lg-fill) 88%, #fff);
+  filter: none;
+}
+
+.lg-alert-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}

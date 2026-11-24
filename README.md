@@ -173,7 +173,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
-| `Alert` | A modal question with pill buttons | ✓ | |
+| `Alert` | A modal question with pill buttons, text fields and a preferred action | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |
 | `Progress`, `Spinner` | A progress bar and the activity indicator | ✓ | |
 | `Backdrop`, `Text`, `ScrollView` | What glass shows on Android, an iOS-like typeface, and iOS's bounce | | ✓ |
@@ -259,7 +259,17 @@ import { Alert, Sheet } from "@onlymoein/liquidglass";
   message="This can't be undone."
   actions={[{ label: "Cancel", role: "cancel" }, { label: "Delete", role: "destructive", onSelect: remove }]}
 />
+
+<Alert
+  open={renaming}
+  onOpenChange={setRenaming}
+  title="Rename shipment"
+  fields={[{ placeholder: "Name", defaultValue: shipment.name }]}
+  actions={[{ label: "Cancel", role: "cancel" }, { label: "Save", preferred: true, onSelect: ([name]) => rename(name) }]}
+/>
 ```
+
+An `Alert` with `fields` takes focus in the first one, and the action gets what was typed. The `preferred` action is filled and semibold, and Return chooses it.
 
 A sheet rests at half height as floating glass, and at full height as an opaque panel. `detents` chooses which heights it has. Drag it from anywhere, not just the handle. Scrolling content inside it hands drags back and forth as on iOS. Drags that start on a slider, a text field or anything marked `data-lg-no-sheet-drag` stay with that element.
 

@@ -63,7 +63,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items`, `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
-| `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
+| `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", preferred?, disabled?, onSelect?(values) }[]`, `fields?: { placeholder?, defaultValue?, type? }[]` |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
 | `Progress`, `Spinner` | Progress bar (`value` 0–1), activity indicator | |
 | `GlassGroup` | Glass that flows together when pieces come close | `spacing` (points) |
