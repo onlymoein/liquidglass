@@ -76,7 +76,7 @@
   --lg-stepper: rgb(255 255 255 / 0.1);
   --lg-thumb: rgb(255 255 255 / 0.25);
   --lg-scrim: rgb(0 0 0 / 0.48);
-  --lg-action: rgb(255 255 255 / 0.1);
+  --lg-action: rgb(255 255 255 / 0.17);
   --lg-sheet-opaque: #1c1c1e;
   --lg-fill-shade: 0%;
   --lg-fill-alpha: 95%;
@@ -124,7 +124,7 @@
     --lg-stepper: rgb(255 255 255 / 0.1);
     --lg-thumb: rgb(255 255 255 / 0.25);
     --lg-scrim: rgb(0 0 0 / 0.48);
-    --lg-action: rgb(255 255 255 / 0.1);
+    --lg-action: rgb(255 255 255 / 0.17);
     --lg-sheet-opaque: #1c1c1e;
     --lg-fill-shade: 0%;
     --lg-fill-alpha: 95%;

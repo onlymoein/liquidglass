@@ -100,11 +100,24 @@ function Pages() {
 
 function AlertDemo() {
   const [open, setOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [answer, setAnswer] = useState("");
   return (
     <div className="stack center">
       <Button size="large" onClick={() => setOpen(true)}>Show alert</Button>
+      <Button size="large" onClick={() => setRenaming(true)}>Rename…</Button>
       <output className="readout">{answer || " "}</output>
+      <Alert
+        open={renaming}
+        onOpenChange={setRenaming}
+        title="Rename shipment"
+        message="Enter a new name."
+        fields={[{ placeholder: "Name", defaultValue: "Pallet 12" }]}
+        actions={[
+          { label: "Cancel", role: "cancel" },
+          { label: "Save", preferred: true, onSelect: ([name]) => setAnswer(`Renamed to ${name}`) },
+        ]}
+      />
       <Alert
         open={open}
         onOpenChange={setOpen}
@@ -297,7 +310,7 @@ const TILES: Tile[] = [
   },
   {
     title: "Alert",
-    how: "A modal question with pill buttons.",
+    how: "A modal question with pill buttons. Add fields for an answer; Return chooses the filled, preferred action.",
     demo: <AlertDemo />,
     code: `<Alert
   open={open}
@@ -307,6 +320,17 @@ const TILES: Tile[] = [
   actions={[
     { label: "Cancel", role: "cancel" },
     { label: "Delete", role: "destructive", onSelect: remove },
+  ]}
+/>
+
+<Alert
+  open={renaming}
+  onOpenChange={setRenaming}
+  title="Rename shipment"
+  fields={[{ placeholder: "Name", defaultValue: shipment.name }]}
+  actions={[
+    { label: "Cancel", role: "cancel" },
+    { label: "Save", preferred: true, onSelect: ([name]) => rename(name) },
   ]}
 />`,
   },
