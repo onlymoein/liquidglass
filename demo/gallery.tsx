@@ -44,8 +44,22 @@ function MenuDemo() {
 }
 
 function Hold() {
+  const [view, setView] = useState("Icons");
+  const choice = (label: string) => ({ label, checked: view === label, keepOpen: true, onSelect: () => setView(label) });
   return (
-    <ContextMenu aria-label="Note" items={[{ icon: stroke(icons.copy), label: "Copy" }, { icon: stroke(icons.share), label: "Share" }, "separator", { icon: stroke(icons.trash), label: "Delete", destructive: true }]}>
+    <ContextMenu
+      aria-label="Note"
+      items={[
+        { icon: stroke(icons.copy), label: "Copy" },
+        { icon: stroke(icons.share), label: "Share" },
+        "separator",
+        { heading: "View as" },
+        choice("Icons"),
+        choice("List"),
+        "separator",
+        { icon: stroke(icons.trash), label: "Delete", destructive: true },
+      ]}
+    >
       <Glass className="hold">Hold me</Glass>
     </ContextMenu>
   );
@@ -248,6 +262,10 @@ const TILES: Tile[] = [
   aria-label="Note"
   items={[
     { label: "Copy", onSelect: copy },
+    { heading: "View as" },
+    { label: "Icons", checked: view === "icons", keepOpen: true, onSelect: () => setView("icons") },
+    { label: "List", checked: view === "list", keepOpen: true, onSelect: () => setView("list") },
+    "separator",
     { label: "Delete", destructive: true, onSelect: remove },
   ]}
 >

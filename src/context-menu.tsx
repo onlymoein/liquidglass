@@ -3,18 +3,21 @@ import {
   useRef,
   useState,
   type JSX,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
+import { checkmark } from "./internal/checkmark";
 import { useControllable } from "./internal/controllable";
 import { cx } from "./internal/cx";
+import { safeHref } from "./internal/href";
 import { reducedMotion, useModal } from "./internal/modal";
 import { placeMenu } from "./internal/placement";
 import { fitRim } from "./internal/refraction";
 import { createSpring } from "./internal/spring";
-import type { MenuEntry } from "./menu";
+import type { MenuEntry, MenuItem } from "./menu";
 import { useStyles } from "./internal/styles";
 import buttonCss from "./styles/button.css?inline";
 import menuCss from "./styles/menu.css?inline";
@@ -22,6 +25,7 @@ import layerCss from "./styles/layer.css?inline";
 import contextMenuCss from "./styles/context-menu.css?inline";
 
 export interface ContextMenuProps {
+  /** The same entries as a Menu's: rows, headings and separators, with `checked`, `href`, `keepOpen` and the rest. */
   items: MenuEntry[];
   open?: boolean;
   defaultOpen?: boolean;
@@ -31,6 +35,15 @@ export interface ContextMenuProps {
   className?: string;
   "aria-label"?: string;
 }
+
+// Whether the browser would ring this element, as it does one a keyboard has focused. Where it can't say, it's taken to.
+const ringed = (element: Element) => {
+  try {
+    return element.matches(":focus-visible");
+  } catch {
+    return true;
+  }
+};
 
 const HOLD_MS = 500;
 const GAP = 10;
@@ -54,7 +67,11 @@ export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpen
     done.current = finished;
   });
 
+  // A keyboard opens the menu on its first row; a finger or a mouse has no use for that, and it'd come up ringed.
+  const byKeyboard = useRef(false);
   const show = () => {
+    const held = document.activeElement;
+    byKeyboard.current = held != null && targetRef.current!.contains(held) && ringed(held);
     setFrom(targetRef.current!.getBoundingClientRect());
     setOpen(true);
   };
@@ -77,6 +94,34 @@ export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpen
     event.preventDefault();
     cancelHold();
     show();
+  };
+
+  // What choosing an item does is what it does in a Menu: it closes the menu unless it keeps it open,
+  // and follows its link (a Cmd, Ctrl or Shift click opens it in a new tab) when it has one.
+  const choose = (item: MenuItem, event: ReactMouseEvent) => {
+    const href = safeHref(item.href);
+    if (href) event.preventDefault();
+    const elsewhere = event.metaKey || event.ctrlKey || event.shiftKey;
+    if (!item.keepOpen || (href && elsewhere)) setOpen(false);
+    if (href && elsewhere) window.open(href, "_blank", "noopener");
+    else if (item.onSelect) item.onSelect();
+    else if (href) window.location.assign(href);
+  };
+
+  // The arrow keys, Home and End move along the rows, and wrap round.
+  const navigate = (event: ReactKeyboardEvent) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const rows = [...cardRef.current!.querySelectorAll<HTMLElement>(".lg-menu-item:not(:disabled)")];
+    const index = rows.indexOf(document.activeElement as HTMLElement);
+    const down = event.key === "ArrowDown";
+    const next =
+      event.key === "Home" || (index < 0 && down)
+        ? 0
+        : event.key === "End" || index < 0
+          ? rows.length - 1
+          : (index + (down ? 1 : -1) + rows.length) % rows.length;
+    rows[next]?.focus({ preventScroll: true });
   };
 
   useEffect(() => {
@@ -106,7 +151,7 @@ export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpen
     springRef.current = spring;
     spring.paint();
     spring.set(1, reducedMotion());
-    card.querySelector<HTMLElement>(".lg-menu-item:not(:disabled)")?.focus({ preventScroll: true });
+    if (byKeyboard.current) card.querySelector<HTMLElement>(".lg-menu-item:not(:disabled)")?.focus({ preventScroll: true });
     return () => {
       spring.stop();
       springRef.current = null;
@@ -137,7 +182,7 @@ export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpen
       >
         {children}
       </div>
-      <dialog ref={dialogRef} className="lg-modal lg-context" data-phase={phase} aria-label={label}>
+      <dialog ref={dialogRef} className="lg-modal lg-context" data-phase={phase} aria-label={label} onKeyDown={navigate}>
         {phase === "closed" ? null : (
           <>
             <span className="lg-modal-scrim" aria-hidden onClick={() => setOpen(false)} />
@@ -148,22 +193,40 @@ export function ContextMenu({ items, open: openProp, defaultOpen = false, onOpen
               <div className="lg-menu-content">
                 {items.map((item, index) => {
                   if (item === "separator") return <div key={index} role="separator" className="lg-menu-separator" />;
-                  if ("heading" in item) return <div key={index} className="lg-menu-heading">{item.heading}</div>;
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      role="menuitem"
-                      className="lg-menu-item"
-                      disabled={item.disabled}
-                      data-destructive={item.destructive ? "" : undefined}
-                      onClick={() => {
-                        setOpen(false);
-                        item.onSelect?.();
-                      }}
-                    >
+                  if ("heading" in item) {
+                    return (
+                      <div key={index} role="presentation" className="lg-menu-heading">
+                        {item.heading}
+                      </div>
+                    );
+                  }
+                  const choice = item.checked !== undefined;
+                  const props = {
+                    role: choice ? "menuitemradio" : "menuitem",
+                    "aria-checked": choice ? item.checked : undefined,
+                    className: cx("lg-menu-item", item.className),
+                    "data-destructive": item.destructive ? "" : undefined,
+                    onClick: (event: ReactMouseEvent) => choose(item, event),
+                  };
+                  const body = (
+                    <>
+                      {choice ? (
+                        <span className="lg-menu-check" aria-hidden>
+                          {item.checked ? checkmark : null}
+                        </span>
+                      ) : null}
                       {item.icon}
                       {item.label}
+                    </>
+                  );
+                  const href = safeHref(item.href);
+                  return href && !item.disabled ? (
+                    <a key={index} href={href} {...props}>
+                      {body}
+                    </a>
+                  ) : (
+                    <button key={index} type="button" disabled={item.disabled} {...props}>
+                      {body}
                     </button>
                   );
                 })}
