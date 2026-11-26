@@ -2,6 +2,7 @@ export { Alert, type AlertAction, type AlertProps } from "./alert";
 export { Button, type ButtonProps } from "./button";
 export { Glass, type GlassProps } from "./glass";
 export { ContextMenu, type ContextMenuProps } from "./context-menu";
+export { DatePicker, type DatePickerProps } from "./date-picker";
 export { GlassGroup, type GlassGroupProps } from "./glass-group";
 export { Input, type InputProps } from "./input";
 export { Menu, type MenuEntry, type MenuItem, type MenuProps } from "./menu";

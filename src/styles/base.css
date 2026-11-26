@@ -48,6 +48,10 @@
   --lg-rail: rgb(0 0 0 / 0.1);
   --lg-on: #34c759;
   --lg-fill: #0088ff;
+  /* The date picker's accent text, its greyed-out days and weekdays, and the digit on the day picked (iOS 27.2). */
+  --lg-date-tint: rgb(0 129 246);
+  --lg-date-faint: rgb(0 0 0 / 0.4);
+  --lg-date-on-selected: #fff;
   --lg-ring: rgb(0 0 0 / 0.4);
   --lg-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -96,6 +100,9 @@
   --lg-rail: rgb(255 255 255 / 0.1);
   --lg-on: #30d158;
   --lg-fill: #0091ff;
+  --lg-date-tint: rgb(32 177 255);
+  --lg-date-faint: rgb(255 255 255 / 0.345);
+  --lg-date-on-selected: #000;
   --lg-ring: rgb(255 255 255 / 0.5);
 }
 
@@ -144,6 +151,9 @@
     --lg-rail: rgb(255 255 255 / 0.1);
     --lg-on: #30d158;
     --lg-fill: #0091ff;
+    --lg-date-tint: rgb(32 177 255);
+    --lg-date-faint: rgb(255 255 255 / 0.345);
+    --lg-date-on-selected: #000;
     --lg-ring: rgb(255 255 255 / 0.5);
   }
 }

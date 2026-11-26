@@ -1,0 +1,217 @@
+/* Date picker. Sizes measured on iOS 27.2's compact date picker, iPhone 17 simulator. */
+
+/* The date on a grey capsule, 36.33 points tall, that turns the accent colour while its calendar is open. */
+.lg-date-trigger {
+  box-sizing: border-box;
+  height: 36.33px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--lg-foreground);
+  background: var(--lg-fill-subtle);
+  font: inherit;
+  font-size: 17px;
+  line-height: 22px;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-date-trigger[data-open] {
+  color: var(--lg-date-tint);
+}
+
+.lg-date-trigger:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lg-date-trigger:focus-visible,
+.lg-date-turn:focus-visible,
+.lg-date-day:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 2px;
+}
+
+/* No dimming behind it: a tap anywhere else only closes it. */
+.lg-date .lg-modal-scrim {
+  background: none;
+}
+
+.lg-date[data-phase="leaving"] {
+  pointer-events: none;
+}
+
+.lg-date-card {
+  position: absolute;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 16px));
+  height: 334px;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lg-date-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 27px;
+  box-shadow:
+    inset 0 0 0 0.5px var(--lg-edge),
+    0 12px 40px var(--lg-shadow);
+}
+
+/* While its shape runs from the button the rim can't follow it, so a plain edge does. */
+.lg-date-card[data-morphing] .lg-date-surface {
+  -webkit-mask-box-image: none;
+  mask-border: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -1px 0 rgb(255 255 255 / 0.25),
+    0 0 0 0.5px rgb(0 0 0 / 0.14),
+    0 12px 40px var(--lg-shadow);
+}
+
+.lg-date-card[data-morphing] .lg-date-surface::before {
+  display: none;
+}
+
+/* 16 + 37.67 header + 16 + 17.67 weekdays + 1 + 228.33 days + 17.33 = 334, the same for five weeks or six. */
+.lg-date-content {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 16px 0 17.33px;
+}
+
+.lg-date-header {
+  display: flex;
+  align-items: center;
+  height: 37.67px;
+  padding-inline: 20px 0.83px;
+}
+
+.lg-date-title {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 7.67px;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lg-date-more {
+  flex: none;
+  color: var(--lg-date-tint);
+  stroke-width: 2.2;
+}
+
+.lg-date-turn {
+  display: grid;
+  place-items: center;
+  width: 43.33px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: var(--lg-foreground);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The arrows' centres are 45.7 points apart on iOS. */
+.lg-date-turn + .lg-date-turn {
+  margin-inline-start: 2.33px;
+}
+
+.lg-date-turn:disabled {
+  color: var(--lg-date-faint);
+  cursor: default;
+}
+
+.lg-date-arrow {
+  stroke-width: 2.3;
+}
+
+[dir="rtl"] .lg-date-arrow {
+  transform: scaleX(-1);
+}
+
+.lg-date-grid {
+  padding: 0 10.67px;
+}
+
+.lg-date-weekdays,
+.lg-date-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.lg-date-weekdays {
+  height: 17.67px;
+  margin: 16px 0 1px;
+  color: var(--lg-date-faint);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 17.67px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.lg-date-weeks {
+  display: grid;
+  height: 228.33px;
+}
+
+.lg-date-week > span {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+/* A circle as wide as its column, 42.67 points; in a six-week month it's no taller than the row. */
+.lg-date-day {
+  box-sizing: border-box;
+  height: min(100%, 42.67px);
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-date-day:disabled {
+  color: var(--lg-date-faint);
+  cursor: default;
+}
+
+/* Today is the accent colour on a light wash of it. */
+.lg-date-day[data-today] {
+  color: var(--lg-date-tint);
+  background: color-mix(in srgb, var(--lg-fill) 12%, transparent);
+}
+
+/* The day picked is a solid circle of the text colour, or of the accent when it's today. */
+.lg-date-day[data-selected] {
+  color: var(--lg-date-on-selected);
+  background: var(--lg-foreground);
+  font-weight: 600;
+}
+
+.lg-date-day[data-selected][data-today] {
+  color: #fff;
+  background: var(--lg-fill);
+}

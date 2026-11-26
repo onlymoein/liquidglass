@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
+import { Alert, Button, DatePicker, Menu, NavigationBar, SearchField, SegmentedControl, Sheet, Slider, Stepper, Switch, TabBar, ToolbarGroup } from "../dist/index.js";
 import { icons, stroke } from "./shared";
 
 interface Swatch {
@@ -135,6 +135,7 @@ export function Phone() {
                 <label className="row">Show names <Switch aria-label="Show names" defaultChecked /></label>
                 <label className="row">Sync <Switch aria-label="Sync" /></label>
                 <div className="row">Columns <Stepper aria-label="Columns" value={size} min={1} max={4} onValueChange={setSize} /></div>
+                <div className="row">Print by <DatePicker aria-label="Print by" min={new Date()} /></div>
               </div>
               <div className="group">
                 <div className="row column">Finish <SegmentedControl aria-label="Finish" className="wide" defaultValue="matte" items={[{ value: "matte", label: "Matte" }, { value: "satin", label: "Satin" }, { value: "gloss", label: "Gloss" }]} /></div>
