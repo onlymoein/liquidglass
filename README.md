@@ -54,7 +54,7 @@ Add Apple's iOS 27 Liquid Glass to this app using liquidglass.
    If the project has both, use each package in its own app.
 
 3. Use the library's components (Glass, Button, Switch, Slider, Stepper, SegmentedControl,
-   Menu, TabBar, and on the web Toolbar, NavigationBar, Sheet, Alert, Input) instead of
+   Menu, TabBar, and on the web Toolbar, NavigationBar, Sheet, Alert, DatePicker, Input) instead of
    hand-made blur or "glassmorphism" CSS. Keep to the skill's rules: put glass over
    something colourful, don't nest glass inside glass, don't wrap it in opacity or filter,
    and give icon-only controls an aria-label (accessibilityLabel in React Native).
@@ -172,6 +172,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `NavigationBar` | A screen's top bar: back button, actions, a large title that slides into the bar | ✓ | |
 | `Input`, `SearchField` | Text fields set in glass | ✓ | |
 | `ContextMenu` | A menu that opens when you hold something down or right-click it | ✓ | |
+| `DatePicker` | A date on a capsule that opens a calendar on glass | ✓ | |
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |

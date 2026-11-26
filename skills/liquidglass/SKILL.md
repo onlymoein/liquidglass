@@ -62,6 +62,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Input`, `SearchField` | Text fields | `value`, `onValueChange`, `icon`, `variant: "glass" \| "fill"` |
 | `Menu` | A pull-down that grows out of its trigger | `aria-label` (required), `items`, `label` (pill trigger), `icon`, `align`, `chevron`, `trigger` (props for the trigger `Button`) |
 | `ContextMenu` | Hold down or right-click something to lift it and open a menu | `items`, `children` (what's held) |
+| `DatePicker` | A date that opens a calendar, iOS's compact date picker | `value`, `onValueChange`, `min`, `max`, `locale`, `firstDayOfWeek`, `name` |
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
@@ -105,7 +106,7 @@ Placement rules that matter:
 
 - `Toolbar` and `NavigationBar` go **first inside the element that scrolls**; they stick to its
   top. Don't wrap them in `position: fixed`.
-- `Menu`, `Sheet`, `Alert` and `ContextMenu` open in the top layer, so clipping and `z-index`
+- `Menu`, `Sheet`, `Alert`, `ContextMenu` and `DatePicker`'s calendar open in the top layer, so clipping and `z-index`
   around them don't matter.
 - In a `Sheet`, drags that start on a slider, a text field, or anything marked
   `data-lg-no-sheet-drag` stay with that element.

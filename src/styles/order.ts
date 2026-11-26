@@ -22,6 +22,7 @@ export const ORDER: readonly string[] = [
   "layer",
   "alert",
   "context-menu",
+  "date-picker",
   "sheet",
   "popup",
   "access",

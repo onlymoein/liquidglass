@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
-  Alert, Button, ContextMenu, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
+  Alert, Button, ContextMenu, DatePicker, Glass, Input, Menu, NavigationBar, PageControl, Progress, SearchField, SegmentedControl, Sheet, Slider, Spinner, Stepper, Switch, TabBar, Toolbar, ToolbarGroup,
 } from "../dist/index.js";
 import { icons, stroke, useCopied } from "./shared";
 
@@ -48,6 +48,15 @@ function Hold() {
     <ContextMenu aria-label="Note" items={[{ icon: stroke(icons.copy), label: "Copy" }, { icon: stroke(icons.share), label: "Share" }, "separator", { icon: stroke(icons.trash), label: "Delete", destructive: true }]}>
       <Glass className="hold">Hold me</Glass>
     </ContextMenu>
+  );
+}
+
+function Dates() {
+  const [date, setDate] = useState(() => new Date());
+  return (
+    <div className="rows">
+      <div className="row">Delivery <DatePicker aria-label="Delivery" value={date} onValueChange={setDate} /></div>
+    </div>
   );
 }
 
@@ -288,6 +297,12 @@ const TILES: Tile[] = [
     code: `<Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
 <Progress aria-label="Progress" value={count / 10} />
 <Spinner />`,
+  },
+  {
+    title: "DatePicker",
+    how: "Tap the date: the calendar grows out of it. Pick a day, or tap outside to close.",
+    demo: <Dates />,
+    code: `<DatePicker aria-label="Delivery" value={date} onValueChange={setDate} />`,
   },
   {
     title: "PageControl",
