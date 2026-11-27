@@ -79,8 +79,9 @@ describe("performance workflow", () => {
 
 // Dependencies the build and CI tools reach, which npm audit holds to account even where
 // the vulnerable code can't run. basic-ftp < 6.2.1 backtracks quadratically on a listing line
-// (GHSA-c475-qrg2-pj4r); Lighthouse CI pulls it in through proxy-agent and get-uri, which
-// ask for ^5, so it's pinned past the fix here.
+// (GHSA-c475-qrg2-pj4r), < 6.2.3 crashes on a CR/LF in a password or path (GHSA-r4jh-29pc-gfqr)
+// and < 6.2.4 crashes on an MLSD "__proto__" fact (GHSA-5pm8-86m8-9m6r); Lighthouse CI pulls it
+// in through proxy-agent and get-uri, which ask for ^5, so it's pinned past all three here.
 describe("dependencies", () => {
   const atLeast = (version: string, floor: number[]) => {
     const parts = version.split(".").map(Number);
@@ -90,13 +91,13 @@ describe("dependencies", () => {
     return true;
   };
 
-  test("pins basic-ftp past its listing-parser fix", () => {
-    expect(JSON.parse(manifest).overrides?.["basic-ftp"]).toBe("^6.2.1");
+  test("pins basic-ftp past every known advisory", () => {
+    expect(JSON.parse(manifest).overrides?.["basic-ftp"]).toBe("^6.2.4");
   });
 
   test("resolves basic-ftp to a fixed version everywhere in the lockfile", () => {
     const packages: Record<string, { version: string }> = JSON.parse(lock).packages;
     const found = Object.entries(packages).filter(([path]) => path.endsWith("node_modules/basic-ftp"));
-    for (const [, entry] of found) expect(atLeast(entry.version, [6, 2, 1])).toBe(true);
+    for (const [, entry] of found) expect(atLeast(entry.version, [6, 2, 4])).toBe(true);
   });
 });
