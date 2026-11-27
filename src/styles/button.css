@@ -1,14 +1,17 @@
 /* Button */
 
+/* iOS 27's glass buttons, measured on the iPhone 17 simulator (iOS 27.2) as SwiftUI lays out
+   `.glass` and `.glassProminent`: the glass fills the box and its hairline rim falls just
+   outside it, as here. `mini` draws as `small` there and `extraLarge` as `large`. */
 .lg-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 36px;
+  gap: 7.5px;
+  height: 36.33px;
   padding: 0 12px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 18.17px;
   color: var(--lg-foreground);
   font: inherit;
   font-size: 17px;
@@ -24,47 +27,90 @@
     color 200ms ease;
 }
 
+/* Its label sits a point higher than the middle, as iOS sets 15-point text; the icon stays centred. */
 .lg-button[data-size="small"] {
   height: 30px;
-  padding: 0 10px;
+  padding: 0 10px 2px;
   border-radius: 15px;
   font-size: 15px;
 }
 
+.lg-button[data-icon=""][data-size="small"] > svg {
+  margin-bottom: -2px;
+}
+
 .lg-button[data-size="large"] {
-  height: 52px;
+  height: 52.33px;
   padding: 0 20px;
-  border-radius: 26px;
+  border-radius: 26.17px;
 }
 
-.lg-button[data-icon] {
-  padding-left: 10px;
+/* An icon's own margin is wider than a symbol's, so its side is a little narrower: the
+   icon's ink sits 12, 14 and 22 points in, and 11 from the label's, as on iOS. */
+.lg-button[data-icon=""] {
+  padding-left: 10.5px;
 }
 
-/* Wider than it's tall: on iOS an icon sits lower in a glass capsule than a label does. */
+.lg-button[data-icon=""][data-size="small"] {
+  padding-left: 9px;
+}
+
+.lg-button[data-icon=""][data-size="large"] {
+  padding-left: 18.5px;
+}
+
+/* Wider than it's tall, and shorter than a label's: on iOS an icon sits in a smaller capsule. */
 .lg-button[data-icon="only"] {
-  width: 43px;
-  height: 32px;
+  width: 42px;
+  height: 30.67px;
   padding: 0;
-  border-radius: 16px;
+  border-radius: 15.33px;
 }
 
 .lg-button[data-icon="only"][data-size="small"] {
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
+  width: 36.33px;
+  height: 25px;
+  border-radius: 12.5px;
 }
 
 .lg-button[data-icon="only"][data-size="large"] {
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
+  width: 58px;
+  height: 46.67px;
+  border-radius: 23.33px;
 }
 
+/* `shape="circle"`: as wide as it's tall, as `.buttonBorderShape(.circle)` makes it. */
+.lg-button[data-shape="circle"] {
+  width: 36.33px;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.lg-button[data-shape="circle"][data-size="small"] {
+  width: 30px;
+}
+
+.lg-button[data-shape="circle"][data-size="large"] {
+  width: 52.33px;
+}
+
+.lg-button[data-shape="circle"][data-icon="only"] {
+  width: 30.67px;
+}
+
+.lg-button[data-shape="circle"][data-icon="only"][data-size="small"] {
+  width: 25px;
+}
+
+.lg-button[data-shape="circle"][data-icon="only"][data-size="large"] {
+  width: 46.67px;
+}
+
+/* Sized with the label, as a symbol is: 20 points beside 17-point text. */
 .lg-button > svg {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: calc(20em / 17);
+  height: calc(20em / 17);
 }
 
 /* Lights up at once when pressed, as on iOS, and fades on release. */

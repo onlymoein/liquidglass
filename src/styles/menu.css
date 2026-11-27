@@ -92,9 +92,10 @@
   pointer-events: none;
 }
 
+/* As the trigger's icon is: it takes the trigger's font size. */
 .lg-menu-glyph > svg {
-  width: 20px;
-  height: 20px;
+  width: calc(20em / 17);
+  height: calc(20em / 17);
 }
 
 /* A labelled trigger's face, laid out as the button lays it out. */

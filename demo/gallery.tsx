@@ -17,6 +17,11 @@ function Buttons() {
         <Button destructive>Delete</Button>
         <Button aria-label="Add" size="large" icon={stroke(icons.plus)} />
       </div>
+      <div className="line">
+        <Button icon={stroke(icons.plus)}>Add</Button>
+        <Button aria-label="Add" icon={stroke(icons.plus)} />
+        <Button aria-label="Add" shape="circle" icon={stroke(icons.plus)} />
+      </div>
     </div>
   );
 }
@@ -222,7 +227,9 @@ const TILES: Tile[] = [
     code: `<Button size="large">Large</Button>
 <Button variant="filled">Filled</Button>
 <Button destructive>Delete</Button>
-<Button aria-label="Add" icon={<PlusIcon />} />`,
+<Button icon={<PlusIcon />}>Add</Button>
+<Button aria-label="Add" icon={<PlusIcon />} />
+<Button aria-label="Add" shape="circle" icon={<PlusIcon />} />`,
   },
   {
     title: "Menu",

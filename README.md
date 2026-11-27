@@ -161,7 +161,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | --- | --- | :---: | :---: |
 | `Glass` | A plain piece of glass to put anything on | ✓ | ✓ |
 | `GlassGroup` | Glass that flows together when pieces come close | ✓ | ✓ |
-| `Button` | A glass or filled button in the iOS sizes, with an optional icon or tint | ✓ | ✓ |
+| `Button` | A glass or filled button in iOS 27's measured sizes, capsule or circle, with an optional icon or tint | ✓ | ✓ |
 | `Switch` | An on/off switch with a glass thumb | ✓ | ✓ |
 | `Slider` | A slider with a glass thumb | ✓ | ✓ |
 | `Stepper` | Two buttons that step a number down and up | ✓ | ✓ |
