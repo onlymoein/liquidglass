@@ -20,7 +20,10 @@
   --lg-drop-strength: 1;
   --lg-tab-accent: #005fc9;
   --lg-fill-subtle: rgb(118 118 128 / 0.12);
-  --lg-stepper: rgb(0 0 0 / 0.05);
+  /* Measured on iOS 27.2: the stepper's fill, its divider and the activity indicator's lit blade. */
+  --lg-stepper: rgb(118 118 128 / 0.125);
+  --lg-stepper-divider: rgb(60 60 67 / 0.3);
+  --lg-spinner: rgb(60 60 67 / 0.51);
   --lg-thumb: #fff;
   --lg-scrim: rgb(0 0 0 / 0.2);
   --lg-action: rgb(0 0 0 / 0.15);
@@ -73,8 +76,10 @@
   --lg-drop-strength: 1.6;
   --lg-tab-accent: #62dcff;
   --lg-fill-subtle: rgb(118 118 128 / 0.24);
-  --lg-stepper: rgb(255 255 255 / 0.1);
-  --lg-thumb: rgb(255 255 255 / 0.25);
+  --lg-stepper: rgb(118 118 128 / 0.15);
+  --lg-stepper-divider: rgb(235 235 245 / 0.3);
+  --lg-spinner: rgb(235 235 245 / 0.47);
+  --lg-thumb: rgb(255 255 255 / 0.275);
   --lg-scrim: rgb(0 0 0 / 0.48);
   --lg-action: rgb(255 255 255 / 0.1);
   --lg-sheet-opaque: #1c1c1e;
@@ -121,8 +126,10 @@
     --lg-drop-strength: 1.6;
     --lg-tab-accent: #62dcff;
     --lg-fill-subtle: rgb(118 118 128 / 0.24);
-    --lg-stepper: rgb(255 255 255 / 0.1);
-    --lg-thumb: rgb(255 255 255 / 0.25);
+    --lg-stepper: rgb(118 118 128 / 0.15);
+    --lg-stepper-divider: rgb(235 235 245 / 0.3);
+    --lg-spinner: rgb(235 235 245 / 0.47);
+    --lg-thumb: rgb(255 255 255 / 0.275);
     --lg-scrim: rgb(0 0 0 / 0.48);
     --lg-action: rgb(255 255 255 / 0.1);
     --lg-sheet-opaque: #1c1c1e;

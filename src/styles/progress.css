@@ -17,23 +17,45 @@
   transition: transform 300ms var(--lg-ease);
 }
 
+/* Measured on iOS 27.2: each size's blades reach its edge (the large one's stop 1.17 points
+   short) and are as long and wide as iOS's. The lit blade runs clockwise; the four behind it
+   fade to a third and the rest stay there. */
 .lg-spinner {
+  --lg-spinner-size: 20px;
+  --lg-blade-width: 2.5px;
+  --lg-blade-length: 6.67px;
+  --lg-blade-inset: 0px;
   position: relative;
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  color: var(--lg-muted);
+  flex: none;
+  width: var(--lg-spinner-size);
+  height: var(--lg-spinner-size);
+  color: var(--lg-spinner);
+}
+
+.lg-spinner[data-size="small"] {
+  --lg-spinner-size: 14px;
+  --lg-blade-width: 2px;
+  --lg-blade-length: 4px;
+}
+
+.lg-spinner[data-size="large"] {
+  --lg-spinner-size: 37px;
+  --lg-blade-width: 5px;
+  --lg-blade-length: 12.33px;
+  --lg-blade-inset: 1.17px;
 }
 
 .lg-spinner > i {
   position: absolute;
-  top: 0;
-  left: calc(50% - 1.25px);
-  width: 2.5px;
-  height: 6px;
-  border-radius: 1.25px;
+  top: var(--lg-blade-inset);
+  left: calc(50% - var(--lg-blade-width) / 2);
+  width: var(--lg-blade-width);
+  height: var(--lg-blade-length);
+  border-radius: calc(var(--lg-blade-width) / 2);
   background: currentColor;
-  transform-origin: 1.25px 10px;
+  opacity: 0.32;
+  transform-origin: 50% calc(var(--lg-spinner-size) / 2 - var(--lg-blade-inset));
   transform: rotate(calc(var(--lg-blade) * 45deg));
   animation: lg-spin 800ms linear infinite;
   animation-delay: calc((var(--lg-blade) - 8) * 100ms);
@@ -44,7 +66,8 @@
     opacity: 1;
   }
 
+  50%,
   to {
-    opacity: 0.2;
+    opacity: 0.32;
   }
 }

@@ -65,7 +65,7 @@ To load every component's CSS up front instead, import `@onlymoein/liquidglass/s
 | `Sheet` | Bottom sheet with detents | `open`, `onOpenChange`, `detents: ("medium" \| "large")[]`, `aria-label` |
 | `Alert` | A modal question | `title`, `message`, `actions: { label, role?: "cancel" \| "destructive", onSelect? }[]` |
 | `PageControl` | Page dots | `count`, `value`, `onValueChange`, `glass` |
-| `Progress`, `Spinner` | Progress bar (`value` 0–1), activity indicator | |
+| `Progress`, `Spinner` | Progress bar (`value` 0–1), activity indicator | `size: "small" \| "regular" \| "large"` (Spinner; 14, 20 or 37 points) |
 | `GlassGroup` | Glass that flows together when pieces come close | `spacing` (points) |
 
 Menu items are `{ label, icon?, onSelect?, href?, checked?, keepOpen?, destructive?, disabled? }`,
