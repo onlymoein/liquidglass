@@ -39,7 +39,10 @@ export const Progress: ForwardRefExoticComponent<ProgressProps & RefAttributes<H
   );
 });
 
-export type SpinnerProps = HTMLAttributes<HTMLSpanElement>;
+export interface SpinnerProps extends HTMLAttributes<HTMLSpanElement> {
+  /** iOS's sizes: 14, 20 (the default) or 37 points across. */
+  size?: "small" | "regular" | "large";
+}
 
 const BLADES = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -47,10 +50,10 @@ const BLADES = [0, 1, 2, 3, 4, 5, 6, 7];
 export const Spinner: ForwardRefExoticComponent<SpinnerProps & RefAttributes<HTMLSpanElement>> = /* @__PURE__ */ forwardRef<
   HTMLSpanElement,
   SpinnerProps
->(function Spinner({ className, ...props }, ref) {
+>(function Spinner({ size = "regular", className, ...props }, ref) {
   useStyles(["menu", menuCss], ["progress", progressCss]);
   return (
-    <span ref={ref} role="status" aria-label="Loading" className={cx("lg-spinner", className)} {...props}>
+    <span ref={ref} role="status" aria-label="Loading" data-size={size} className={cx("lg-spinner", className)} {...props}>
       {BLADES.map((blade) => (
         <i key={blade} style={{ "--lg-blade": blade } as CSSProperties} />
       ))}

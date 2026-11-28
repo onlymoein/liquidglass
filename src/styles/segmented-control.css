@@ -10,7 +10,7 @@
   border-radius: 16px;
   background: var(--lg-fill-subtle);
   color: var(--lg-foreground);
-  font-size: 14px;
+  font-size: 13px;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -60,14 +60,15 @@
   width: calc(100% / var(--lg-segments) - 4px);
   border-radius: 14px;
   background: var(--lg-thumb);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
   pointer-events: none;
 }
 
+/* As on iOS 27.2, every segment is as wide as the widest label and 9.5 points either side of
+   it, and never under 32. */
 .lg-segment {
   position: relative;
-  min-width: 0;
-  padding: 0 8px;
+  min-width: 32px;
+  padding: 0 9.5px;
   border: 0;
   border-radius: 14px;
   color: inherit;

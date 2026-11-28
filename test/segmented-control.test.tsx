@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 import { SegmentedControl } from "../src";
+import { rule } from "./rule";
 
 const items = [
   { value: "boxes", label: "Boxes" },
@@ -118,4 +119,14 @@ test("held, the lens carries a copy of the labels at their own size and cuts awa
   expect(lens.style.visibility).toBe("hidden");
   expect(group.querySelector<HTMLElement>(".lg-segment-face")!.style.clipPath).toBe("");
   vi.useRealTimers();
+});
+
+test("sets its labels as iOS 27 does: 13 points, 9.5 either side, no segment under 32, a flat thumb", () => {
+  render(<SegmentedControl aria-label="Load" items={items} />);
+  expect(rule("segmented-control", ".lg-segmented")).toContain("font-size: 13px");
+  const segment = rule("segmented-control", ".lg-segment");
+  expect(segment).toContain("padding: 0 9.5px");
+  expect(segment).toContain("min-width: 32px");
+  expect(rule("segmented-control", ".lg-segmented-thumb")).not.toContain("box-shadow");
+  expect(rule("base", ':where([data-theme="dark"])')).toContain("--lg-thumb: rgb(255 255 255 / 0.275)");
 });

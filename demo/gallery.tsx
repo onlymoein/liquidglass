@@ -80,7 +80,11 @@ function Steps() {
     <div className="stack wide">
       <div className="line between">
         <Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
-        <Spinner />
+        <div className="line">
+          <Spinner size="small" />
+          <Spinner />
+          <Spinner size="large" />
+        </div>
       </div>
       <Progress aria-label="Progress" value={count / 10} />
       <output className="readout">{count} of 10</output>
@@ -283,11 +287,11 @@ const TILES: Tile[] = [
   },
   {
     title: "Stepper, Progress, Spinner",
-    how: "The stepper drives the bar.",
+    how: "The stepper drives the bar; the spinner comes in iOS's three sizes.",
     demo: <Steps />,
     code: `<Stepper aria-label="Count" value={count} min={0} max={10} onValueChange={setCount} />
 <Progress aria-label="Progress" value={count / 10} />
-<Spinner />`,
+<Spinner size="small" />  {/* or "regular" (the default) or "large" */}`,
   },
   {
     title: "PageControl",

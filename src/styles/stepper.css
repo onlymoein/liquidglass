@@ -14,7 +14,7 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 46px;
+  width: 47px;
   height: 100%;
   padding: 0;
   border: 0;
@@ -44,7 +44,7 @@
 .lg-stepper-divider {
   flex: none;
   width: 1px;
-  height: 16px;
+  height: 24px;
   margin: 0 -0.5px;
-  background: var(--lg-separator);
+  background: var(--lg-stepper-divider);
 }

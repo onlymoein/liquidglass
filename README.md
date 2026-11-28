@@ -175,7 +175,7 @@ It needs Expo SDK 54 or later and a development build; it doesn't run in Expo Go
 | `Sheet` | A sheet that rises from the bottom and drags between heights | ✓ | |
 | `Alert` | A modal question with pill buttons | ✓ | |
 | `PageControl` | Page dots on a capsule of glass | ✓ | |
-| `Progress`, `Spinner` | A progress bar and the activity indicator | ✓ | |
+| `Progress`, `Spinner` | A progress bar and the activity indicator, in iOS's three sizes | ✓ | |
 | `Backdrop`, `Text`, `ScrollView` | What glass shows on Android, an iOS-like typeface, and iOS's bounce | | ✓ |
 
 Every control can be **controlled** (`value` / `checked` / `open` with `onValueChange` / `onCheckedChange` / `onOpenChange`) or **uncontrolled** (`defaultValue` / `defaultChecked` / `defaultOpen`).
